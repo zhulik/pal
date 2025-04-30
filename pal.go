@@ -44,6 +44,10 @@ func New(factories ...ServiceFactory) *Pal {
 	}
 }
 
+func FromContext(ctx context.Context) *Pal {
+	return ctx.Value(CtxValue).(*Pal)
+}
+
 // InitTimeout sets the timeout for the initialization of the services.
 func (p *Pal) InitTimeout(t time.Duration) *Pal {
 	p.config.InitTimeout = t
@@ -112,12 +116,22 @@ func (p *Pal) Services() []string {
 	return names
 }
 
-func (p *Pal) Invoke(ctx context.Context, name string) any {
+func (p *Pal) Runners() []string {
+	var runners []string
+	for name, factory := range p.factories {
+		if factory.IsRunner() {
+			runners = append(runners, name)
+		}
+	}
+	return runners
+}
+
+func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
 	factory, ok := p.factories[name]
 	if !ok {
-		panic(fmt.Sprintf("service `%s` not found, known services: %s", name, p.Services()))
+		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, p.Services())
 	}
 
 	var instance any
@@ -126,15 +140,16 @@ func (p *Pal) Invoke(ctx context.Context, name string) any {
 	if factory.IsSingleton() {
 		instance, ok = p.instances[name]
 		if !ok {
-			panic(fmt.Sprintf("service `%s` not initialized", name))
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
 		}
 	} else {
 		instance, err = factory.Initialize(ctx)
 		if err != nil {
-			panic(fmt.Sprintf("service `%s` failed to initialize: %s", name, err))
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
 		}
 	}
-	return instance
+
+	return instance, nil
 }
 
 func (p *Pal) validate(_ context.Context) error {
@@ -152,7 +167,7 @@ func (p *Pal) init(ctx context.Context) error {
 		// TODO: if init fails with an error - try to gracefully shutdown already initialized dependencies.
 	}()
 
-	// Initialize dependencies staring from the leafs. The more dependants an services, the earlier it will be initialized.
+	// Initialize dependencies staring from the leaves. The more dependants an services, the earlier it will be initialized.
 
 	err := p.buildDAG()
 	if err != nil {
@@ -212,16 +227,6 @@ func (p *Pal) buildDAG() error {
 	}
 
 	return nil
-}
-
-func (p *Pal) Runners() []string {
-	var runners []string
-	for name, factory := range p.factories {
-		if factory.IsRunner() {
-			runners = append(runners, name)
-		}
-	}
-	return runners
 }
 
 func (p *Pal) addDependencyVertex(name string, parent string) error {

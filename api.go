@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 )
 
@@ -9,8 +10,7 @@ import (
 // Only one instance of the service will be created and reused.
 // TODO: any ways to enforce this with types?
 func Provide[I any, S any]() ServiceFactory {
-	var s S
-	_, isRunner := any(s).(Runner)
+	_, isRunner := any(empty[S]()).(Runner)
 
 	return &serviceFactory[I, S]{
 		singleton: true,
@@ -28,11 +28,23 @@ func ProvideFactory[I any, S any]() ServiceFactory {
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
-func Invoke[I any](ctx context.Context, p *Pal) I {
-	return p.Invoke(ctx, reflect.TypeOf((*I)(nil)).Elem().String()).(I)
+func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
+	name := reflect.TypeOf((*I)(nil)).Elem().String()
+
+	a, err := p.Invoke(ctx, name)
+	if err != nil {
+		return empty[I](), err
+	}
+
+	casted, ok := a.(I)
+	if !ok {
+		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", ErrServiceCastingFailed, a, name, name)
+	}
+
+	return casted, nil
 }
 
-func Inject[S any](ctx context.Context, p *Pal) *S {
+func Inject[S any](ctx context.Context, p *Pal) (*S, error) {
 	s := new(S)
 	v := reflect.ValueOf(s).Elem()
 	t := v.Type()
@@ -49,10 +61,13 @@ func Inject[S any](ctx context.Context, p *Pal) *S {
 			continue
 		}
 
-		dependency := p.Invoke(ctx, fieldType.String())
+		dependency, err := p.Invoke(ctx, fieldType.String())
+		if err != nil {
+			return nil, err
+		}
 
 		field.Set(reflect.ValueOf(dependency))
 	}
 
-	return s
+	return s, nil
 }

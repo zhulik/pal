@@ -17,21 +17,23 @@ func (d serviceFactory[I, S]) Name() string {
 
 // Initialize creates a new instance of the service, calls its Init method if it implements Initer.
 func (d serviceFactory[I, S]) Initialize(ctx context.Context) (any, error) {
-	pal := ctx.Value(CtxValue).(*Pal)
-	s := Inject[S](ctx, pal)
+	pal := FromContext(ctx)
+	s, err := Inject[S](ctx, pal)
+	if err != nil {
+		return nil, err
+	}
 
 	if initer, ok := any(s).(Initer); ok {
 		if err := initer.Init(ctx); err != nil {
-			var i I
-			return i, err
+			return empty[I](), err
 		}
 	}
 
-	return any(s).(I), nil
+	return s, nil
 }
 
 func (d serviceFactory[I, S]) Make() any {
-	return *new(S)
+	return empty[S]()
 }
 
 func (d serviceFactory[I, S]) IsSingleton() bool {
