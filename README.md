@@ -1,0 +1,34 @@
+# Pal
+
+# Goals
+- Nondisruptive API: 
+  - You can integrate pal with any app, even if it already uses another IoC frameworks.
+  - Even though migration an existing app to pal may require some app redesign, you can do it gradually, 
+    migrating one module at a time.
+  - Pal tries not to leak into service implementations, so in most of the cases you won't need even structure tags 
+    in your services. But if you really need to interact with pal withing your services, you can do it.
+
+- Versatility: 
+  - You can use pal to build any kind of app: cli, dbms, web, videogames, anything.
+  - Pal is aware of other IoC tools and application frameworks, so it tries to coexist with them 
+    rather than conflict.
+
+- Safety:
+  - When following simple rules, pal never explodes in runtime in the middle of the night. It will only explode
+    during initialization, so you can catch it immediately after deployment. Unfortunately, we can't check everything in 
+    compile time.
+  - Pal tries its best to gracefully shut down the app in case if any services is unhealthy or when interrupted.
+  - Pal does not try to recover from errors, if any service is unhealthy, it shuts down the app. It's user's 
+    responsibility to design resilient services and it's execution environment responsibility to restart the crashed app.
+  - Pal is aware of contexts, all service lifetimes callbacks have timeouts: inits, health checks and shutdowns.
+
+# Non-goals
+- Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only 
+  performs periodic health checks. Thus pal's initialization and shutdown should not be blazing fast, it should be *fast enough*. 
+  Using factory services is more expensive that using singleton services, but should generally be *fast enough*.
+
+- Extensibility and configurability: pal is not designed to be the most flexible IoC framework, only *flexible enough*
+  to reach its goals.
+
+- lightweightness: while looking simple and having minimalistic API, pal is not that simple inside. It uses **reflection**
+  and some other dirty tricks so you don't have to.
