@@ -117,7 +117,6 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	}
 
 	var instance any
-	var err error
 
 	if factory.IsSingleton() {
 		instance, ok = p.store.instances[name]
@@ -125,6 +124,7 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
 		}
 	} else {
+		var err error
 		instance, err = factory.Initialize(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
