@@ -1,0 +1,47 @@
+version: "2"
+
+linters:
+  enable:
+    - gosec
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
+  settings:
+    gosec:
+      excludes:
+        - G104
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  fix: false
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/zhulik/pips
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

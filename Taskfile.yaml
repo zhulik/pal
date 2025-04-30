@@ -1,0 +1,34 @@
+version: '3'
+tasks:
+  default:
+    desc: Run tests and linting
+    cmds:
+      - task: lint-fix
+      - task: test
+
+  check:
+    deps:
+      - lint
+      - test
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -race ./...
+
+  cover:
+    desc: Run tests with cover report
+    cmds:
+      - mkdir -p coverage/
+      - go test -coverpkg=./... -coverprofile=coverage/cover.out ./...
+      - go tool cover -html coverage/cover.out -o coverage/cover.html
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
+  lint-fix:
+    desc: Run golangci-lint with auto-fix
+    cmds:
+      - golangci-lint run --fix
