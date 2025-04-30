@@ -54,7 +54,7 @@ func (p *Pal) HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
 	defer cancel()
 
-	err := p.store.healthCheck(ctx)
+	err := p.store.healthCheck(ctx, p)
 	if err != nil {
 		p.Error(err)
 	}
@@ -66,7 +66,7 @@ func (p *Pal) Shutdown(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 	defer cancel()
 
-	return p.store.shutdown(ctx)
+	return p.store.shutdown(ctx, p)
 }
 
 // Run eagerly initializes and starts Runners, then blocks until one of the given signals is received.
@@ -95,7 +95,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		return ctx.Err()
 	case <-sigChan:
 		if err := p.Shutdown(ctx); err != nil {
-			return p.Shutdown(ctx)
+			return err
 		}
 		return nil
 	}
@@ -127,6 +127,7 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 		}
 	} else {
 		var err error
+		p.log("initializing %s", name)
 		instance, err = factory.Initialize(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)

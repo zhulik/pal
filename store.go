@@ -52,6 +52,7 @@ func (s *store) init(ctx context.Context, p *Pal) error {
 			continue
 		}
 
+		p.log("initializing %s", factoryName)
 		instance, err := factory.Initialize(ctx)
 		if err != nil {
 			return err
@@ -60,7 +61,7 @@ func (s *store) init(ctx context.Context, p *Pal) error {
 		s.instances[factoryName] = instance
 	}
 
-	p.log("Initialized. Services: %s, runners: %s", p.Services(), p.Runners())
+	p.log("Initialized. Services: %s, runners: %s", s.services(), s.runners())
 
 	for name, instance := range s.instances {
 		if runner, ok := instance.(Runner); ok {
@@ -80,7 +81,7 @@ func (s *store) init(ctx context.Context, p *Pal) error {
 	return nil
 }
 
-func (s *store) shutdown(ctx context.Context) error {
+func (s *store) shutdown(ctx context.Context, p *Pal) error {
 	order, err := graph.TopologicalSort(s.graph)
 	if err != nil {
 		return err
@@ -89,16 +90,18 @@ func (s *store) shutdown(ctx context.Context) error {
 	var errs []error
 	for _, serviceName := range order {
 		if shutdowner, ok := s.instances[serviceName].(Shutdowner); ok {
+			p.log("shutting down %s", serviceName)
 			errs = append(errs, shutdowner.Shutdown(ctx))
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func (s *store) healthCheck(ctx context.Context) error {
+func (s *store) healthCheck(ctx context.Context, p *Pal) error {
 	var errs []error
 	for _, service := range s.instances {
 		if healthChecker, ok := service.(HealthChecker); ok {
+			p.log("health checking %s", service)
 			errs = append(errs, healthChecker.HealthCheck(ctx))
 		}
 	}

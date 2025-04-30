@@ -47,6 +47,10 @@ func (s *service) Init(_ context.Context) error {
 	return nil
 }
 
+func (s service) Shutdown(_ context.Context) error {
+	return nil
+}
+
 func (s service) Run(_ context.Context) error {
 	log.Println(s.Foo())
 
