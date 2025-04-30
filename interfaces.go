@@ -18,7 +18,6 @@ type Service interface {
 	// ctx has a timeout and only being canceled if it is exceeded.
 	// If all of the services successfully shutdown, pal will exit with a zero exit code.
 	// TODO: document shutdown process
-	// TODO: specify the exit codes
 	Shutdown(ctx context.Context) error
 
 	// Init is being called when pal is initializing the service, after all the dependencies are injected.

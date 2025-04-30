@@ -27,6 +27,8 @@ TODO: write me
   - Pal does not try to recover from errors, if any service is unhealthy, it shuts down the app. It's user's 
     responsibility to design resilient services and it's execution environment responsibility to restart the crashed app.
   - Pal is aware of contexts, all service lifetimes callbacks have timeouts: inits, health checks and shutdowns.
+    User is forced to configure these timeouts.
+  - pal is goroutine-safe.
 
 ## Non-goals
 - Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only 
@@ -38,3 +40,6 @@ TODO: write me
 
 - Lightweightness: while looking simple and having minimalistic API, pal is not that simple inside. It uses **reflection**
   and some other dirty tricks so you don't have to.
+
+- Fool protection: even though pal performs some configuration validation, it does not protect from making all possible
+  mistakes. For instance, it's user's responsibility to make sure each registered service uses a unique interface.

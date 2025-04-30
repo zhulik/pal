@@ -65,21 +65,14 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 
 // Error triggers graceful shutdown of the app, the error will be printer out, Pal.Run() will return an error.
 func (p *Pal) Error(_ error) {
+	// TODO: write me
 }
 
 func (p *Pal) Shutdown(ctx context.Context) error {
 	_, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 	defer cancel()
-	return nil
-}
+	// TODO: write me
 
-func (p *Pal) validate(_ context.Context) error {
-	// TODO: validate config here
-	return nil
-}
-
-func (p *Pal) init(_ context.Context) error {
-	// TODO: go through all the factories and create runners
 	return nil
 }
 
@@ -105,4 +98,16 @@ func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
 	case <-sigChan:
 		return &RunError{p.Shutdown(ctx)}
 	}
+}
+
+func (p *Pal) validate(_ context.Context) error {
+	// TODO: write me
+	// TODO: validate config here
+	return nil
+}
+
+func (p *Pal) init(_ context.Context) error {
+	// TODO: write me
+	// TODO: go through all the factories and create runners
+	return nil
 }
