@@ -4,16 +4,18 @@ import (
 	"context"
 )
 
-// Service is a service that can be registered with pal.
-// All services registered with pal must implement this interface event if implementations are empty.
-type Service interface {
+// HealthChecker is an optional interface that can be implemented by a service.
+type HealthChecker interface {
 	// HealthCheck is being called when pal is checking the health of the service.
 	// If returns an error, pal will consider the service unhealthy and try to gracefully shutdown the app,
 	// Pal.Run() will return an error.
 	// ctx has a timeout and only being canceled if it is exceeded.
 	// TODO: document healthcheck process
 	HealthCheck(ctx context.Context) error
+}
 
+// Shutdowner is an optional interface that can be implemented by a service.
+type Shutdowner interface {
 	// Shutdown is being called when pal is shutting down the service.
 	// If returns an error, pal will consider this service unhealthy, but will continue to shutdown the app,
 	// Pal.Run() will return an error.
@@ -21,7 +23,10 @@ type Service interface {
 	// If all of the services successfully shutdown, pal will exit with a zero exit code.
 	// TODO: document shutdown process
 	Shutdown(ctx context.Context) error
+}
 
+// Initer is an optional interface that can be implemented by a service.
+type Initer interface {
 	// Init is being called when pal is initializing the service, after all the dependencies are injected.
 	// If returns an error, pal will consider the service unhealthy and try to gracefully shutdown already initialized services.
 	// TODO: document init process

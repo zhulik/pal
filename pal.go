@@ -30,7 +30,7 @@ func New(factories ...ServiceFactory) *Pal {
 // Provide registers a singleton service with pal. *I* must be an interface and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 // TODO: any ways to enforce this with types?
-func Provide[I any, S Service]() ServiceFactory {
+func Provide[I any, S any]() ServiceFactory {
 	return &serviceFactory[I, S]{
 		singleton: true,
 	}
@@ -39,7 +39,7 @@ func Provide[I any, S Service]() ServiceFactory {
 // ProvideFactory registers a factory service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S Service]() ServiceFactory {
+func ProvideFactory[I any, S any]() ServiceFactory {
 	return &serviceFactory[I, S]{
 		singleton: false,
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type serviceFactory[I any, S Service] struct {
+type serviceFactory[I any, S any] struct {
 	singleton bool
 }
 
@@ -31,9 +31,11 @@ func (d *serviceFactory[I, S]) Create(ctx context.Context, p *Pal) (any, error) 
 	ctx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
 	defer cancel()
 
-	if err := s.Init(ctx); err != nil {
-		var i I
-		return i, err
+	if initer, ok := any(s).(Initer); ok {
+		if err := initer.Init(ctx); err != nil {
+			var i I
+			return i, err
+		}
 	}
 
 	if runner, ok := any(s).(Runner); ok {
