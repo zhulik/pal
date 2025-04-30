@@ -43,13 +43,12 @@ func (s service) Foo() string {
 }
 
 func (s *service) Init(_ context.Context) error {
-	log.Printf("intializing")
 	s.foo = "foo"
 	return nil
 }
 
 func (s service) Run(_ context.Context) error {
-	log.Printf("running %s", s.Foo())
+	log.Println(s.Foo())
 
 	return nil
 }

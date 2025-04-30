@@ -88,6 +88,8 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, signals...)
 
+	p.log("running until one of %+v is received", signals)
+
 	select {
 	case <-ctx.Done():
 		return &RunError{ctx.Err()}
@@ -109,6 +111,7 @@ func (p *Pal) Runners() []string {
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
+	p.log("invoking %s", name)
 
 	factory, ok := p.store.factories[name]
 	if !ok {

@@ -17,8 +17,7 @@ func (d serviceFactory[I, S]) Name() string {
 
 // Initialize creates a new instance of the service, calls its Init method if it implements Initer.
 func (d serviceFactory[I, S]) Initialize(ctx context.Context) (any, error) {
-	pal := FromContext(ctx)
-	s, err := Inject[S](ctx, pal)
+	s, err := Inject[S](ctx, FromContext(ctx))
 	if err != nil {
 		return nil, err
 	}

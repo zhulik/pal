@@ -3,7 +3,6 @@ package pal
 import (
 	"context"
 	"errors"
-	"log"
 	"reflect"
 	"slices"
 
@@ -61,11 +60,14 @@ func (s *store) init(ctx context.Context, p *Pal) error {
 		s.instances[factoryName] = instance
 	}
 
-	for _, instance := range s.instances {
+	p.log("Initialized. Services: %s, runners: %s", p.Services(), p.Runners())
+
+	for name, instance := range s.instances {
 		if runner, ok := instance.(Runner); ok {
 			// TODO: make it possible to wait for all runners.
 			go func() {
 				// TODO: use a custom context struct?
+				p.log("running %s", name)
 				ctx := context.WithValue(context.Background(), CtxValue, s)
 				err := runner.Run(ctx)
 
@@ -105,9 +107,6 @@ func (s *store) healthCheck(ctx context.Context) error {
 
 func (s *store) buildDAG() error {
 	runners := s.runners()
-
-	log.Printf("deps: %s", s.services())
-	log.Printf("runners: %s", runners)
 
 	for _, runner := range runners {
 		err := s.addDependencyVertex(runner, "")
