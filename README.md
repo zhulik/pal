@@ -41,5 +41,5 @@ TODO: write me
 - Lightweightness: while looking simple and having minimalistic API, pal is not that simple inside. It uses **reflection**
   and some other dirty tricks so you don't have to.
 
-- Fool protection: even though pal performs some configuration validation, it does not protect from making all possible
+- Fool-proofness: even though pal performs some configuration validation, it does not protect from making all possible
   mistakes. For instance, it's user's responsibility to make sure each registered service uses a unique interface.
