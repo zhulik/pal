@@ -78,6 +78,21 @@ func (s *store) init(ctx context.Context, p *Pal) error {
 	return nil
 }
 
+func (s *store) shutdown(ctx context.Context) error {
+	order, err := graph.TopologicalSort(s.graph)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for _, serviceName := range order {
+		if shutdowner, ok := s.instances[serviceName].(Shutdowner); ok {
+			errs = append(errs, shutdowner.Shutdown(ctx))
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func (s *store) buildDAG() error {
 	runners := s.runners()
 

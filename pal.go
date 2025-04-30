@@ -50,12 +50,12 @@ func (p *Pal) Error(_ error) {
 	// TODO: write me
 }
 
+// Shutdown gracefully stops all services within the configured timeout duration. Returns an error if shutdown fails.
 func (p *Pal) Shutdown(ctx context.Context) error {
-	_, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+	ctx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 	defer cancel()
-	// TODO: write me
 
-	return nil
+	return p.store.shutdown(ctx)
 }
 
 // Run eagerly initializes and starts Runners, then blocks until one of the given signals is received.
