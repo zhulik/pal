@@ -2,7 +2,6 @@ package pal
 
 import (
 	"context"
-	"log"
 	"reflect"
 )
 
@@ -33,7 +32,7 @@ func Invoke[I any](ctx context.Context, p *Pal) I {
 	return p.Invoke(ctx, reflect.TypeOf((*I)(nil)).Elem().String()).(I)
 }
 
-func Inject[S any](p *Pal) *S {
+func Inject[S any](ctx context.Context, p *Pal) *S {
 	s := new(S)
 	v := reflect.ValueOf(s).Elem()
 	t := v.Type()
@@ -42,7 +41,6 @@ func Inject[S any](p *Pal) *S {
 		field := v.Field(i)
 
 		if !field.CanSet() {
-			log.Printf("%T", s)
 			continue
 		}
 
@@ -51,7 +49,7 @@ func Inject[S any](p *Pal) *S {
 			continue
 		}
 
-		dependency := p.Invoke(context.Background(), fieldType.String())
+		dependency := p.Invoke(ctx, fieldType.String())
 
 		field.Set(reflect.ValueOf(dependency))
 	}
