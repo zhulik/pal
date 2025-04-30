@@ -17,10 +17,10 @@ const (
 type Pal struct {
 	config *Config
 
-	factories []DependencyFactory
+	factories []ServiceFactory
 }
 
-func New(factories ...DependencyFactory) *Pal {
+func New(factories ...ServiceFactory) *Pal {
 	return &Pal{
 		config:    &Config{},
 		factories: factories,
@@ -30,8 +30,8 @@ func New(factories ...DependencyFactory) *Pal {
 // Provide registers a singleton service with pal. *I* must be an interface and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 // TODO: any ways to enforce this with types?
-func Provide[I any, S Service]() *Dependency[I, S] {
-	return &Dependency[I, S]{
+func Provide[I any, S Service]() ServiceFactory {
+	return &serviceFactory[I, S]{
 		singleton: true,
 	}
 }
@@ -39,8 +39,8 @@ func Provide[I any, S Service]() *Dependency[I, S] {
 // ProvideFactory registers a factory service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S Service]() *Dependency[I, S] {
-	return &Dependency[I, S]{
+func ProvideFactory[I any, S Service]() ServiceFactory {
+	return &serviceFactory[I, S]{
 		singleton: false,
 	}
 }

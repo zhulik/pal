@@ -1,6 +1,8 @@
 package pal
 
-import "context"
+import (
+	"context"
+)
 
 // Service is a service that can be registered with pal.
 // All services registered with pal must implement this interface event if implementations are empty.
@@ -35,7 +37,7 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
-type DependencyFactory interface {
+type ServiceFactory interface {
 	Create(ctx context.Context, p *Pal) (any, error)
 	Name() string
 	IsSingleton() bool
