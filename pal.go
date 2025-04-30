@@ -84,12 +84,15 @@ func (p *Pal) Shutdown(ctx context.Context) error {
 func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	err := p.validate(ctx)
-	if err != nil {
+	if err := p.validate(ctx); err != nil {
 		return err
 	}
 
-	err = p.init(ctx)
+	ctx = context.WithValue(ctx, CtxValue, p)
+	ctx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
+
+	err := p.init(ctx)
+	cancel()
 	if err != nil {
 		return err
 	}
@@ -159,10 +162,6 @@ func (p *Pal) validate(_ context.Context) error {
 }
 
 func (p *Pal) init(ctx context.Context) error {
-	ctx = context.WithValue(ctx, CtxValue, p)
-	ctx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
-	defer cancel()
-
 	defer func() {
 		// TODO: if init fails with an error - try to gracefully shutdown already initialized dependencies.
 	}()
