@@ -1,6 +1,12 @@
 # Pal
 
-# Goals
+Pal is an opinionated [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) framework for Go.
+
+## Motivation
+
+TODO: write me
+
+## Goals
 - Nondisruptive API: 
   - You can integrate pal with any app, even if it already uses another IoC frameworks.
   - Even though migration an existing app to pal may require some app redesign, you can do it gradually, 
@@ -22,7 +28,7 @@
     responsibility to design resilient services and it's execution environment responsibility to restart the crashed app.
   - Pal is aware of contexts, all service lifetimes callbacks have timeouts: inits, health checks and shutdowns.
 
-# Non-goals
+## Non-goals
 - Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only 
   performs periodic health checks. Thus pal's initialization and shutdown should not be blazing fast, it should be *fast enough*. 
   Using factory services is more expensive that using singleton services, but should generally be *fast enough*.
