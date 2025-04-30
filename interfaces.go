@@ -20,7 +20,7 @@ type Shutdowner interface {
 	// If returns an error, pal will consider this service unhealthy, but will continue to shutdown the app,
 	// Pal.Run() will return an error.
 	// ctx has a timeout and only being canceled if it is exceeded.
-	// If all of the services successfully shutdown, pal will exit with a zero exit code.
+	// If all of the services successfully shutdown, Pal.Run will return nil.
 	// TODO: document shutdown process
 	Shutdown(ctx context.Context) error
 }

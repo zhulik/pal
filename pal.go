@@ -92,10 +92,10 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	select {
 	case <-ctx.Done():
-		return &RunError{ctx.Err()}
+		return ctx.Err()
 	case <-sigChan:
 		if err := p.Shutdown(ctx); err != nil {
-			return &RunError{p.Shutdown(ctx)}
+			return p.Shutdown(ctx)
 		}
 		return nil
 	}

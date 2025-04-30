@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
-	"os"
 	"syscall"
 	"time"
 
@@ -25,9 +23,6 @@ func main() {
 		Run(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
 	if err != nil {
-		var palError *pal.RunError
-		errors.As(err, &palError)
-		log.Println(err)
-		os.Exit(palError.ExitCode())
+		log.Fatal(err)
 	}
 }
