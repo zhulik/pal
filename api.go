@@ -6,6 +6,7 @@ import (
 	"reflect"
 )
 
+// New creates and returns a new instance of Pal with the provided ServiceFactory's
 func New(factories ...ServiceFactory) *Pal {
 	index := make(map[string]ServiceFactory)
 
@@ -16,10 +17,12 @@ func New(factories ...ServiceFactory) *Pal {
 	return &Pal{
 		config: &Config{},
 		store:  newStore(index),
-		log:    func(string, ...interface{}) {},
+		log:    func(string, ...any) {},
 	}
 }
 
+// FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
+// Panics if ctx misses the value.
 func FromContext(ctx context.Context) *Pal {
 	return ctx.Value(CtxValue).(*Pal)
 }
@@ -62,6 +65,9 @@ func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
 	return casted, nil
 }
 
+// Inject resolves dependencies for a struct of type S using the provided context and Pal instance.
+// It initializes the struct's fields by injecting appropriate dependencies based on the field types.
+// Returns the fully initialized struct or an error if dependency resolution fails.
 func Inject[S any](ctx context.Context, p *Pal) (*S, error) {
 	s := new(S)
 	v := reflect.ValueOf(s).Elem()

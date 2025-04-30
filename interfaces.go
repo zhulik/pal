@@ -60,4 +60,4 @@ type ServiceFactory interface {
 	IsRunner() bool
 }
 
-type loggerFn func(fmt string, args ...interface{})
+type loggerFn func(fmt string, args ...any)

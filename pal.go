@@ -78,13 +78,11 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		return err
 	}
 
-	ctx = context.WithValue(ctx, CtxValue, p)
-
 	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
 	err := p.store.init(initCtx, p)
 	cancel()
 	if err != nil {
-		return err
+		p.Error(err)
 	}
 
 	sigChan := make(chan os.Signal, 1)
