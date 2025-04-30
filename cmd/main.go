@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"syscall"
 	"time"
@@ -10,37 +11,12 @@ import (
 	"github.com/zhulik/pal"
 )
 
-type Service interface {
-	Foo() string
-}
-
-type service struct {
-}
-
-func (s *service) Foo() string {
-	return "bar"
-}
-
-func (s *service) HealthCheck(_ context.Context) error {
-	return nil
-}
-
-func (s *service) Shutdown(_ context.Context) error {
-	return nil
-}
-
-func (s *service) Run(_ context.Context) error {
-	return nil
-}
-
-func (s *service) Init(_ context.Context) error {
-	return nil
-}
-
 func main() {
 	err := pal.New(
-		pal.Provide[Service, *service](),
-		pal.ProvideFactory[Service, *service](),
+		pal.Provide[Service, service](),
+		pal.Provide[LeafService, leafService](),
+		pal.Provide[TransientService, transientService](),
+		// pal.ProvideFactory[Service, *service](),
 	).
 		InitTimeout(3*time.Second).
 		HealthCheckTimeout(1*time.Second).
@@ -50,6 +26,7 @@ func main() {
 	if err != nil {
 		var palError *pal.RunError
 		errors.As(err, &palError)
+		log.Println(err)
 		os.Exit(palError.ExitCode())
 	}
 }
