@@ -36,5 +36,5 @@ TODO: write me
 - Extensibility and configurability: pal is not designed to be the most flexible IoC framework, only *flexible enough*
   to reach its goals.
 
-- lightweightness: while looking simple and having minimalistic API, pal is not that simple inside. It uses **reflection**
+- Lightweightness: while looking simple and having minimalistic API, pal is not that simple inside. It uses **reflection**
   and some other dirty tricks so you don't have to.
