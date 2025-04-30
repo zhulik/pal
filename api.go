@@ -6,6 +6,23 @@ import (
 	"reflect"
 )
 
+func New(factories ...ServiceFactory) *Pal {
+	index := make(map[string]ServiceFactory)
+
+	for _, factory := range factories {
+		index[factory.Name()] = factory
+	}
+
+	return &Pal{
+		config: &Config{},
+		store:  newStore(index),
+	}
+}
+
+func FromContext(ctx context.Context) *Pal {
+	return ctx.Value(CtxValue).(*Pal)
+}
+
 // Provide registers a singleton service with pal. *I* must be an interface and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 // TODO: any ways to enforce this with types?

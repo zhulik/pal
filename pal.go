@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -18,23 +17,6 @@ const (
 type Pal struct {
 	config *Config
 	store  *store
-}
-
-func New(factories ...ServiceFactory) *Pal {
-	index := make(map[string]ServiceFactory)
-
-	for _, factory := range factories {
-		index[factory.Name()] = factory
-	}
-
-	return &Pal{
-		config: &Config{},
-		store:  newStore(index),
-	}
-}
-
-func FromContext(ctx context.Context) *Pal {
-	return ctx.Value(CtxValue).(*Pal)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -70,7 +52,7 @@ func (p *Pal) Shutdown(ctx context.Context) error {
 
 // Run eagerly initializes and starts Runners, then blocks until one of the given signals is received.
 // When it's received, pal will gracefully shut down the app.
-func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
+func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
 	if err := p.validate(ctx); err != nil {
@@ -78,16 +60,16 @@ func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
 	}
 
 	ctx = context.WithValue(ctx, CtxValue, p)
-	ctx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
 
-	err := p.store.init(ctx, p)
+	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
+	err := p.store.init(initCtx, p)
 	cancel()
 	if err != nil {
 		return err
 	}
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, signals...)
 
 	select {
 	case <-ctx.Done():
