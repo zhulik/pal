@@ -2,17 +2,11 @@ package pal
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
-	"reflect"
-	"slices"
 	"syscall"
 	"time"
-
-	"github.com/dominikbraun/graph"
 )
 
 type ContextKey int
@@ -23,10 +17,7 @@ const (
 
 type Pal struct {
 	config *Config
-
-	factories map[string]ServiceFactory
-	graph     graph.Graph[string, string]
-	instances map[string]any
+	store  *store
 }
 
 func New(factories ...ServiceFactory) *Pal {
@@ -37,10 +28,8 @@ func New(factories ...ServiceFactory) *Pal {
 	}
 
 	return &Pal{
-		config:    &Config{},
-		factories: index,
-		instances: map[string]any{},
-		graph:     graph.New(graph.StringHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
+		config: &Config{},
+		store:  newStore(index),
 	}
 }
 
@@ -91,7 +80,7 @@ func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 	ctx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
 
-	err := p.init(ctx)
+	err := p.store.init(ctx, p)
 	cancel()
 	if err != nil {
 		return err
@@ -112,27 +101,17 @@ func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
 }
 
 func (p *Pal) Services() []string {
-	var names []string
-	for name := range p.factories {
-		names = append(names, name)
-	}
-	return names
+	return p.store.services()
 }
 
 func (p *Pal) Runners() []string {
-	var runners []string
-	for name, factory := range p.factories {
-		if factory.IsRunner() {
-			runners = append(runners, name)
-		}
-	}
-	return runners
+	return p.store.runners()
 }
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	factory, ok := p.factories[name]
+	factory, ok := p.store.factories[name]
 	if !ok {
 		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, p.Services())
 	}
@@ -141,7 +120,7 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	var err error
 
 	if factory.IsSingleton() {
-		instance, ok = p.instances[name]
+		instance, ok = p.store.instances[name]
 		if !ok {
 			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
 		}
@@ -158,115 +137,5 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 func (p *Pal) validate(_ context.Context) error {
 	// TODO: write me
 	// TODO: validate config here
-	return nil
-}
-
-func (p *Pal) init(ctx context.Context) error {
-	defer func() {
-		// TODO: if init fails with an error - try to gracefully shutdown already initialized dependencies.
-	}()
-
-	// Initialize dependencies staring from the leaves. The more dependants an services, the earlier it will be initialized.
-
-	err := p.buildDAG()
-	if err != nil {
-		return err
-	}
-
-	// file, _ := os.Initialize("./mygraph.gv")
-	// _ = draw.DOT(p.graph, file)
-
-	order, err := graph.TopologicalSort(p.graph)
-	if err != nil {
-		return err
-	}
-	slices.Reverse(order)
-
-	for _, factoryName := range order {
-		factory := p.factories[factoryName]
-		if !factory.IsSingleton() {
-			continue
-		}
-
-		instance, err := factory.Initialize(ctx)
-		if err != nil {
-			return err
-		}
-
-		p.instances[factoryName] = instance
-	}
-
-	for _, instance := range p.instances {
-		if runner, ok := instance.(Runner); ok {
-			go func() {
-				// TODO: use a custom context struct?
-				ctx := context.WithValue(context.Background(), CtxValue, p)
-				err := runner.Run(ctx)
-
-				if err != nil {
-					p.Error(err)
-				}
-			}()
-		}
-	}
-	return nil
-}
-
-func (p *Pal) buildDAG() error {
-	runners := p.Runners()
-
-	log.Printf("deps: %s", p.Services())
-	log.Printf("runners: %s", runners)
-
-	for _, runner := range runners {
-		err := p.addDependencyVertex(runner, "")
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (p *Pal) addDependencyVertex(name string, parent string) error {
-	if err := p.graph.AddVertex(name); err != nil {
-		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
-			return err
-		}
-	}
-
-	if parent != "" {
-		if err := p.graph.AddEdge(parent, name); err != nil {
-			return err
-		}
-	}
-
-	factory := p.factories[name]
-
-	instance := factory.Make()
-
-	val := reflect.ValueOf(instance)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	if val.Kind() != reflect.Struct {
-		return nil
-	}
-
-	typ := val.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		if field.Type.Kind() == reflect.Interface {
-			dependencyName := field.Type.String()
-			if _, ok := p.factories[dependencyName]; ok {
-				if err := p.addDependencyVertex(dependencyName, name); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
 	return nil
 }
