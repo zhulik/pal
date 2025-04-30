@@ -11,8 +11,8 @@ TODO: write me
   - You can integrate pal with any app, even if it already uses another IoC frameworks.
   - Even though migration an existing app to pal may require some app redesign, you can do it gradually, 
     migrating one module at a time.
-  - Pal tries not to leak into service implementations, so in most of the cases you won't need even structure tags 
-    in your services. But if you really need to interact with pal withing your services, you can do it.
+  - Pal tries not to leak into service implementations, so in most of the cases you won't need even struct tags 
+    in your services. But if you really need to interact with pal within your services, you can do it.
 
 - Versatility: 
   - You can use pal to build any kind of app: cli, dbms, web, videogames, anything.
