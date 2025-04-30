@@ -50,6 +50,17 @@ func (p *Pal) Error(_ error) {
 	// TODO: write me
 }
 
+func (p *Pal) HealthCheck(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
+	defer cancel()
+
+	err := p.store.healthCheck(ctx)
+	if err != nil {
+		p.Error(err)
+	}
+	return nil
+}
+
 // Shutdown gracefully stops all services within the configured timeout duration. Returns an error if shutdown fails.
 func (p *Pal) Shutdown(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)

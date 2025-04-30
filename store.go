@@ -93,6 +93,16 @@ func (s *store) shutdown(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
+func (s *store) healthCheck(ctx context.Context) error {
+	var errs []error
+	for _, service := range s.instances {
+		if healthChecker, ok := service.(HealthChecker); ok {
+			errs = append(errs, healthChecker.HealthCheck(ctx))
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func (s *store) buildDAG() error {
 	runners := s.runners()
 
