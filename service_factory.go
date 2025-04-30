@@ -9,13 +9,6 @@ type serviceFactory[I any, S any] struct {
 	singleton bool
 }
 
-// String returns a string representation of the dependency.
-func (d serviceFactory[I, S]) String() string {
-	var i I
-	var s S
-	return fmt.Sprintf("serviceFactory[%T, %T]", i, s)
-}
-
 // Name returns a name of the dependency derived from the interface.
 func (d serviceFactory[I, S]) Name() string {
 	var i I
