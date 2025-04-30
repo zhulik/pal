@@ -16,6 +16,7 @@ func New(factories ...ServiceFactory) *Pal {
 	return &Pal{
 		config: &Config{},
 		store:  newStore(index),
+		log:    func(string, ...interface{}) {},
 	}
 }
 

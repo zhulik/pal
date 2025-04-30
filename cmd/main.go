@@ -18,6 +18,7 @@ func main() {
 		pal.Provide[TransientService, transientService](),
 		// pal.ProvideFactory[Service, *service](),
 	).
+		SetLogger(log.Printf).
 		InitTimeout(3*time.Second).
 		HealthCheckTimeout(1*time.Second).
 		ShutdownTimeout(3*time.Second).

@@ -59,3 +59,5 @@ type ServiceFactory interface {
 	// IsRunner returns true if the service is a runner.
 	IsRunner() bool
 }
+
+type loggerFn func(fmt string, args ...interface{})

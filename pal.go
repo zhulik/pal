@@ -17,6 +17,8 @@ const (
 type Pal struct {
 	config *Config
 	store  *store
+
+	log loggerFn
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -34,6 +36,12 @@ func (p *Pal) HealthCheckTimeout(t time.Duration) *Pal {
 // ShutdownTimeout sets the timeout for the shutdown of the services.
 func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 	p.config.ShutdownTimeout = t
+	return p
+}
+
+// SetLogger sets the logger instance to be used by Pal
+func (p *Pal) SetLogger(log loggerFn) *Pal {
+	p.log = log
 	return p
 }
 
