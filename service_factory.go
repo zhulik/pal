@@ -10,20 +10,20 @@ type serviceFactory[I any, S any] struct {
 }
 
 // String returns a string representation of the dependency.
-func (d *serviceFactory[I, S]) String() string {
+func (d serviceFactory[I, S]) String() string {
 	var i I
 	var s S
 	return fmt.Sprintf("serviceFactory[%T, %T]", i, s)
 }
 
 // Name returns a name of the dependency derived from the interface.
-func (d *serviceFactory[I, S]) Name() string {
+func (d serviceFactory[I, S]) Name() string {
 	var i I
 	return fmt.Sprintf("%T", i)
 }
 
 // Create creates a new instance of the service, if the service implements Runner, it will be run in a background goroutine.
-func (d *serviceFactory[I, S]) Create(ctx context.Context, p *Pal) (any, error) {
+func (d serviceFactory[I, S]) Create(ctx context.Context, p *Pal) (any, error) {
 	var s S
 
 	ctx = context.WithValue(ctx, CtxValue, p)
@@ -53,6 +53,6 @@ func (d *serviceFactory[I, S]) Create(ctx context.Context, p *Pal) (any, error) 
 	return &s, nil
 }
 
-func (d *serviceFactory[I, S]) IsSingleton() bool {
+func (d serviceFactory[I, S]) IsSingleton() bool {
 	return d.singleton
 }

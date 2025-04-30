@@ -42,8 +42,14 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
+// ServiceFactory is a factory for creating a service.
 type ServiceFactory interface {
+	// Create creates a new instance of the service.
 	Create(ctx context.Context, p *Pal) (any, error)
+
+	// Name returns a name of the service, this will be used to identify the service in the container.
 	Name() string
+
+	// IsSingleton returns true if the service is a singleton and should be cached and reused.
 	IsSingleton() bool
 }
