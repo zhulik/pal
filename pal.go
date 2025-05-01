@@ -57,10 +57,11 @@ func (p *Pal) HealthCheck(ctx context.Context) error {
 	return p.store.healthCheck(ctx)
 }
 
-// Shutdown schedules graceful shutdown of the app. if any errs given - Run() will return them. Only the first call is effective.
-// The later calls are queued but ignored.
+// Shutdown schedules graceful shutdown of the app. If any errs given - Run() will return them. Only the first call is effective.
+// The later calls are ignored.
 func (p *Pal) Shutdown(errs ...error) {
 	// In theory this causes a goroutine leak, but it's not a big deal as we are shutting down anyway.
+	// TODO: figure out how to handle multiple calls to Shutdown.
 	go func() {
 		p.stopChan <- errors.Join(errs...)
 	}()
@@ -177,9 +178,7 @@ func (p *Pal) validate(ctx context.Context) error {
 	errs := []error{p.config.validate(ctx)}
 
 	for _, factory := range p.store.factories {
-		if err := factory.Validate(ctx); err != nil {
-			errs = append(errs, err)
-		}
+		errs = append(errs, factory.Validate(ctx))
 	}
 
 	return errors.Join(errs...)
