@@ -6,28 +6,6 @@ import (
 	"reflect"
 )
 
-// New creates and returns a new instance of Pal with the provided ServiceFactory's
-func New(factories ...ServiceFactory) *Pal {
-	index := make(map[string]ServiceFactory)
-
-	for _, factory := range factories {
-		index[factory.Name()] = factory
-	}
-
-	return &Pal{
-		config:   &Config{},
-		store:    newStore(index),
-		stopChan: make(chan error),
-		log:      func(string, ...any) {},
-	}
-}
-
-// FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
-// Panics if ctx misses the value.
-func FromContext(ctx context.Context) *Pal {
-	return ctx.Value(CtxValue).(*Pal)
-}
-
 // Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 func Provide[I any, S any]() ServiceFactory {
@@ -50,7 +28,7 @@ func ProvideFactory[I any, S any]() ServiceFactory {
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
 func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
-	name := reflect.TypeOf((*I)(nil)).Elem().String()
+	name := elem[I]().String()
 
 	a, err := p.Invoke(ctx, name)
 	if err != nil {

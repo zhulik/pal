@@ -3,7 +3,6 @@ package pal
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -23,6 +22,30 @@ type Pal struct {
 	stopChan chan error
 
 	log loggerFn
+}
+
+// New creates and returns a new instance of Pal with the provided ServiceFactory's
+func New(factories ...ServiceFactory) *Pal {
+	index := make(map[string]ServiceFactory)
+
+	for _, factory := range factories {
+		index[factory.Name()] = factory
+	}
+
+	logger := func(string, ...any) {}
+
+	return &Pal{
+		config:   &Config{},
+		store:    newStore(index, logger),
+		stopChan: make(chan error),
+		log:      logger,
+	}
+}
+
+// FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
+// Panics if ctx misses the value.
+func FromContext(ctx context.Context) *Pal {
+	return ctx.Value(CtxValue).(*Pal)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -46,6 +69,7 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 // SetLogger sets the logger instance to be used by Pal
 func (p *Pal) SetLogger(log loggerFn) *Pal {
 	p.log = log
+	p.store.setLogger(log)
 	return p
 }
 
@@ -105,6 +129,20 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	return errors.Join(err, p.store.shutdown(shutCt))
 }
 
+func (p *Pal) Services() []ServiceFactory {
+	return p.store.services()
+}
+
+func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
+	ctx = context.WithValue(ctx, CtxValue, p)
+
+	return p.store.invoke(ctx, name)
+}
+
+func (p *Pal) validate(ctx context.Context) error {
+	return errors.Join(p.config.validate(ctx), p.store.validate(ctx))
+}
+
 func (p *Pal) forwardSignals(signals []os.Signal) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, signals...)
@@ -119,10 +157,10 @@ func (p *Pal) forwardSignals(signals []os.Signal) {
 func (p *Pal) startRunners(ctx context.Context) {
 	g := &errgroup.Group{}
 
-	for _, name := range p.Runners() {
+	for name, runner := range p.store.runners() {
 		g.Go(func() error {
 			p.log("running %s", name)
-			err := p.store.instances[name].(Runner).Run(ctx)
+			err := runner.Run(ctx)
 			if err != nil {
 				p.log("runner %s exited with error='%+v'", name, err)
 				return err
@@ -136,50 +174,4 @@ func (p *Pal) startRunners(ctx context.Context) {
 	go func() {
 		p.Shutdown(g.Wait())
 	}()
-}
-
-func (p *Pal) Services() []string {
-	return p.store.services()
-}
-
-func (p *Pal) Runners() []string {
-	return p.store.runners()
-}
-
-func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
-	ctx = context.WithValue(ctx, CtxValue, p)
-	p.log("invoking %s", name)
-
-	factory, ok := p.store.factories[name]
-	if !ok {
-		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, p.Services())
-	}
-
-	var instance any
-
-	if factory.IsSingleton() {
-		instance, ok = p.store.instances[name]
-		if !ok {
-			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
-		}
-	} else {
-		var err error
-		p.log("initializing %s", name)
-		instance, err = factory.Initialize(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
-		}
-	}
-
-	return instance, nil
-}
-
-func (p *Pal) validate(ctx context.Context) error {
-	errs := []error{p.config.validate(ctx)}
-
-	for _, factory := range p.store.factories {
-		errs = append(errs, factory.Validate(ctx))
-	}
-
-	return errors.Join(errs...)
 }

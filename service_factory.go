@@ -12,12 +12,12 @@ type serviceFactory[I any, S any] struct {
 }
 
 // Name returns a name of the dependency derived from the interface.
-func (d serviceFactory[I, S]) Name() string {
-	return reflect.TypeOf((*I)(nil)).Elem().String()
+func (f serviceFactory[I, S]) Name() string {
+	return elem[I]().String()
 }
 
 // Initialize creates a new instance of the service, calls its Init method if it implements Initer.
-func (d serviceFactory[I, S]) Initialize(ctx context.Context) (any, error) {
+func (f serviceFactory[I, S]) Initialize(ctx context.Context) (any, error) {
 	s, err := Inject[S](ctx, FromContext(ctx))
 	if err != nil {
 		return nil, err
@@ -32,25 +32,25 @@ func (d serviceFactory[I, S]) Initialize(ctx context.Context) (any, error) {
 	return s, nil
 }
 
-func (d serviceFactory[I, S]) Make() any {
+func (f serviceFactory[I, S]) Make() any {
 	return empty[S]()
 }
 
-func (d serviceFactory[I, S]) IsSingleton() bool {
-	return d.singleton
+func (f serviceFactory[I, S]) IsSingleton() bool {
+	return f.singleton
 }
 
-func (d serviceFactory[I, S]) IsRunner() bool {
-	return d.runner
+func (f serviceFactory[I, S]) IsRunner() bool {
+	return f.runner
 }
 
-func (d serviceFactory[I, S]) Validate(_ context.Context) error {
-	iType := reflect.TypeOf((*I)(nil)).Elem()
+func (f serviceFactory[I, S]) Validate(_ context.Context) error {
+	iType := elem[I]()
 	if iType.Kind() != reflect.Interface {
 		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
 	}
 
-	sType := reflect.TypeOf((*S)(nil)).Elem()
+	sType := elem[S]()
 	if sType.Kind() != reflect.Struct {
 		return fmt.Errorf("%w: type parameter S (%v) must be a struct", ErrServiceInvalid, sType)
 	}
@@ -60,4 +60,8 @@ func (d serviceFactory[I, S]) Validate(_ context.Context) error {
 	}
 
 	return nil
+}
+
+func (f serviceFactory[I, S]) String() string {
+	return fmt.Sprintf("%s[singleton=%v, runner=%v]", f.Name(), f.singleton, f.runner)
 }

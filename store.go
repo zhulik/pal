@@ -3,7 +3,7 @@ package pal
 import (
 	"context"
 	"errors"
-	"reflect"
+	"fmt"
 	"slices"
 
 	"github.com/dominikbraun/graph"
@@ -12,23 +12,38 @@ import (
 // store is responsible for storing factories, instances and the dependency graph
 type store struct {
 	factories map[string]ServiceFactory
-	graph     graph.Graph[string, string]
+	graph     *dag
 	instances map[string]any
+
+	log loggerFn
 }
 
 // newStore creates a new store instance
-func newStore(factories map[string]ServiceFactory) *store {
+func newStore(factories map[string]ServiceFactory, log loggerFn) *store {
 	return &store{
 		factories: factories,
 		instances: map[string]any{},
-		graph:     graph.New(graph.StringHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
+		log:       log,
 	}
 }
 
-func (s *store) init(ctx context.Context) error {
-	p := FromContext(ctx)
+func (s *store) setLogger(log loggerFn) {
+	s.log = log
+}
 
-	err := s.buildDAG()
+func (s *store) validate(ctx context.Context) error {
+	var errs []error
+
+	for _, factory := range s.factories {
+		errs = append(errs, factory.Validate(ctx))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (s *store) init(ctx context.Context) error {
+	var err error
+	s.graph, err = newDag(s.factories)
 	if err != nil {
 		return err
 	}
@@ -43,12 +58,12 @@ func (s *store) init(ctx context.Context) error {
 	slices.Reverse(order)
 
 	for _, factoryName := range order {
-		factory := s.factories[factoryName]
+		factory, _ := s.graph.Vertex(factoryName)
 		if !factory.IsSingleton() {
 			continue
 		}
 
-		p.log("initializing %s", factoryName)
+		s.log("initializing %s", factoryName)
 		instance, err := factory.Initialize(ctx)
 		if err != nil {
 			return err
@@ -56,16 +71,43 @@ func (s *store) init(ctx context.Context) error {
 
 		s.instances[factoryName] = instance
 
-		p.log("%s initialized", factoryName)
+		s.log("%s initialized", factoryName)
 	}
 
-	p.log("Pal initialized. Services: %s, runners: %s", s.services(), s.runners())
+	s.log("Pal initialized. Services: %s", s.services())
 
 	return nil
 }
 
+func (s *store) invoke(ctx context.Context, name string) (any, error) {
+	s.log("invoking %s", name)
+
+	factory, err := s.graph.Vertex(name)
+	if err != nil {
+		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, s.services(), err)
+	}
+
+	var instance any
+	var ok bool
+
+	if factory.IsSingleton() {
+		instance, ok = s.instances[name]
+		if !ok {
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
+		}
+	} else {
+		var err error
+		s.log("initializing %s", name)
+		instance, err = factory.Initialize(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
+		}
+	}
+
+	return instance, nil
+}
+
 func (s *store) shutdown(ctx context.Context) error {
-	p := FromContext(ctx)
 	order, err := graph.TopologicalSort(s.graph)
 	if err != nil {
 		return err
@@ -74,111 +116,54 @@ func (s *store) shutdown(ctx context.Context) error {
 	var errs []error
 	for _, serviceName := range order {
 		if shutdowner, ok := s.instances[serviceName].(Shutdowner); ok {
-			p.log("shutting down %s", serviceName)
+			s.log("shutting down %s", serviceName)
 
 			err := shutdowner.Shutdown(ctx)
 			if err != nil {
-				p.log("%s shot down with error=%+v", serviceName, err)
+				s.log("%s shot down with error=%+v", serviceName, err)
 				errs = append(errs, err)
 				continue
 			}
 
-			p.log("%s shot down successfully", serviceName)
+			s.log("%s shot down successfully", serviceName)
 		}
 	}
 	return errors.Join(errs...)
 }
 
 func (s *store) healthCheck(ctx context.Context) error {
-	p := FromContext(ctx)
-
 	var errs []error
 	for _, service := range s.instances {
 		if healthChecker, ok := service.(HealthChecker); ok {
-			p.log("health checking %s", service)
+			s.log("health checking %s", service)
 
 			err := healthChecker.HealthCheck(ctx)
 			if err != nil {
-				p.log("%s failed health check error=%+v", service, err)
+				s.log("%s failed health check error=%+v", service, err)
 				errs = append(errs, err)
 				continue
 			}
 
-			p.log("%s passed health check successfully", service)
+			s.log("%s passed health check successfully", service)
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func (s *store) buildDAG() error {
-	runners := s.runners()
+func (s *store) services() []ServiceFactory {
+	var services []ServiceFactory
 
-	for _, runner := range runners {
-		err := s.addDependencyVertex(runner, "")
-		if err != nil {
-			return err
-		}
+	for _, factory := range s.factories {
+		services = append(services, factory)
 	}
-
-	return nil
+	return services
 }
 
-func (s *store) addDependencyVertex(name string, parent string) error {
-	if err := s.graph.AddVertex(name); err != nil {
-		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
-			return err
-		}
-	}
-
-	if parent != "" {
-		if err := s.graph.AddEdge(parent, name); err != nil {
-			return err
-		}
-	}
-
-	factory := s.factories[name]
-
-	instance := factory.Make()
-
-	val := reflect.ValueOf(instance)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	if val.Kind() != reflect.Struct {
-		return nil
-	}
-
-	typ := val.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		if field.Type.Kind() == reflect.Interface {
-			dependencyName := field.Type.String()
-			if _, ok := s.factories[dependencyName]; ok {
-				if err := s.addDependencyVertex(dependencyName, name); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s *store) services() []string {
-	var names []string
-	for name := range s.factories {
-		names = append(names, name)
-	}
-	return names
-}
-
-func (s *store) runners() []string {
-	var runners []string
-	for name, factory := range s.factories {
-		if factory.IsRunner() {
-			runners = append(runners, name)
+func (s *store) runners() map[string]Runner {
+	runners := map[string]Runner{}
+	for name, instance := range s.instances {
+		if runner, ok := instance.(Runner); ok {
+			runners[name] = runner
 		}
 	}
 	return runners
