@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 
 	"github.com/dominikbraun/graph"
@@ -13,12 +12,8 @@ import (
 // store is responsible for storing factories, instances and the dependency graph
 type store struct {
 	factories map[string]ServiceFactory
-	graph     graph.Graph[string, ServiceFactory]
+	graph     *dag
 	instances map[string]any
-}
-
-func serviceFactoryHash(factory ServiceFactory) string {
-	return factory.Name()
 }
 
 // newStore creates a new store instance
@@ -26,14 +21,24 @@ func newStore(factories map[string]ServiceFactory) *store {
 	return &store{
 		factories: factories,
 		instances: map[string]any{},
-		graph:     graph.New(serviceFactoryHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
 	}
+}
+
+func (s *store) validate(ctx context.Context) error {
+	var errs []error
+
+	for _, factory := range s.factories {
+		errs = append(errs, factory.Validate(ctx))
+	}
+
+	return errors.Join(errs...)
 }
 
 func (s *store) init(ctx context.Context) error {
 	p := FromContext(ctx)
 
-	err := s.buildDAG()
+	var err error
+	s.graph, err = newDag(s.factories)
 	if err != nil {
 		return err
 	}
@@ -145,55 +150,6 @@ func (s *store) healthCheck(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func (s *store) buildDAG() error {
-	for _, factory := range s.factories {
-		if err := s.addDependencyVertex(factory, nil); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *store) addDependencyVertex(factory ServiceFactory, parent ServiceFactory) error {
-	if err := s.graph.AddVertex(factory); err != nil {
-		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
-			return err
-		}
-	}
-
-	if parent != nil {
-		if err := s.graph.AddEdge(parent.Name(), factory.Name()); err != nil {
-			if !errors.Is(err, graph.ErrEdgeAlreadyExists) {
-				return err
-			}
-		}
-	}
-
-	instance := factory.Make()
-
-	val := reflect.ValueOf(instance)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	typ := val.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		if field.Type.Kind() == reflect.Interface {
-			dependencyName := field.Type.String()
-			if childFactory, ok := s.factories[dependencyName]; ok {
-				if err := s.addDependencyVertex(childFactory, factory); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 func (s *store) services() []ServiceFactory {
 	var services []ServiceFactory
 
@@ -211,14 +167,4 @@ func (s *store) runners() map[string]Runner {
 		}
 	}
 	return runners
-}
-
-func (s *store) validate(ctx context.Context) error {
-	var errs []error
-
-	for _, factory := range s.factories {
-		errs = append(errs, factory.Validate(ctx))
-	}
-
-	return errors.Join(errs...)
 }
