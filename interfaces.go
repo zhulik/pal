@@ -47,10 +47,10 @@ type ServiceFactory interface {
 	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
 	Make() any
 
-	// Initialize - when called, singleton services should create its instances, factories may read
+	// Initialize - when called, singleton services should create its instances.
 	Initialize(ctx context.Context) error
 
-	// Instance returns a stored instance in case of a singleton services and a new instances in case of factories.
+	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
 	Instance(ctx context.Context) (any, error)
 
 	// Name returns a name of the service, this will be used to identify the service in the container.
