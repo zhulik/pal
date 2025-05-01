@@ -25,11 +25,11 @@ type Pal struct {
 }
 
 // New creates and returns a new instance of Pal with the provided Service's
-func New(factories ...Service) *Pal {
+func New(services ...Service) *Pal {
 	index := make(map[string]Service)
 
-	for _, factory := range factories {
-		index[factory.Name()] = factory
+	for _, service := range services {
+		index[service.Name()] = service
 	}
 
 	logger := func(string, ...any) {}
@@ -130,7 +130,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 }
 
 func (p *Pal) Services() []Service {
-	return p.store.services()
+	return p.store.Services()
 }
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {

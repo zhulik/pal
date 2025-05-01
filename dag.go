@@ -12,13 +12,13 @@ type dag struct {
 	graph.Graph[string, Service]
 }
 
-func newDag(factories map[string]Service) (*dag, error) {
+func newDag(services map[string]Service) (*dag, error) {
 	d := &dag{
-		graph.New(serviceFactoryHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
+		graph.New(serviceHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
 	}
 
-	for _, factory := range factories {
-		if err := d.addDependencyVertex(factory, nil, factories); err != nil {
+	for _, service := range services {
+		if err := d.addDependencyVertex(service, nil, services); err != nil {
 			return nil, err
 		}
 	}
@@ -42,8 +42,8 @@ func (d *dag) Vertices() []Service {
 }
 
 func (d *dag) ForEachVertex(fn func(Service) error) error {
-	for _, factory := range d.Vertices() {
-		if err := fn(factory); err != nil {
+	for _, service := range d.Vertices() {
+		if err := fn(service); err != nil {
 			return err
 		}
 	}
@@ -58,9 +58,9 @@ func (d *dag) InReverseTopologicalOrder(fn func(Service) error) error {
 	slices.Reverse(order)
 
 	for _, hash := range order {
-		factory, _ := d.Vertex(hash)
+		service, _ := d.Vertex(hash)
 
-		if err := fn(factory); err != nil {
+		if err := fn(service); err != nil {
 			return err
 		}
 	}
@@ -74,31 +74,31 @@ func (d *dag) InTopologicalOrder(fn func(Service) error) error {
 	}
 
 	for _, hash := range order {
-		factory, _ := d.Vertex(hash)
+		service, _ := d.Vertex(hash)
 
-		if err := fn(factory); err != nil {
+		if err := fn(service); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *dag) addDependencyVertex(factory Service, parent Service, factories map[string]Service) error {
-	if err := d.AddVertex(factory); err != nil {
+func (d *dag) addDependencyVertex(service Service, parent Service, services map[string]Service) error {
+	if err := d.AddVertex(service); err != nil {
 		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
 			return err
 		}
 	}
 
 	if parent != nil {
-		if err := d.AddEdge(parent.Name(), factory.Name()); err != nil {
+		if err := d.AddEdge(parent.Name(), service.Name()); err != nil {
 			if !errors.Is(err, graph.ErrEdgeAlreadyExists) {
 				return err
 			}
 		}
 	}
 
-	instance := factory.Make()
+	instance := service.Make()
 
 	val := reflect.ValueOf(instance)
 	if val.Kind() == reflect.Ptr {
@@ -111,8 +111,8 @@ func (d *dag) addDependencyVertex(factory Service, parent Service, factories map
 
 		if field.Type.Kind() == reflect.Interface {
 			dependencyName := field.Type.String()
-			if childFactory, ok := factories[dependencyName]; ok {
-				if err := d.addDependencyVertex(childFactory, factory, factories); err != nil {
+			if childService, ok := services[dependencyName]; ok {
+				if err := d.addDependencyVertex(childService, service, services); err != nil {
 					return err
 				}
 			}
@@ -122,6 +122,6 @@ func (d *dag) addDependencyVertex(factory Service, parent Service, factories map
 	return nil
 }
 
-func serviceFactoryHash(factory Service) string {
-	return factory.Name()
+func serviceHash(service Service) string {
+	return service.Name()
 }

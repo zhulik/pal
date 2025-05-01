@@ -6,19 +6,19 @@ import (
 	"fmt"
 )
 
-// store is responsible for storing factories, instances and the dependency graph
+// store is responsible for storing services, instances and the dependency graph
 type store struct {
-	factories map[string]Service
-	graph     *dag
+	services map[string]Service
+	graph    *dag
 
 	log loggerFn
 }
 
 // newStore creates a new store instance
-func newStore(factories map[string]Service, log loggerFn) *store {
+func newStore(services map[string]Service, log loggerFn) *store {
 	return &store{
-		factories: factories,
-		log:       log,
+		services: services,
+		log:      log,
 	}
 }
 
@@ -29,8 +29,8 @@ func (s *store) setLogger(log loggerFn) {
 func (s *store) validate(ctx context.Context) error {
 	var errs []error
 
-	for _, factory := range s.factories {
-		errs = append(errs, factory.Validate(ctx))
+	for _, service := range s.services {
+		errs = append(errs, service.Validate(ctx))
 	}
 
 	return errors.Join(errs...)
@@ -38,7 +38,7 @@ func (s *store) validate(ctx context.Context) error {
 
 func (s *store) init(ctx context.Context) error {
 	var err error
-	s.graph, err = newDag(s.factories)
+	s.graph, err = newDag(s.services)
 	if err != nil {
 		return err
 	}
@@ -46,21 +46,21 @@ func (s *store) init(ctx context.Context) error {
 	// file, _ := os.Initialize("./mygraph.gv")
 	// _ = draw.DOT(s.graph, file)
 
-	err = s.graph.InReverseTopologicalOrder(func(factory Service) error {
-		if factory.IsSingleton() {
-			s.log("initializing %s", factory.Name())
+	err = s.graph.InReverseTopologicalOrder(func(service Service) error {
+		if service.IsSingleton() {
+			s.log("initializing %s", service.Name())
 
-			if err := factory.Initialize(ctx); err != nil {
+			if err := service.Initialize(ctx); err != nil {
 				return err
 			}
 
-			s.log("%s initialized", factory.Name())
+			s.log("%s initialized", service.Name())
 		}
 
 		return nil
 	})
 
-	s.log("Pal initialized. Services: %s", s.services())
+	s.log("Pal initialized. Services: %s", s.Services())
 
 	return err
 }
@@ -68,12 +68,12 @@ func (s *store) init(ctx context.Context) error {
 func (s *store) invoke(ctx context.Context, name string) (any, error) {
 	s.log("invoking %s", name)
 
-	factory, err := s.graph.Vertex(name)
+	service, err := s.graph.Vertex(name)
 	if err != nil {
-		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, s.services(), err)
+		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, s.Services(), err)
 	}
 
-	instance, err := factory.Instance(ctx)
+	instance, err := service.Instance(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
 	}
@@ -83,21 +83,21 @@ func (s *store) invoke(ctx context.Context, name string) (any, error) {
 
 func (s *store) shutdown(ctx context.Context) error {
 	var errs []error
-	s.graph.InTopologicalOrder(func(factory Service) error { // nolint:errcheck
-		if factory.IsSingleton() {
-			service, _ := factory.Instance(ctx)
+	s.graph.InTopologicalOrder(func(service Service) error { // nolint:errcheck
+		if service.IsSingleton() {
+			instance, _ := service.Instance(ctx)
 
-			if shutdowner, ok := service.(Shutdowner); ok {
-				s.log("shutting down %s", factory.Name())
+			if shutdowner, ok := instance.(Shutdowner); ok {
+				s.log("shutting down %s", service.Name())
 
 				err := shutdowner.Shutdown(ctx)
 				if err != nil {
-					s.log("%s shot down with error=%+v", factory.Name(), err)
+					s.log("%s shot down with error=%+v", service.Name(), err)
 					errs = append(errs, err)
 					return nil
 				}
 
-				s.log("%s shot down successfully", factory.Name())
+				s.log("%s shot down successfully", service.Name())
 			}
 		}
 		return nil
@@ -106,20 +106,20 @@ func (s *store) shutdown(ctx context.Context) error {
 }
 
 func (s *store) healthCheck(ctx context.Context) error {
-	return s.graph.ForEachVertex(func(factory Service) error { // nolint:errcheck
-		if factory.IsSingleton() {
-			service, _ := factory.Instance(ctx)
+	return s.graph.ForEachVertex(func(service Service) error { // nolint:errcheck
+		if service.IsSingleton() {
+			instance, _ := service.Instance(ctx)
 
-			if healthChecker, ok := service.(HealthChecker); ok {
-				s.log("health checking %s", service)
+			if healthChecker, ok := instance.(HealthChecker); ok {
+				s.log("health checking %s", instance)
 
 				err := healthChecker.HealthCheck(ctx)
 				if err != nil {
-					s.log("%s failed health check error=%+v", service, err)
+					s.log("%s failed health check error=%+v", instance, err)
 					return err
 				}
 
-				s.log("%s passed health check successfully", service)
+				s.log("%s passed health check successfully", instance)
 			}
 		}
 
@@ -127,17 +127,17 @@ func (s *store) healthCheck(ctx context.Context) error {
 	})
 }
 
-func (s *store) services() []Service {
+func (s *store) Services() []Service {
 	return s.graph.Vertices()
 }
 
 func (s *store) runners(ctx context.Context) map[string]Runner {
 	runners := map[string]Runner{}
 
-	s.graph.ForEachVertex(func(factory Service) error { // nolint:errcheck
-		if factory.IsRunner() {
-			if runner, err := factory.Instance(ctx); err == nil {
-				runners[factory.Name()] = runner.(Runner)
+	s.graph.ForEachVertex(func(service Service) error { // nolint:errcheck
+		if service.IsRunner() {
+			if runner, err := service.Instance(ctx); err == nil {
+				runners[service.Name()] = runner.(Runner)
 			}
 		}
 		return nil

@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-type serviceFactory[I any, S any] struct {
+type service[I any, S any] struct {
 	singleton bool
 	runner    bool
 
@@ -14,12 +14,12 @@ type serviceFactory[I any, S any] struct {
 }
 
 // Name returns a name of the dependency derived from the interface.
-func (f *serviceFactory[I, S]) Name() string {
+func (f *service[I, S]) Name() string {
 	return elem[I]().String()
 }
 
 // Initialize creates a new instance of the service, calls its Init method if it implements Initer.
-func (f *serviceFactory[I, S]) Initialize(ctx context.Context) error {
+func (f *service[I, S]) Initialize(ctx context.Context) error {
 	if !f.singleton {
 		return nil
 	}
@@ -34,7 +34,7 @@ func (f *serviceFactory[I, S]) Initialize(ctx context.Context) error {
 	return nil
 }
 
-func (f *serviceFactory[I, S]) build(ctx context.Context) (*S, error) {
+func (f *service[I, S]) build(ctx context.Context) (*S, error) {
 	s, err := Inject[S](ctx, FromContext(ctx))
 	if err != nil {
 		return nil, err
@@ -48,19 +48,19 @@ func (f *serviceFactory[I, S]) build(ctx context.Context) (*S, error) {
 	return s, nil
 }
 
-func (f *serviceFactory[I, S]) Make() any {
+func (f *service[I, S]) Make() any {
 	return empty[S]()
 }
 
-func (f *serviceFactory[I, S]) IsSingleton() bool {
+func (f *service[I, S]) IsSingleton() bool {
 	return f.singleton
 }
 
-func (f *serviceFactory[I, S]) IsRunner() bool {
+func (f *service[I, S]) IsRunner() bool {
 	return f.runner
 }
 
-func (f *serviceFactory[I, S]) Validate(_ context.Context) error {
+func (f *service[I, S]) Validate(_ context.Context) error {
 	iType := elem[I]()
 	if iType.Kind() != reflect.Interface {
 		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
@@ -78,11 +78,11 @@ func (f *serviceFactory[I, S]) Validate(_ context.Context) error {
 	return nil
 }
 
-func (f *serviceFactory[I, S]) String() string {
+func (f *service[I, S]) String() string {
 	return fmt.Sprintf("%s[singleton=%v, runner=%v]", f.Name(), f.singleton, f.runner)
 }
 
-func (f *serviceFactory[I, S]) Instance(ctx context.Context) (any, error) {
+func (f *service[I, S]) Instance(ctx context.Context) (any, error) {
 	if f.singleton {
 		return f.instance, nil
 	}

@@ -11,7 +11,7 @@ import (
 func Provide[I any, S any]() Service {
 	_, isRunner := any(empty[S]()).(Runner)
 
-	return &serviceFactory[I, S]{
+	return &service[I, S]{
 		singleton: true,
 		runner:    isRunner,
 	}
@@ -21,7 +21,7 @@ func Provide[I any, S any]() Service {
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
 func ProvideFactory[I any, S any]() Service {
-	return &serviceFactory[I, S]{
+	return &service[I, S]{
 		singleton: false,
 	}
 }
