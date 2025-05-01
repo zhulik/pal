@@ -42,8 +42,8 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
-// ServiceFactory is a factory for creating a service.
-type ServiceFactory interface {
+// Service is a factory for creating a service.
+type Service interface {
 	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
 	Make() any
 

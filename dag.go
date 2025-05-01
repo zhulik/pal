@@ -9,10 +9,10 @@ import (
 )
 
 type dag struct {
-	graph.Graph[string, ServiceFactory]
+	graph.Graph[string, Service]
 }
 
-func newDag(factories map[string]ServiceFactory) (*dag, error) {
+func newDag(factories map[string]Service) (*dag, error) {
 	d := &dag{
 		graph.New(serviceFactoryHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
 	}
@@ -25,13 +25,13 @@ func newDag(factories map[string]ServiceFactory) (*dag, error) {
 	return d, nil
 }
 
-func (d *dag) Vertices() []ServiceFactory {
+func (d *dag) Vertices() []Service {
 	// graph.Graph does not have a way to get the list of its vertices.
 	// https://github.com/dominikbraun/graph/pull/149
 
 	adjMap, _ := d.AdjacencyMap()
 
-	vertices := make([]ServiceFactory, 0, len(adjMap))
+	vertices := make([]Service, 0, len(adjMap))
 	for hash := range adjMap {
 		vertex, _ := d.Vertex(hash)
 
@@ -41,7 +41,7 @@ func (d *dag) Vertices() []ServiceFactory {
 	return vertices
 }
 
-func (d *dag) ForEachVertex(fn func(ServiceFactory) error) error {
+func (d *dag) ForEachVertex(fn func(Service) error) error {
 	for _, factory := range d.Vertices() {
 		if err := fn(factory); err != nil {
 			return err
@@ -50,7 +50,7 @@ func (d *dag) ForEachVertex(fn func(ServiceFactory) error) error {
 	return nil
 }
 
-func (d *dag) InReverseTopologicalOrder(fn func(ServiceFactory) error) error {
+func (d *dag) InReverseTopologicalOrder(fn func(Service) error) error {
 	order, err := graph.TopologicalSort(d.Graph)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (d *dag) InReverseTopologicalOrder(fn func(ServiceFactory) error) error {
 	return nil
 }
 
-func (d *dag) InTopologicalOrder(fn func(ServiceFactory) error) error {
+func (d *dag) InTopologicalOrder(fn func(Service) error) error {
 	order, err := graph.TopologicalSort(d.Graph)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (d *dag) InTopologicalOrder(fn func(ServiceFactory) error) error {
 	return nil
 }
 
-func (d *dag) addDependencyVertex(factory ServiceFactory, parent ServiceFactory, factories map[string]ServiceFactory) error {
+func (d *dag) addDependencyVertex(factory Service, parent Service, factories map[string]Service) error {
 	if err := d.AddVertex(factory); err != nil {
 		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
 			return err
@@ -122,6 +122,6 @@ func (d *dag) addDependencyVertex(factory ServiceFactory, parent ServiceFactory,
 	return nil
 }
 
-func serviceFactoryHash(factory ServiceFactory) string {
+func serviceFactoryHash(factory Service) string {
 	return factory.Name()
 }

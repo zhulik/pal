@@ -24,9 +24,9 @@ type Pal struct {
 	log loggerFn
 }
 
-// New creates and returns a new instance of Pal with the provided ServiceFactory's
-func New(factories ...ServiceFactory) *Pal {
-	index := make(map[string]ServiceFactory)
+// New creates and returns a new instance of Pal with the provided Service's
+func New(factories ...Service) *Pal {
+	index := make(map[string]Service)
 
 	for _, factory := range factories {
 		index[factory.Name()] = factory
@@ -129,7 +129,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	return errors.Join(err, p.store.shutdown(shutCt))
 }
 
-func (p *Pal) Services() []ServiceFactory {
+func (p *Pal) Services() []Service {
 	return p.store.services()
 }
 

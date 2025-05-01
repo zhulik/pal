@@ -8,14 +8,14 @@ import (
 
 // store is responsible for storing factories, instances and the dependency graph
 type store struct {
-	factories map[string]ServiceFactory
+	factories map[string]Service
 	graph     *dag
 
 	log loggerFn
 }
 
 // newStore creates a new store instance
-func newStore(factories map[string]ServiceFactory, log loggerFn) *store {
+func newStore(factories map[string]Service, log loggerFn) *store {
 	return &store{
 		factories: factories,
 		log:       log,
@@ -46,7 +46,7 @@ func (s *store) init(ctx context.Context) error {
 	// file, _ := os.Initialize("./mygraph.gv")
 	// _ = draw.DOT(s.graph, file)
 
-	err = s.graph.InReverseTopologicalOrder(func(factory ServiceFactory) error {
+	err = s.graph.InReverseTopologicalOrder(func(factory Service) error {
 		if factory.IsSingleton() {
 			s.log("initializing %s", factory.Name())
 
@@ -83,7 +83,7 @@ func (s *store) invoke(ctx context.Context, name string) (any, error) {
 
 func (s *store) shutdown(ctx context.Context) error {
 	var errs []error
-	s.graph.InTopologicalOrder(func(factory ServiceFactory) error { // nolint:errcheck
+	s.graph.InTopologicalOrder(func(factory Service) error { // nolint:errcheck
 		if factory.IsSingleton() {
 			service, _ := factory.Instance(ctx)
 
@@ -106,7 +106,7 @@ func (s *store) shutdown(ctx context.Context) error {
 }
 
 func (s *store) healthCheck(ctx context.Context) error {
-	return s.graph.ForEachVertex(func(factory ServiceFactory) error { // nolint:errcheck
+	return s.graph.ForEachVertex(func(factory Service) error { // nolint:errcheck
 		if factory.IsSingleton() {
 			service, _ := factory.Instance(ctx)
 
@@ -127,14 +127,14 @@ func (s *store) healthCheck(ctx context.Context) error {
 	})
 }
 
-func (s *store) services() []ServiceFactory {
+func (s *store) services() []Service {
 	return s.graph.Vertices()
 }
 
 func (s *store) runners(ctx context.Context) map[string]Runner {
 	runners := map[string]Runner{}
 
-	s.graph.ForEachVertex(func(factory ServiceFactory) error { // nolint:errcheck
+	s.graph.ForEachVertex(func(factory Service) error { // nolint:errcheck
 		if factory.IsRunner() {
 			if runner, err := factory.Instance(ctx); err == nil {
 				runners[factory.Name()] = runner.(Runner)
