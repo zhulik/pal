@@ -82,6 +82,8 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	defer cancel()
 
 	if err := p.store.init(initCtx); err != nil {
+		p.log("init failed with %+v", err)
+
 		shutCtx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 		defer cancel()
 		return errors.Join(err, p.store.shutdown(shutCtx))
@@ -89,7 +91,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	p.startRunners(ctx)
 
-	go forwardSignals(signals, p.stopChan)
+	go p.forwardSignals(signals)
 
 	go func() {
 		<-ctx.Done()
@@ -105,12 +107,15 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	return errors.Join(err, p.store.shutdown(shutCt))
 }
 
-func forwardSignals(signals []os.Signal, ch chan error) {
+func (p *Pal) forwardSignals(signals []os.Signal) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, signals...)
 
-	<-sigChan
-	ch <- nil
+	sig := <-sigChan
+
+	p.log("signal received: %+v", sig)
+
+	p.stopChan <- nil
 }
 
 func (p *Pal) startRunners(ctx context.Context) {
@@ -120,9 +125,13 @@ func (p *Pal) startRunners(ctx context.Context) {
 		g.Go(func() error {
 			p.log("running %s", name)
 			err := p.store.instances[name].(Runner).Run(ctx)
-			defer p.log("%s exited with error='%+v'", name, err)
+			if err != nil {
+				p.log("runner %s exited with error='%+v'", name, err)
+				return err
+			}
 
-			return err
+			p.log("runner %s finished successfully", name)
+			return nil
 		})
 	}
 

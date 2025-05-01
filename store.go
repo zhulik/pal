@@ -55,9 +55,11 @@ func (s *store) init(ctx context.Context) error {
 		}
 
 		s.instances[factoryName] = instance
+
+		p.log("%s initialized", factoryName)
 	}
 
-	p.log("Initialized. Services: %s, runners: %s", s.services(), s.runners())
+	p.log("Pal initialized. Services: %s, runners: %s", s.services(), s.runners())
 
 	return nil
 }
@@ -73,7 +75,15 @@ func (s *store) shutdown(ctx context.Context) error {
 	for _, serviceName := range order {
 		if shutdowner, ok := s.instances[serviceName].(Shutdowner); ok {
 			p.log("shutting down %s", serviceName)
-			errs = append(errs, shutdowner.Shutdown(ctx))
+
+			err := shutdowner.Shutdown(ctx)
+			if err != nil {
+				p.log("%s shot down with error=%+v", serviceName, err)
+				errs = append(errs, err)
+				continue
+			}
+
+			p.log("%s shot down successfully", serviceName)
 		}
 	}
 	return errors.Join(errs...)
@@ -86,7 +96,15 @@ func (s *store) healthCheck(ctx context.Context) error {
 	for _, service := range s.instances {
 		if healthChecker, ok := service.(HealthChecker); ok {
 			p.log("health checking %s", service)
-			errs = append(errs, healthChecker.HealthCheck(ctx))
+
+			err := healthChecker.HealthCheck(ctx)
+			if err != nil {
+				p.log("%s failed health check error=%+v", service, err)
+				errs = append(errs, err)
+				continue
+			}
+
+			p.log("%s passed health check successfully", service)
 		}
 	}
 	return errors.Join(errs...)
