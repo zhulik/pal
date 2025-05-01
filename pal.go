@@ -157,7 +157,7 @@ func (p *Pal) forwardSignals(signals []os.Signal) {
 func (p *Pal) startRunners(ctx context.Context) {
 	g := &errgroup.Group{}
 
-	for name, runner := range p.store.runners() {
+	for name, runner := range p.store.runners(ctx) {
 		g.Go(func() error {
 			p.log("running %s", name)
 			err := runner.Run(ctx)

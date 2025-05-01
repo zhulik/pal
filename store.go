@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
-
-	"github.com/dominikbraun/graph"
 )
 
 // store is responsible for storing factories, instances and the dependency graph
@@ -49,30 +46,23 @@ func (s *store) init(ctx context.Context) error {
 	// file, _ := os.Initialize("./mygraph.gv")
 	// _ = draw.DOT(s.graph, file)
 
-	order, err := graph.TopologicalSort(s.graph)
-	if err != nil {
-		return err
-	}
-	slices.Reverse(order)
+	err = s.graph.InReverseTopologicalOrder(func(factory ServiceFactory) error {
+		if factory.IsSingleton() {
+			s.log("initializing %s", factory.Name())
 
-	for _, factoryName := range order {
-		factory, _ := s.graph.Vertex(factoryName)
-		if !factory.IsSingleton() {
-			continue
+			if err := factory.Initialize(ctx); err != nil {
+				return err
+			}
+
+			s.log("%s initialized", factory.Name())
 		}
 
-		s.log("initializing %s", factoryName)
-
-		if err := factory.Initialize(ctx); err != nil {
-			return err
-		}
-
-		s.log("%s initialized", factoryName)
-	}
+		return nil
+	})
 
 	s.log("Pal initialized. Services: %s", s.services())
 
-	return nil
+	return err
 }
 
 func (s *store) invoke(ctx context.Context, name string) (any, error) {
@@ -92,78 +82,66 @@ func (s *store) invoke(ctx context.Context, name string) (any, error) {
 }
 
 func (s *store) shutdown(ctx context.Context) error {
-	order, err := graph.TopologicalSort(s.graph)
-	if err != nil {
-		return err
-	}
-
 	var errs []error
-	for _, serviceName := range order {
-		factory := s.factories[serviceName]
-		if !factory.IsSingleton() {
-			continue
-		}
+	s.graph.InTopologicalOrder(func(factory ServiceFactory) error { // nolint:errcheck
+		if factory.IsSingleton() {
+			service, _ := factory.Instance(ctx)
 
-		service, _ := factory.Instance(ctx)
+			if shutdowner, ok := service.(Shutdowner); ok {
+				s.log("shutting down %s", factory.Name())
 
-		if shutdowner, ok := service.(Shutdowner); ok {
-			s.log("shutting down %s", serviceName)
+				err := shutdowner.Shutdown(ctx)
+				if err != nil {
+					s.log("%s shot down with error=%+v", factory.Name(), err)
+					errs = append(errs, err)
+					return nil
+				}
 
-			err := shutdowner.Shutdown(ctx)
-			if err != nil {
-				s.log("%s shot down with error=%+v", serviceName, err)
-				errs = append(errs, err)
-				continue
+				s.log("%s shot down successfully", factory.Name())
 			}
-
-			s.log("%s shot down successfully", serviceName)
 		}
-	}
+		return nil
+	})
 	return errors.Join(errs...)
 }
 
 func (s *store) healthCheck(ctx context.Context) error {
-	var errs []error
-	for _, factory := range s.factories {
-		if !factory.IsSingleton() {
-			continue
-		}
+	return s.graph.ForEachVertex(func(factory ServiceFactory) error { // nolint:errcheck
+		if factory.IsSingleton() {
+			service, _ := factory.Instance(ctx)
 
-		service, _ := factory.Instance(ctx)
+			if healthChecker, ok := service.(HealthChecker); ok {
+				s.log("health checking %s", service)
 
-		if healthChecker, ok := service.(HealthChecker); ok {
-			s.log("health checking %s", service)
+				err := healthChecker.HealthCheck(ctx)
+				if err != nil {
+					s.log("%s failed health check error=%+v", service, err)
+					return err
+				}
 
-			err := healthChecker.HealthCheck(ctx)
-			if err != nil {
-				s.log("%s failed health check error=%+v", service, err)
-				errs = append(errs, err)
-				continue
+				s.log("%s passed health check successfully", service)
 			}
-
-			s.log("%s passed health check successfully", service)
 		}
-	}
-	return errors.Join(errs...)
+
+		return nil
+	})
 }
 
 func (s *store) services() []ServiceFactory {
-	var services []ServiceFactory
-
-	for _, factory := range s.factories {
-		services = append(services, factory)
-	}
-	return services
+	return s.graph.Vertices()
 }
 
-func (s *store) runners() map[string]Runner {
+func (s *store) runners(ctx context.Context) map[string]Runner {
 	runners := map[string]Runner{}
-	for name, factory := range s.factories {
+
+	s.graph.ForEachVertex(func(factory ServiceFactory) error { // nolint:errcheck
 		if factory.IsRunner() {
-			if runner, err := factory.Instance(nil); err == nil {
-				runners[name] = runner.(Runner)
+			if runner, err := factory.Instance(ctx); err == nil {
+				runners[factory.Name()] = runner.(Runner)
 			}
 		}
-	}
+		return nil
+	})
+
 	return runners
 }
