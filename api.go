@@ -28,9 +28,8 @@ func FromContext(ctx context.Context) *Pal {
 	return ctx.Value(CtxValue).(*Pal)
 }
 
-// Provide registers a singleton service with pal. *I* must be an interface and *S* must be a struct that implements I.
+// Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
-// TODO: any ways to enforce this with types?
 func Provide[I any, S any]() ServiceFactory {
 	_, isRunner := any(empty[S]()).(Runner)
 

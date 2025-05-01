@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 )
 
@@ -44,6 +45,19 @@ func (d serviceFactory[I, S]) IsRunner() bool {
 }
 
 func (d serviceFactory[I, S]) Validate(_ context.Context) error {
-	// TODO: make sure S is a struct, I is an interface, and S implements I
+	iType := reflect.TypeOf((*I)(nil)).Elem()
+	if iType.Kind() != reflect.Interface {
+		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
+	}
+
+	sType := reflect.TypeOf((*S)(nil)).Elem()
+	if sType.Kind() != reflect.Struct {
+		return fmt.Errorf("%w: type parameter S (%v) must be a struct", ErrServiceInvalid, sType)
+	}
+
+	if !sType.Implements(iType) {
+		return fmt.Errorf("%w: type %v does not implement interface %v", ErrServiceInvalid, sType, iType)
+	}
+
 	return nil
 }

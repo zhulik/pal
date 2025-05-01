@@ -9,4 +9,5 @@ var (
 	ErrServiceNotInit       = errors.New("service not initialized")
 	ErrServiceInitFailed    = errors.New("service initialization failed")
 	ErrServiceCastingFailed = errors.New("service casting failed")
+	ErrServiceInvalid       = errors.New("service invalid")
 )

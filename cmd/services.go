@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -55,8 +54,8 @@ func (s service) Foo() string {
 
 func (s *service) Init(_ context.Context) error {
 	s.foo = "foo"
-	// return nil
-	return errors.New("init error")
+	return nil
+	// return errors.New("init error")
 }
 
 func (s service) Shutdown(_ context.Context) error {
