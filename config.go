@@ -3,16 +3,18 @@ package pal
 import (
 	"context"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // Config is the configuration for pal.
 type Config struct {
-	InitTimeout        time.Duration // required
-	HealthCheckTimeout time.Duration // required
-	ShutdownTimeout    time.Duration // required
+	InitTimeout        time.Duration `validate:"gt=0"`
+	HealthCheckTimeout time.Duration `validate:"gt=0"`
+	ShutdownTimeout    time.Duration `validate:"gt=0"`
 }
 
 func (c *Config) validate(_ context.Context) error {
-	// TODO: write me
-	return nil
+	validate := validator.New()
+	return validate.Struct(c)
 }
