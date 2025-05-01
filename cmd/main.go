@@ -5,8 +5,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zhulik/pal"
 	"log"
+
+	"github.com/zhulik/pal"
 )
 
 func main() {

@@ -23,12 +23,12 @@ TODO: write me
   - When following simple rules, pal never explodes in runtime in the middle of the night. It will only explode
     during initialization, so you can catch it immediately after deployment. Unfortunately, we can't check everything in 
     compile time.
-  - Pal tries its best to gracefully shut down the app in case if any services is unhealthy or when interrupted.
-  - Pal does not try to recover from errors, if any service is unhealthy, it shuts down the app. It's user's 
-    responsibility to design resilient services and it's execution environment responsibility to restart the crashed app.
+  - Pal tries its best to gracefully shut down the app when interrupted
+  - Pal does not try to recover from errors. It's user's responsibility to design resilient services, and it's the 
+    execution environment's responsibility to restart the crashed app.
   - Pal is aware of contexts, all service lifetimes callbacks have timeouts: inits, health checks and shutdowns.
     User is forced to configure these timeouts.
-  - pal is goroutine-safe.
+  - After initialized, pal is goroutine-safe.
 
 ## Non-goals
 - Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only 

@@ -49,15 +49,12 @@ func (p *Pal) SetLogger(log loggerFn) *Pal {
 	return p
 }
 
+// HealthCheck verifies the health of the service store within a configurable timeout.
 func (p *Pal) HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
 	defer cancel()
 
-	err := p.store.healthCheck(ctx)
-	if err != nil {
-		p.Shutdown(err)
-	}
-	return err
+	return p.store.healthCheck(ctx)
 }
 
 // Shutdown schedules graceful shutdown of the app. if any errs given - Run() will return them. Only the first call is effective.
