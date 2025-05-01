@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"log"
 )
 
 type LeafService interface {
@@ -63,7 +63,7 @@ func (s service) Shutdown(_ context.Context) error {
 }
 
 func (s service) Run(_ context.Context) error {
-	log.WithField("component", "service").Info(s.Foo())
+	log.Printf("service: %s", s.Foo())
 
 	time.Sleep(1 * time.Second)
 

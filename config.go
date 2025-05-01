@@ -7,6 +7,10 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+var (
+	configValidator = validator.New()
+)
+
 // Config is the configuration for pal.
 type Config struct {
 	InitTimeout        time.Duration `validate:"gt=0"`
@@ -15,6 +19,5 @@ type Config struct {
 }
 
 func (c *Config) validate(_ context.Context) error {
-	validate := validator.New()
-	return validate.Struct(c)
+	return configValidator.Struct(c)
 }
