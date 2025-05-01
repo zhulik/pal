@@ -15,9 +15,10 @@ func New(factories ...ServiceFactory) *Pal {
 	}
 
 	return &Pal{
-		config: &Config{},
-		store:  newStore(index),
-		log:    func(string, ...any) {},
+		config:   &Config{},
+		store:    newStore(index),
+		stopChan: make(chan error),
+		log:      func(string, ...any) {},
 	}
 }
 

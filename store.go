@@ -25,12 +25,8 @@ func newStore(factories map[string]ServiceFactory) *store {
 	}
 }
 
-func (s *store) init(ctx context.Context, p *Pal) error {
-	defer func() {
-		// TODO: if init fails with an error - try to gracefully shutdown already initialized dependencies.
-	}()
-
-	// Initialize dependencies staring from the leaves. The more dependants an services, the earlier it will be initialized.
+func (s *store) init(ctx context.Context) error {
+	p := FromContext(ctx)
 
 	err := s.buildDAG()
 	if err != nil {
@@ -63,25 +59,11 @@ func (s *store) init(ctx context.Context, p *Pal) error {
 
 	p.log("Initialized. Services: %s, runners: %s", s.services(), s.runners())
 
-	for name, instance := range s.instances {
-		if runner, ok := instance.(Runner); ok {
-			// TODO: make it possible to wait for all runners.
-			go func() {
-				// TODO: use a custom context struct?
-				p.log("running %s", name)
-				ctx := context.WithValue(context.Background(), CtxValue, s)
-				err := runner.Run(ctx)
-
-				if err != nil {
-					p.Error(err)
-				}
-			}()
-		}
-	}
 	return nil
 }
 
-func (s *store) shutdown(ctx context.Context, p *Pal) error {
+func (s *store) shutdown(ctx context.Context) error {
+	p := FromContext(ctx)
 	order, err := graph.TopologicalSort(s.graph)
 	if err != nil {
 		return err
@@ -97,7 +79,9 @@ func (s *store) shutdown(ctx context.Context, p *Pal) error {
 	return errors.Join(errs...)
 }
 
-func (s *store) healthCheck(ctx context.Context, p *Pal) error {
+func (s *store) healthCheck(ctx context.Context) error {
+	p := FromContext(ctx)
+
 	var errs []error
 	for _, service := range s.instances {
 		if healthChecker, ok := service.(HealthChecker); ok {

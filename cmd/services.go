@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
-	"log"
+	"errors"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type LeafService interface {
@@ -15,6 +18,10 @@ func (s leafService) Bar() string {
 	return "bar"
 }
 
+func (s leafService) Shutdown(_ context.Context) error {
+	return nil
+}
+
 type TransientService interface {
 	Baz() string
 }
@@ -25,6 +32,10 @@ type transientService struct {
 
 func (s transientService) Baz() string {
 	return s.Leaf.Bar() + "baz"
+}
+
+func (s transientService) Shutdown(_ context.Context) error {
+	return nil
 }
 
 type Service interface {
@@ -44,7 +55,8 @@ func (s service) Foo() string {
 
 func (s *service) Init(_ context.Context) error {
 	s.foo = "foo"
-	return nil
+	// return nil
+	return errors.New("init error")
 }
 
 func (s service) Shutdown(_ context.Context) error {
@@ -52,7 +64,9 @@ func (s service) Shutdown(_ context.Context) error {
 }
 
 func (s service) Run(_ context.Context) error {
-	log.Println(s.Foo())
+	log.WithField("component", "service").Info(s.Foo())
+
+	time.Sleep(1 * time.Second)
 
 	return nil
 }

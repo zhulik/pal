@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"log"
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zhulik/pal"
 )
 
@@ -16,7 +16,7 @@ func main() {
 		pal.Provide[TransientService, transientService](),
 		// pal.ProvideFactory[Service, *service](),
 	).
-		SetLogger(log.Printf).
+		SetLogger(log.WithField("component", "pal").Infof).
 		InitTimeout(3*time.Second).
 		HealthCheckTimeout(1*time.Second).
 		ShutdownTimeout(3*time.Second).

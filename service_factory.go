@@ -42,3 +42,8 @@ func (d serviceFactory[I, S]) IsSingleton() bool {
 func (d serviceFactory[I, S]) IsRunner() bool {
 	return d.runner
 }
+
+func (d serviceFactory[I, S]) Validate(_ context.Context) error {
+	// TODO: make sure S is a struct, I is an interface, and S implements I
+	return nil
+}
