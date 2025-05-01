@@ -50,7 +50,7 @@ func ProvideFactory[I any, S any]() ServiceFactory {
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
 func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
-	name := reflect.TypeOf((*I)(nil)).Elem().String()
+	name := elem[I]().String()
 
 	a, err := p.Invoke(ctx, name)
 	if err != nil {

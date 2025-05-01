@@ -3,6 +3,7 @@ package pal
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 
@@ -47,7 +48,7 @@ func (s *store) init(ctx context.Context) error {
 	slices.Reverse(order)
 
 	for _, factoryName := range order {
-		factory := s.factories[factoryName]
+		factory, _ := s.graph.Vertex(factoryName)
 		if !factory.IsSingleton() {
 			continue
 		}
@@ -63,9 +64,39 @@ func (s *store) init(ctx context.Context) error {
 		p.log("%s initialized", factoryName)
 	}
 
-	p.log("Pal initialized. Services: %s, runners: %s", s.services(), s.runners())
+	p.log("Pal initialized. Services: %s", s.services())
 
 	return nil
+}
+
+func (s *store) invoke(ctx context.Context, name string) (any, error) {
+	p := FromContext(ctx)
+
+	p.log("invoking %s", name)
+
+	factory, err := s.graph.Vertex(name)
+	if err != nil {
+		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, s.services(), err)
+	}
+
+	var instance any
+	var ok bool
+
+	if factory.IsSingleton() {
+		instance, ok = s.instances[name]
+		if !ok {
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
+		}
+	} else {
+		var err error
+		p.log("initializing %s", name)
+		instance, err = factory.Initialize(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
+		}
+	}
+
+	return instance, nil
 }
 
 func (s *store) shutdown(ctx context.Context) error {
@@ -115,11 +146,8 @@ func (s *store) healthCheck(ctx context.Context) error {
 }
 
 func (s *store) buildDAG() error {
-	runners := s.runners()
-
-	for _, runner := range runners {
-		err := s.addDependencyVertex(runner, nil)
-		if err != nil {
+	for _, factory := range s.factories {
+		if err := s.addDependencyVertex(factory, nil); err != nil {
 			return err
 		}
 	}
@@ -136,7 +164,9 @@ func (s *store) addDependencyVertex(factory ServiceFactory, parent ServiceFactor
 
 	if parent != nil {
 		if err := s.graph.AddEdge(parent.Name(), factory.Name()); err != nil {
-			return err
+			if !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+				return err
+			}
 		}
 	}
 
@@ -145,10 +175,6 @@ func (s *store) addDependencyVertex(factory ServiceFactory, parent ServiceFactor
 	val := reflect.ValueOf(instance)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
-	}
-
-	if val.Kind() != reflect.Struct {
-		return nil
 	}
 
 	typ := val.Type()
@@ -168,20 +194,31 @@ func (s *store) addDependencyVertex(factory ServiceFactory, parent ServiceFactor
 	return nil
 }
 
-func (s *store) services() []string {
-	var names []string
-	for name := range s.factories {
-		names = append(names, name)
+func (s *store) services() []ServiceFactory {
+	var services []ServiceFactory
+
+	for _, factory := range s.factories {
+		services = append(services, factory)
 	}
-	return names
+	return services
 }
 
-func (s *store) runners() []ServiceFactory {
-	var runners []ServiceFactory
-	for _, factory := range s.factories {
-		if factory.IsRunner() {
-			runners = append(runners, factory)
+func (s *store) runners() map[string]Runner {
+	runners := map[string]Runner{}
+	for name, instance := range s.instances {
+		if runner, ok := instance.(Runner); ok {
+			runners[name] = runner
 		}
 	}
 	return runners
+}
+
+func (s *store) validate(ctx context.Context) error {
+	var errs []error
+
+	for _, factory := range s.factories {
+		errs = append(errs, factory.Validate(ctx))
+	}
+
+	return errors.Join(errs...)
 }
