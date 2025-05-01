@@ -24,6 +24,30 @@ type Pal struct {
 	log loggerFn
 }
 
+// New creates and returns a new instance of Pal with the provided ServiceFactory's
+func New(factories ...ServiceFactory) *Pal {
+	index := make(map[string]ServiceFactory)
+
+	for _, factory := range factories {
+		index[factory.Name()] = factory
+	}
+
+	logger := func(string, ...any) {}
+
+	return &Pal{
+		config:   &Config{},
+		store:    newStore(index, logger),
+		stopChan: make(chan error),
+		log:      logger,
+	}
+}
+
+// FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
+// Panics if ctx misses the value.
+func FromContext(ctx context.Context) *Pal {
+	return ctx.Value(CtxValue).(*Pal)
+}
+
 // InitTimeout sets the timeout for the initialization of the services.
 func (p *Pal) InitTimeout(t time.Duration) *Pal {
 	p.config.InitTimeout = t
@@ -45,6 +69,7 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 // SetLogger sets the logger instance to be used by Pal
 func (p *Pal) SetLogger(log loggerFn) *Pal {
 	p.log = log
+	p.store.setLogger(log)
 	return p
 }
 
