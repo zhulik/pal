@@ -12,8 +12,12 @@ import (
 // store is responsible for storing factories, instances and the dependency graph
 type store struct {
 	factories map[string]ServiceFactory
-	graph     graph.Graph[string, string]
+	graph     graph.Graph[string, ServiceFactory]
 	instances map[string]any
+}
+
+func serviceFactoryHash(factory ServiceFactory) string {
+	return factory.Name()
 }
 
 // newStore creates a new store instance
@@ -21,7 +25,7 @@ func newStore(factories map[string]ServiceFactory) *store {
 	return &store{
 		factories: factories,
 		instances: map[string]any{},
-		graph:     graph.New(graph.StringHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
+		graph:     graph.New(serviceFactoryHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
 	}
 }
 
@@ -114,7 +118,7 @@ func (s *store) buildDAG() error {
 	runners := s.runners()
 
 	for _, runner := range runners {
-		err := s.addDependencyVertex(runner, "")
+		err := s.addDependencyVertex(runner, nil)
 		if err != nil {
 			return err
 		}
@@ -123,20 +127,18 @@ func (s *store) buildDAG() error {
 	return nil
 }
 
-func (s *store) addDependencyVertex(name string, parent string) error {
-	if err := s.graph.AddVertex(name); err != nil {
+func (s *store) addDependencyVertex(factory ServiceFactory, parent ServiceFactory) error {
+	if err := s.graph.AddVertex(factory); err != nil {
 		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
 			return err
 		}
 	}
 
-	if parent != "" {
-		if err := s.graph.AddEdge(parent, name); err != nil {
+	if parent != nil {
+		if err := s.graph.AddEdge(parent.Name(), factory.Name()); err != nil {
 			return err
 		}
 	}
-
-	factory := s.factories[name]
 
 	instance := factory.Make()
 
@@ -155,8 +157,8 @@ func (s *store) addDependencyVertex(name string, parent string) error {
 
 		if field.Type.Kind() == reflect.Interface {
 			dependencyName := field.Type.String()
-			if _, ok := s.factories[dependencyName]; ok {
-				if err := s.addDependencyVertex(dependencyName, name); err != nil {
+			if childFactory, ok := s.factories[dependencyName]; ok {
+				if err := s.addDependencyVertex(childFactory, factory); err != nil {
 					return err
 				}
 			}
@@ -174,11 +176,11 @@ func (s *store) services() []string {
 	return names
 }
 
-func (s *store) runners() []string {
-	var runners []string
-	for name, factory := range s.factories {
+func (s *store) runners() []ServiceFactory {
+	var runners []ServiceFactory
+	for _, factory := range s.factories {
 		if factory.IsRunner() {
-			runners = append(runners, name)
+			runners = append(runners, factory)
 		}
 	}
 	return runners

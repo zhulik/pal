@@ -119,8 +119,9 @@ func (p *Pal) forwardSignals(signals []os.Signal) {
 func (p *Pal) startRunners(ctx context.Context) {
 	g := &errgroup.Group{}
 
-	for _, name := range p.Runners() {
+	for _, factory := range p.Runners() {
 		g.Go(func() error {
+			name := factory.Name()
 			p.log("running %s", name)
 			err := p.store.instances[name].(Runner).Run(ctx)
 			if err != nil {
@@ -142,7 +143,7 @@ func (p *Pal) Services() []string {
 	return p.store.services()
 }
 
-func (p *Pal) Runners() []string {
+func (p *Pal) Runners() []ServiceFactory {
 	return p.store.runners()
 }
 
