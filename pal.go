@@ -2,10 +2,13 @@ package pal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type ContextKey int
@@ -15,34 +18,11 @@ const (
 )
 
 type Pal struct {
-	config *Config
+	config   *Config
+	store    *store
+	stopChan chan error
 
-	factories []DependencyFactory
-}
-
-func New(factories ...DependencyFactory) *Pal {
-	return &Pal{
-		config:    &Config{},
-		factories: factories,
-	}
-}
-
-// Provide registers a singleton service with pal. *I* must be an interface and *S* must be a struct that implements I.
-// Only one instance of the service will be created and reused.
-// TODO: any ways to enforce this with types?
-func Provide[I any, S Service]() *Dependency[I, S] {
-	return &Dependency[I, S]{
-		singleton: true,
-	}
-}
-
-// ProvideFactory registers a factory service with pal. *I* must be an interface, and *S* must be a struct that implements I.
-// A new factory service instances are created every time the service is invoked.
-// it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S Service]() *Dependency[I, S] {
-	return &Dependency[I, S]{
-		singleton: false,
-	}
+	log loggerFn
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -63,51 +43,147 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 	return p
 }
 
-// Error triggers graceful shutdown of the app, the error will be printer out, Pal.Run() will return an error.
-func (p *Pal) Error(_ error) {
-	// TODO: write me
+// SetLogger sets the logger instance to be used by Pal
+func (p *Pal) SetLogger(log loggerFn) *Pal {
+	p.log = log
+	return p
 }
 
-func (p *Pal) Shutdown(ctx context.Context) error {
-	_, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+func (p *Pal) HealthCheck(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
 	defer cancel()
-	// TODO: write me
 
-	return nil
+	err := p.store.healthCheck(ctx)
+	if err != nil {
+		p.Shutdown(err)
+	}
+	return err
 }
 
-// Run eagerly initializes and starts Runners, then blocks until one of the given signals is received.
-// When it's received, pal will gracefully shut down the app.
-func (p *Pal) Run(ctx context.Context, _ ...syscall.Signal) error {
-	err := p.validate(ctx)
-	if err != nil {
+// Shutdown schedules graceful shutdown of the app. if any errs given - Run() will return them. Only the first call is effective.
+// The later calls are queued but ignored.
+func (p *Pal) Shutdown(errs ...error) {
+	// In theory this causes a goroutine leak, but it's not a big deal as we are shutting down anyway.
+	go func() {
+		p.stopChan <- errors.Join(errs...)
+	}()
+}
+
+// Run eagerly initializes and starts Runners, then blocks until one of the given signals is received or all runners
+// finish their work. If any error occurs during initialization, runner operation or shutdown - Run() will return it.
+func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
+	ctx = context.WithValue(ctx, CtxValue, p)
+
+	if err := p.validate(ctx); err != nil {
 		return err
 	}
 
-	err = p.init(ctx)
-	if err != nil {
-		return err
+	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
+	defer cancel()
+
+	if err := p.store.init(initCtx); err != nil {
+		p.log("init failed with %+v", err)
+
+		shutCtx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+		defer cancel()
+		return errors.Join(err, p.store.shutdown(shutCtx))
 	}
 
+	p.startRunners(ctx)
+
+	go p.forwardSignals(signals)
+
+	go func() {
+		<-ctx.Done()
+		p.stopChan <- ctx.Err()
+	}()
+
+	p.log("running until one of %+v is received or until job is done", signals)
+
+	err := <-p.stopChan
+
+	shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+	defer cancel()
+	return errors.Join(err, p.store.shutdown(shutCt))
+}
+
+func (p *Pal) forwardSignals(signals []os.Signal) {
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, signals...)
 
-	select {
-	case <-ctx.Done():
-		return &RunError{ctx.Err()}
-	case <-sigChan:
-		return &RunError{p.Shutdown(ctx)}
+	sig := <-sigChan
+
+	p.log("signal received: %+v", sig)
+
+	p.stopChan <- nil
+}
+
+func (p *Pal) startRunners(ctx context.Context) {
+	g := &errgroup.Group{}
+
+	for _, name := range p.Runners() {
+		g.Go(func() error {
+			p.log("running %s", name)
+			err := p.store.instances[name].(Runner).Run(ctx)
+			if err != nil {
+				p.log("runner %s exited with error='%+v'", name, err)
+				return err
+			}
+
+			p.log("runner %s finished successfully", name)
+			return nil
+		})
 	}
+
+	go func() {
+		p.Shutdown(g.Wait())
+	}()
 }
 
-func (p *Pal) validate(_ context.Context) error {
-	// TODO: write me
-	// TODO: validate config here
-	return nil
+func (p *Pal) Services() []string {
+	return p.store.services()
 }
 
-func (p *Pal) init(_ context.Context) error {
-	// TODO: write me
-	// TODO: go through all the factories and create runners
-	return nil
+func (p *Pal) Runners() []string {
+	return p.store.runners()
+}
+
+func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
+	ctx = context.WithValue(ctx, CtxValue, p)
+	p.log("invoking %s", name)
+
+	factory, ok := p.store.factories[name]
+	if !ok {
+		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, p.Services())
+	}
+
+	var instance any
+
+	if factory.IsSingleton() {
+		instance, ok = p.store.instances[name]
+		if !ok {
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceNotInit, name)
+		}
+	} else {
+		var err error
+		p.log("initializing %s", name)
+		instance, err = factory.Initialize(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%w: '%s'", ErrServiceInitFailed, name)
+		}
+	}
+
+	return instance, nil
+}
+
+func (p *Pal) validate(ctx context.Context) error {
+	errs := []error{p.config.validate(ctx)}
+
+	for _, factory := range p.store.factories {
+		if err := factory.Validate(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }

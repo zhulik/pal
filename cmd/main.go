@@ -2,54 +2,27 @@ package main
 
 import (
 	"context"
-	"errors"
-	"os"
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zhulik/pal"
 )
 
-type Service interface {
-	Foo() string
-}
-
-type service struct {
-}
-
-func (s *service) Foo() string {
-	return "bar"
-}
-
-func (s *service) HealthCheck(_ context.Context) error {
-	return nil
-}
-
-func (s *service) Shutdown(_ context.Context) error {
-	return nil
-}
-
-func (s *service) Run(_ context.Context) error {
-	return nil
-}
-
-func (s *service) Init(_ context.Context) error {
-	return nil
-}
-
 func main() {
 	err := pal.New(
-		pal.Provide[Service, *service](),
-		pal.ProvideFactory[Service, *service](),
+		pal.Provide[Service, service](),
+		pal.Provide[LeafService, leafService](),
+		pal.Provide[TransientService, transientService](),
+		// pal.ProvideFactory[Service, *service](),
 	).
+		SetLogger(log.WithField("component", "pal").Infof).
 		InitTimeout(3*time.Second).
 		HealthCheckTimeout(1*time.Second).
 		ShutdownTimeout(3*time.Second).
 		Run(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
 	if err != nil {
-		var palError *pal.RunError
-		errors.As(err, &palError)
-		os.Exit(palError.ExitCode())
+		log.Fatal(err)
 	}
 }
