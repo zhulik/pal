@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+
+	"github.com/zhulik/pal/pkg/core"
 )
 
 type service[I any, S any] struct {
@@ -40,7 +42,7 @@ func (f *service[I, S]) build(ctx context.Context) (*S, error) {
 		return nil, err
 	}
 
-	if initer, ok := any(s).(Initer); ok {
+	if initer, ok := any(s).(core.Initer); ok {
 		if err := initer.Init(ctx); err != nil {
 			return nil, err
 		}
@@ -63,16 +65,16 @@ func (f *service[I, S]) IsRunner() bool {
 func (f *service[I, S]) Validate(_ context.Context) error {
 	iType := elem[I]()
 	if iType.Kind() != reflect.Interface {
-		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
+		return fmt.Errorf("%w: type parameter I (%v) must be an interface", core.ErrServiceInvalid, iType)
 	}
 
 	sType := elem[S]()
 	if sType.Kind() != reflect.Struct {
-		return fmt.Errorf("%w: type parameter S (%v) must be a struct", ErrServiceInvalid, sType)
+		return fmt.Errorf("%w: type parameter S (%v) must be a struct", core.ErrServiceInvalid, sType)
 	}
 
 	if !sType.Implements(iType) {
-		return fmt.Errorf("%w: type %v does not implement interface %v", ErrServiceInvalid, sType, iType)
+		return fmt.Errorf("%w: type %v does not implement interface %v", core.ErrServiceInvalid, sType, iType)
 	}
 
 	return nil

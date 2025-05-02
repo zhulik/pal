@@ -1,4 +1,4 @@
-package pal
+package core
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 // HealthChecker is an optional interface that can be implemented by a service.
 type HealthChecker interface {
 	// HealthCheck is being called when pal is checking the health of the service.
-	// If returns an error, pal will consider the service unhealthy and try to gracefully shutdown the app,
+	// If returns an error, pal will consider the service unhealthy and try to gracefully Shutdown the app,
 	// Pal.Run() will return an error.
 	// ctx has a timeout and only being canceled if it is exceeded.
 	// DOC: document healthcheck process
@@ -17,19 +17,19 @@ type HealthChecker interface {
 // Shutdowner is an optional interface that can be implemented by a service.
 type Shutdowner interface {
 	// Shutdown is being called when pal is shutting down the service.
-	// If returns an error, pal will consider this service unhealthy, but will continue to shutdown the app,
+	// If returns an error, pal will consider this service unhealthy, but will continue to Shutdown the app,
 	// Pal.Run() will return an error.
 	// ctx has a timeout and only being canceled if it is exceeded.
-	// If all of the services successfully shutdown, Pal.Run will return nil.
-	// DOC: document shutdown process
+	// If all of the services successfully Shutdown, Pal.Run will return nil.
+	// DOC: document Shutdown process
 	Shutdown(ctx context.Context) error
 }
 
 // Initer is an optional interface that can be implemented by a service.
 type Initer interface {
 	// Init is being called when pal is initializing the service, after all the dependencies are injected.
-	// If returns an error, pal will consider the service unhealthy and try to gracefully shutdown already initialized services.
-	// DOC: document init process
+	// If returns an error, pal will consider the service unhealthy and try to gracefully Shutdown already initialized services.
+	// DOC: document Init process
 	Init(ctx context.Context) error
 }
 
@@ -66,4 +66,5 @@ type Service interface {
 	Validate(_ context.Context) error
 }
 
-type loggerFn func(fmt string, args ...any)
+// LoggerFn defines a function type for a logger passed from the outside to log Pal activity.
+type LoggerFn func(fmt string, args ...any)

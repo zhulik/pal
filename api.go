@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+
+	"github.com/zhulik/pal/pkg/core"
 )
 
 // Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
-func Provide[I any, S any]() Service {
-	_, isRunner := any(empty[S]()).(Runner)
+func Provide[I any, S any]() core.Service {
+	_, isRunner := any(empty[S]()).(core.Runner)
 
 	return &service[I, S]{
 		singleton: true,
@@ -20,7 +22,7 @@ func Provide[I any, S any]() Service {
 // ProvideFactory registers a factory service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S any]() Service {
+func ProvideFactory[I any, S any]() core.Service {
 	return &service[I, S]{
 		singleton: false,
 	}
@@ -37,7 +39,7 @@ func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
 
 	casted, ok := a.(I)
 	if !ok {
-		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", ErrServiceCastingFailed, a, name, name)
+		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", core.ErrServiceCastingFailed, a, name, name)
 	}
 
 	return casted, nil
