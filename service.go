@@ -39,8 +39,9 @@ func (f *Service[I, S]) Initialize(ctx context.Context) error {
 }
 
 func (f *Service[I, S]) Make() any {
-	return empty[S]()
+	return new(S)
 }
+
 func (f *Service[I, S]) BeforeInit(hook core.LifecycleHook[S]) *Service[I, S] {
 	f.beforeInit = hook
 	return f

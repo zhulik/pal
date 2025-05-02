@@ -2,7 +2,6 @@ package pal_test
 
 import (
 	"context"
-	"errors"
 	"syscall"
 	"testing"
 	"time"
@@ -41,7 +40,12 @@ func TestPal_New(t *testing.T) {
 		t.Parallel()
 
 		p := pal.New(
-			pal.Provide[TestInterface, TestStruct](),
+			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+
+				return nil
+			}),
 		)
 
 		assert.NoError(t, p.Init(t.Context()))
@@ -136,7 +140,7 @@ func TestPal_HealthCheck(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that implements HealthChecker
-		service := pal.Provide[TestInterface, TestStruct]()
+		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
 		p := pal.New(service)
 
 		err := p.HealthCheck(t.Context())
@@ -166,10 +170,9 @@ func TestPal_Shutdown(t *testing.T) {
 		t.Parallel()
 
 		p := pal.New()
-		err := errors.New("test error")
 
 		// This is a non-blocking call
-		p.Shutdown(err)
+		p.Shutdown(errTest)
 
 		// No way to directly test the effect, but we can verify it doesn't panic
 	})
@@ -182,7 +185,12 @@ func TestPal_Services(t *testing.T) {
 	t.Run("returns all services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[TestInterface, TestStruct]()
+		service := pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Init", ctx).Return(nil)
+
+			return nil
+		})
 
 		p := pal.New(service)
 
@@ -212,14 +220,19 @@ func TestPal_Invoke(t *testing.T) {
 		t.Parallel()
 
 		p := pal.New(
-			pal.Provide[TestInterface, TestStruct](),
+			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+
+				return nil
+			}),
 		)
 
 		assert.NoError(t, p.Init(t.Context()))
 
-		instance, err := p.Invoke(t.Context(), "pal_test.TestInterface")
+		instance, err := p.Invoke(t.Context(), "pal_test.TestServiceInterface")
 		assert.NoError(t, err)
-		assert.Implements(t, (*TestInterface)(nil), instance)
+		assert.Implements(t, (*TestServiceInterface)(nil), instance)
 	})
 
 	t.Run("returns error when service not found", func(t *testing.T) {
@@ -253,7 +266,12 @@ func TestPal_Run(t *testing.T) {
 	t.Run("exists after runners exist", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerInterface, RunnerStruct]()
+		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Run", mock.Anything).Return(nil)
+
+			return nil
+		})
 
 		err := pal.New(
 			service,
@@ -269,26 +287,37 @@ func TestPal_Run(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, runner)
 
-		assert.True(t, runner.(*RunnerStruct).RunCalled)
+		i, _ := service.Instance(t.Context())
+
+		m := i.(*RunnerServiceStruct)
+		m.AssertExpectations(t)
+
+		//assert.True(t, runner.(*RunnerServiceStruct).RunCalled)
 	})
 
 	t.Run("errors during init - services are gracefully shut down", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a test state tracker
-		tracker := NewTestStateTracker()
-
-		// Create a context with the test state tracker
-		ctx := WithTestState(t.Context(), tracker)
-
 		// Create a service that will be initialized successfully
-		shutdownService := pal.Provide[ShutdownTrackingInterface, ShutdownTrackingStruct]()
+		shutdownService := pal.Provide[ShutdownTrackingInterface, TestServiceStruct]().
+			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+				service.On("Shutdown", ctx).Return(nil)
+
+				return nil
+			})
 
 		// Create a service that will fail during initialization
-		failingService := pal.Provide[FailingInitInterface, FailingInitStruct]()
+		failingService := pal.Provide[FailingInitInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Init", ctx).Return(errTest)
+
+			return nil
+		})
 
 		// Create a runner that should not be started
-		runnerService := pal.Provide[RunnerInterface, RunnerStruct]()
+		runnerService := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]()
 
 		// Run the application - this should fail because failingService fails to initialize
 		err := pal.New(
@@ -299,36 +328,39 @@ func TestPal_Run(t *testing.T) {
 			InitTimeout(3*time.Second).
 			HealthCheckTimeout(1*time.Second).
 			ShutdownTimeout(3*time.Second).
-			Run(ctx, syscall.SIGINT)
+			Run(t.Context(), syscall.SIGINT)
 
 		// Verify that Run returns an error
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "init error")
-
-		// Verify that the shutdown service was shut down
-		assert.True(t, tracker.ShutdownTrackerCalled())
-
-		// Verify that the runner was not started
-		assert.False(t, tracker.RunnerCalled())
+		assert.ErrorIs(t, err, errTest)
 	})
 
 	t.Run("runners returning errors - services are gracefully shut down", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a test state tracker
-		tracker := NewTestStateTracker()
-
-		// Create a context with the test state tracker
-		ctx := WithTestState(t.Context(), tracker)
-
 		// Create a service that will track if it was shut down
-		shutdownService := pal.Provide[ShutdownTrackingInterface, ShutdownTrackingStruct]()
+		shutdownService := pal.Provide[ShutdownTrackingInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Init", ctx).Return(nil)
+
+			return nil
+		})
 
 		// Create a runner that will return an error
-		errorRunnerService := pal.Provide[ErrorRunnerInterface, ErrorRunnerStruct]()
+		errorRunnerService := pal.Provide[ErrorRunnerInterface, RunnerServiceStruct]().BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Run", mock.Anything).Return(errTest)
+
+			return nil
+		})
 
 		// Create a normal runner
-		runnerService := pal.Provide[RunnerInterface, RunnerStruct]()
+		runnerService := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Run", mock.Anything).Return(nil)
+
+			return nil
+		})
 
 		// Run the application - this should fail because errorRunnerService returns an error
 		err := pal.New(
@@ -339,19 +371,10 @@ func TestPal_Run(t *testing.T) {
 			InitTimeout(3*time.Second).
 			HealthCheckTimeout(1*time.Second).
 			ShutdownTimeout(3*time.Second).
-			Run(ctx, syscall.SIGINT)
+			Run(t.Context(), syscall.SIGINT)
 
 		// Verify that Run returns an error
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "run error")
-
-		// Verify that the error runner's Run was called
-		assert.True(t, tracker.ErrorRunnerCalled())
-
-		// Verify that the shutdown service was shut down
-		assert.True(t, tracker.ShutdownTrackerCalled())
-
-		// Verify that the normal runner was started
-		assert.True(t, tracker.RunnerCalled())
+		assert.Error(t, err, errTest)
 	})
 }

@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	errTest = errors.New("test error")
+)
+
 func hashFn(i int) int { return i }
 
 // TestDAG_New tests the New function for DAG
@@ -232,17 +236,16 @@ func TestDAG_ForEachVertex(t *testing.T) {
 
 		// Track visited vertices
 		visited := map[int]bool{}
-		expectedErr := errors.New("test error")
 
 		err := d.ForEachVertex(func(i int) error {
 			visited[i] = true
 			if i == 2 {
-				return expectedErr
+				return errTest
 			}
 			return nil
 		})
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, errTest)
 		assert.Equal(t, map[int]bool{1: true, 2: true}, visited)
 	})
 }
@@ -307,17 +310,16 @@ func TestDAG_InTopologicalOrder(t *testing.T) {
 
 		// Track visited vertices
 		var visited []int
-		expectedErr := errors.New("test error")
 
 		err := d.InTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			if i == 2 {
-				return expectedErr
+				return errTest
 			}
 			return nil
 		})
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, errTest)
 		assert.Equal(t, []int{1, 2}, visited)
 	})
 }
@@ -382,17 +384,16 @@ func TestDAG_InReverseTopologicalOrder(t *testing.T) {
 
 		// Track visited vertices
 		var visited []int
-		expectedErr := errors.New("test error")
 
 		err := d.InReverseTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			if i == 2 {
-				return expectedErr
+				return errTest
 			}
 			return nil
 		})
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, errTest)
 		assert.Equal(t, []int{3, 2}, visited)
 	})
 }

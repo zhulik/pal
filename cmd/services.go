@@ -55,7 +55,6 @@ func (s service) Foo() string {
 func (s *service) Init(_ context.Context) error { //nolint:unparam
 	s.foo = "foo"
 	return nil
-	// return errors.New("init error")
 }
 
 func (s service) Shutdown(_ context.Context) error {

@@ -165,6 +165,10 @@ func (c *Container) addDependencyVertex(service core.Service, parent core.Servic
 		val = val.Elem()
 	}
 
+	if !val.IsValid() {
+		return nil
+	}
+
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
