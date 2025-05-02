@@ -4,6 +4,8 @@ import (
 	"context"
 )
 
+type LifecycleHook[T any] func(ctx context.Context, service *T) error
+
 // HealthChecker is an optional interface that can be implemented by a service.
 type HealthChecker interface {
 	// HealthCheck is being called when pal is checking the health of the service.

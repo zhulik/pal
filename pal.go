@@ -144,7 +144,6 @@ func (p *Pal) Init(ctx context.Context) error {
 
 		return errors.Join(err, p.store.Shutdown(shutCtx))
 	}
-	p.log("Pal initialized. Services: %s", p.Services())
 
 	return nil
 }
