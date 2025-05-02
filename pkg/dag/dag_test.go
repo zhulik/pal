@@ -1,8 +1,10 @@
-package dag
+package dag_test
 
 import (
 	"errors"
 	"testing"
+
+	"github.com/zhulik/pal/pkg/dag"
 
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
@@ -18,10 +20,10 @@ func TestNew(t *testing.T) {
 	t.Run("creates a new DAG with hash function", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
-		assert.NotNil(t, dag)
-		assert.NotNil(t, dag.Graph)
+		assert.NotNil(t, d)
+		assert.NotNil(t, d.Graph)
 	})
 }
 
@@ -32,13 +34,13 @@ func TestAddVertexIfNotExist(t *testing.T) {
 	t.Run("adds a vertex if it doesn't exist", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
-		err := dag.AddVertexIfNotExist(1)
+		err := d.AddVertexIfNotExist(1)
 		assert.NoError(t, err)
 
 		// Verify vertex was added
-		vertex, err := dag.Vertex(1)
+		vertex, err := d.Vertex(1)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, vertex)
 	})
@@ -46,7 +48,7 @@ func TestAddVertexIfNotExist(t *testing.T) {
 	t.Run("does nothing if vertex already exists", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		dag := dag.New(hashFn)
 
 		// Add vertex first time
 		err := dag.AddVertex(1)
@@ -70,18 +72,18 @@ func TestAddEdgeIfNotExist(t *testing.T) {
 	t.Run("adds an edge if it doesn't exist", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Add vertices first
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
 
 		// Add edge
-		err := dag.AddEdgeIfNotExist(1, 2)
+		err := d.AddEdgeIfNotExist(1, 2)
 		assert.NoError(t, err)
 
 		// Verify edge was added
-		adjMap, err := dag.AdjacencyMap()
+		adjMap, err := d.AdjacencyMap()
 		assert.NoError(t, err)
 		assert.Contains(t, adjMap[1], 2)
 	})
@@ -89,22 +91,22 @@ func TestAddEdgeIfNotExist(t *testing.T) {
 	t.Run("does nothing if edge already exists", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Add vertices first
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
 
 		// Add edge first time
-		err := dag.AddEdge(1, 2)
+		err := d.AddEdge(1, 2)
 		require.NoError(t, err)
 
 		// Try to add same edge again
-		err = dag.AddEdgeIfNotExist(1, 2)
+		err = d.AddEdgeIfNotExist(1, 2)
 		assert.NoError(t, err)
 
 		// Verify edge still exists
-		adjMap, err := dag.AdjacencyMap()
+		adjMap, err := d.AdjacencyMap()
 		assert.NoError(t, err)
 		assert.Contains(t, adjMap[1], 2)
 	})
@@ -112,11 +114,11 @@ func TestAddEdgeIfNotExist(t *testing.T) {
 	t.Run("returns error if adding edge fails for other reasons", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Try to add edge without adding vertices first
 		// This should fail with an error other than ErrEdgeAlreadyExists
-		err := dag.AddEdgeIfNotExist(1, 2)
+		err := d.AddEdgeIfNotExist(1, 2)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, graph.ErrVertexNotFound)
 	})
@@ -129,24 +131,24 @@ func TestVertices(t *testing.T) {
 	t.Run("returns empty slice for empty graph", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
-		vertices := dag.Vertices()
+		vertices := d.Vertices()
 		assert.Empty(t, vertices)
 	})
 
 	t.Run("returns all vertices in the graph", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Add vertices
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
 
 		// Get vertices
-		vertices := dag.Vertices()
+		vertices := d.Vertices()
 
 		// Verify all vertices are returned
 		assert.ElementsMatch(t, []int{1, 2, 3}, vertices)
@@ -160,17 +162,17 @@ func TestVertices(t *testing.T) {
 			Name string
 		}
 
-		dag := New(func(c complexType) int { return c.ID })
+		d := dag.New(func(c complexType) int { return c.ID })
 
 		// Add vertices with complex type
 		v1 := complexType{ID: 1, Name: "one"}
 		v2 := complexType{ID: 2, Name: "two"}
 
-		require.NoError(t, dag.AddVertex(v1))
-		require.NoError(t, dag.AddVertex(v2))
+		require.NoError(t, d.AddVertex(v1))
+		require.NoError(t, d.AddVertex(v2))
 
 		// Get vertices
-		vertices := dag.Vertices()
+		vertices := d.Vertices()
 
 		// Verify all vertices are returned
 		assert.ElementsMatch(t, []complexType{v1, v2}, vertices)
@@ -184,10 +186,10 @@ func TestForEachVertex(t *testing.T) {
 	t.Run("does nothing for empty graph", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		callCount := 0
-		err := dag.ForEachVertex(func(_ int) error {
+		err := d.ForEachVertex(func(_ int) error {
 			callCount++
 			return nil
 		})
@@ -199,17 +201,17 @@ func TestForEachVertex(t *testing.T) {
 	t.Run("calls function for each vertex", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Add vertices
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
 
 		// Track visited vertices
 		visited := map[int]bool{}
 
-		err := dag.ForEachVertex(func(i int) error {
+		err := d.ForEachVertex(func(i int) error {
 			visited[i] = true
 			return nil
 		})
@@ -221,18 +223,18 @@ func TestForEachVertex(t *testing.T) {
 	t.Run("returns error when function returns error", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Add vertices
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
 
 		// Track visited vertices
 		visited := map[int]bool{}
 		expectedErr := errors.New("test error")
 
-		err := dag.ForEachVertex(func(i int) error {
+		err := d.ForEachVertex(func(i int) error {
 			visited[i] = true
 			if i == 2 {
 				return expectedErr
@@ -252,10 +254,10 @@ func TestInTopologicalOrder(t *testing.T) {
 	t.Run("does nothing for empty graph", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		callCount := 0
-		err := dag.InTopologicalOrder(func(_ int) error {
+		err := d.InTopologicalOrder(func(_ int) error {
 			callCount++
 			return nil
 		})
@@ -267,19 +269,19 @@ func TestInTopologicalOrder(t *testing.T) {
 	t.Run("calls function for each vertex in topological order", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Create a simple DAG: 1 -> 2 -> 3
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
-		require.NoError(t, dag.AddEdge(1, 2))
-		require.NoError(t, dag.AddEdge(2, 3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(2, 3))
 
 		// Track order of visited vertices
 		var visited []int
 
-		err := dag.InTopologicalOrder(func(i int) error {
+		err := d.InTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			return nil
 		})
@@ -294,20 +296,20 @@ func TestInTopologicalOrder(t *testing.T) {
 	t.Run("stops iteration and returns error when function returns error", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Create a simple DAG: 1 -> 2 -> 3
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
-		require.NoError(t, dag.AddEdge(1, 2))
-		require.NoError(t, dag.AddEdge(2, 3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(2, 3))
 
 		// Track visited vertices
 		var visited []int
 		expectedErr := errors.New("test error")
 
-		err := dag.InTopologicalOrder(func(i int) error {
+		err := d.InTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			if i == 2 {
 				return expectedErr
@@ -327,10 +329,10 @@ func TestInReverseTopologicalOrder(t *testing.T) {
 	t.Run("does nothing for empty graph", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		callCount := 0
-		err := dag.InReverseTopologicalOrder(func(_ int) error {
+		err := d.InReverseTopologicalOrder(func(_ int) error {
 			callCount++
 			return nil
 		})
@@ -342,19 +344,19 @@ func TestInReverseTopologicalOrder(t *testing.T) {
 	t.Run("calls function for each vertex in reverse topological order", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Create a simple DAG: 1 -> 2 -> 3
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
-		require.NoError(t, dag.AddEdge(1, 2))
-		require.NoError(t, dag.AddEdge(2, 3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(2, 3))
 
 		// Track order of visited vertices
 		var visited []int
 
-		err := dag.InReverseTopologicalOrder(func(i int) error {
+		err := d.InReverseTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			return nil
 		})
@@ -369,20 +371,20 @@ func TestInReverseTopologicalOrder(t *testing.T) {
 	t.Run("stops iteration and returns error when function returns error", func(t *testing.T) {
 		t.Parallel()
 
-		dag := New(hashFn)
+		d := dag.New(hashFn)
 
 		// Create a simple DAG: 1 -> 2 -> 3
-		require.NoError(t, dag.AddVertex(1))
-		require.NoError(t, dag.AddVertex(2))
-		require.NoError(t, dag.AddVertex(3))
-		require.NoError(t, dag.AddEdge(1, 2))
-		require.NoError(t, dag.AddEdge(2, 3))
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(2, 3))
 
 		// Track visited vertices
 		var visited []int
 		expectedErr := errors.New("test error")
 
-		err := dag.InReverseTopologicalOrder(func(i int) error {
+		err := d.InReverseTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			if i == 2 {
 				return expectedErr
