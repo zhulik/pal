@@ -3,8 +3,11 @@ package pal_test
 import (
 	"context"
 	"errors"
+	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -140,6 +143,8 @@ func TestPal_HealthCheck(t *testing.T) {
 
 		assert.NoError(t, err)
 	})
+
+	// TODO: health check times out
 }
 
 // TestPal_Shutdown tests the Shutdown method
@@ -226,5 +231,127 @@ func TestPal_Invoke(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
+	})
+}
+
+// TestPal_Invoke tests the Run method
+func TestPal_Run(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exists immediately when no runners given", func(t *testing.T) {
+		t.Parallel()
+
+		err := pal.New().
+			InitTimeout(3*time.Second).
+			HealthCheckTimeout(1*time.Second).
+			ShutdownTimeout(3*time.Second).
+			Run(t.Context(), syscall.SIGINT)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("exists after runners exist", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.Provide[RunnerInterface, RunnerStruct]()
+
+		err := pal.New(
+			service,
+		).
+			InitTimeout(3*time.Second).
+			HealthCheckTimeout(1*time.Second).
+			ShutdownTimeout(3*time.Second).
+			Run(t.Context(), syscall.SIGINT)
+
+		require.NoError(t, err)
+
+		runner, err := service.Instance(t.Context())
+		assert.NoError(t, err)
+		assert.NotNil(t, runner)
+
+		assert.True(t, runner.(*RunnerStruct).RunCalled)
+	})
+
+	t.Run("errors during init - services are gracefully shut down", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a test state tracker
+		tracker := NewTestStateTracker()
+
+		// Create a context with the test state tracker
+		ctx := WithTestState(t.Context(), tracker)
+
+		// Create a service that will be initialized successfully
+		shutdownService := pal.Provide[ShutdownTrackingInterface, ShutdownTrackingStruct]()
+
+		// Create a service that will fail during initialization
+		failingService := pal.Provide[FailingInitInterface, FailingInitStruct]()
+
+		// Create a runner that should not be started
+		runnerService := pal.Provide[RunnerInterface, RunnerStruct]()
+
+		// Run the application - this should fail because failingService fails to initialize
+		err := pal.New(
+			shutdownService,
+			failingService,
+			runnerService,
+		).
+			InitTimeout(3*time.Second).
+			HealthCheckTimeout(1*time.Second).
+			ShutdownTimeout(3*time.Second).
+			Run(ctx, syscall.SIGINT)
+
+		// Verify that Run returns an error
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "init error")
+
+		// Verify that the shutdown service was shut down
+		assert.True(t, tracker.ShutdownTrackerCalled())
+
+		// Verify that the runner was not started
+		assert.False(t, tracker.RunnerCalled())
+	})
+
+	t.Run("runners returning errors - services are gracefully shut down", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a test state tracker
+		tracker := NewTestStateTracker()
+
+		// Create a context with the test state tracker
+		ctx := WithTestState(t.Context(), tracker)
+
+		// Create a service that will track if it was shut down
+		shutdownService := pal.Provide[ShutdownTrackingInterface, ShutdownTrackingStruct]()
+
+		// Create a runner that will return an error
+		errorRunnerService := pal.Provide[ErrorRunnerInterface, ErrorRunnerStruct]()
+
+		// Create a normal runner
+		runnerService := pal.Provide[RunnerInterface, RunnerStruct]()
+
+		// Run the application - this should fail because errorRunnerService returns an error
+		err := pal.New(
+			shutdownService,
+			errorRunnerService,
+			runnerService,
+		).
+			InitTimeout(3*time.Second).
+			HealthCheckTimeout(1*time.Second).
+			ShutdownTimeout(3*time.Second).
+			Run(ctx, syscall.SIGINT)
+
+		// Verify that Run returns an error
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "run error")
+
+		// Verify that the error runner's Run was called
+		assert.True(t, tracker.ErrorRunnerCalled())
+
+		// Verify that the shutdown service was shut down
+		assert.True(t, tracker.ShutdownTrackerCalled())
+
+		// Verify that the normal runner was started
+		assert.True(t, tracker.RunnerCalled())
 	})
 }

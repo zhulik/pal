@@ -73,7 +73,7 @@ func (f *service[I, S]) Validate(_ context.Context) error {
 		return fmt.Errorf("%w: type parameter S (%v) must be a struct", core.ErrServiceInvalid, sType)
 	}
 
-	if !sType.Implements(iType) {
+	if _, ok := any(new(S)).(I); !ok {
 		return fmt.Errorf("%w: type %v does not implement interface %v", core.ErrServiceInvalid, sType, iType)
 	}
 

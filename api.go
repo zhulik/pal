@@ -11,7 +11,7 @@ import (
 // Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 func Provide[I any, S any]() core.Service {
-	_, isRunner := any(empty[S]()).(core.Runner)
+	_, isRunner := any(new(S)).(core.Runner)
 
 	return &service[I, S]{
 		singleton: true,

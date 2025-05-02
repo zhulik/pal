@@ -52,7 +52,7 @@ func TestService_IsRunner(t *testing.T) {
 
 		service := pal.Provide[RunnerInterface, RunnerStruct]()
 
-		assert.False(t, service.IsRunner())
+		assert.True(t, service.IsRunner())
 	})
 
 	t.Run("returns false for non-runner service", func(t *testing.T) {

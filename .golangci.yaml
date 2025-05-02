@@ -8,6 +8,7 @@ linters:
     - unconvert
     - unparam
     - whitespace
+    - paralleltest
   settings:
     gosec:
       excludes:
