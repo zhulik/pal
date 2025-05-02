@@ -135,9 +135,8 @@ func TestPal_HealthCheck(t *testing.T) {
 		// Create a service that implements HealthChecker
 		service := pal.Provide[TestInterface, TestStruct]()
 		p := pal.New(service)
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
 
-		err := p.HealthCheck(ctx)
+		err := p.HealthCheck(t.Context())
 
 		assert.NoError(t, err)
 	})
@@ -222,9 +221,8 @@ func TestPal_Invoke(t *testing.T) {
 		t.Parallel()
 
 		p := pal.New()
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
 
-		_, err := p.Invoke(ctx, "nonexistent")
+		_, err := p.Invoke(t.Context(), "nonexistent")
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
