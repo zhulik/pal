@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-
-	"github.com/dominikbraun/graph"
 )
 
 // store is responsible for storing services, instances and the dependency graph
@@ -151,17 +149,13 @@ func (s *store) runners(ctx context.Context) map[string]Runner {
 }
 
 func (s *store) addDependencyVertex(service Service, parent Service) error {
-	if err := s.graph.AddVertex(service); err != nil {
-		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
-			return err
-		}
+	if err := s.graph.AddVertexIfNotExist(service); err != nil {
+		return err
 	}
 
 	if parent != nil {
-		if err := s.graph.AddEdge(parent.Name(), service.Name()); err != nil {
-			if !errors.Is(err, graph.ErrEdgeAlreadyExists) {
-				return err
-			}
+		if err := s.graph.AddEdgeIfNotExist(parent.Name(), service.Name()); err != nil {
+			return err
 		}
 	}
 

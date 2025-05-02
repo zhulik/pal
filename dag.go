@@ -1,6 +1,7 @@
 package pal
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/dominikbraun/graph"
@@ -14,6 +15,22 @@ func newDag() *dag {
 	return &dag{
 		graph.New(serviceHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
 	}
+}
+
+func (d *dag) AddVertexIfNotExist(service Service) error {
+	err := d.AddVertex(service)
+	if errors.Is(err, graph.ErrVertexAlreadyExists) {
+		return nil
+	}
+	return err
+}
+
+func (d *dag) AddEdgeIfNotExist(sourceHash, targetHash string, options ...func(*graph.EdgeProperties)) error {
+	err := d.AddEdge(sourceHash, targetHash, options...)
+	if errors.Is(err, graph.ErrEdgeAlreadyExists) {
+		return nil
+	}
+	return err
 }
 
 func (d *dag) Vertices() []Service {
