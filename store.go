@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+
+	"github.com/dominikbraun/graph"
 )
 
 // store is responsible for storing services, instances and the dependency graph
@@ -19,6 +22,7 @@ func newStore(services map[string]Service, log loggerFn) *store {
 	return &store{
 		services: services,
 		log:      log,
+		graph:    newDag(),
 	}
 }
 
@@ -37,16 +41,16 @@ func (s *store) validate(ctx context.Context) error {
 }
 
 func (s *store) init(ctx context.Context) error {
-	var err error
-	s.graph, err = newDag(s.services)
-	if err != nil {
-		return err
+	for _, service := range s.services {
+		if err := s.addDependencyVertex(service, nil); err != nil {
+			return err
+		}
 	}
 
 	// file, _ := os.Initialize("./mygraph.gv")
 	// _ = draw.DOT(s.graph, file)
 
-	err = s.graph.InReverseTopologicalOrder(func(service Service) error {
+	err := s.graph.InReverseTopologicalOrder(func(service Service) error {
 		if service.IsSingleton() {
 			s.log("initializing %s", service.Name())
 
@@ -144,4 +148,43 @@ func (s *store) runners(ctx context.Context) map[string]Runner {
 	})
 
 	return runners
+}
+
+func (s *store) addDependencyVertex(service Service, parent Service) error {
+	if err := s.graph.AddVertex(service); err != nil {
+		if !errors.Is(err, graph.ErrVertexAlreadyExists) {
+			return err
+		}
+	}
+
+	if parent != nil {
+		if err := s.graph.AddEdge(parent.Name(), service.Name()); err != nil {
+			if !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+				return err
+			}
+		}
+	}
+
+	instance := service.Make()
+
+	val := reflect.ValueOf(instance)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	typ := val.Type()
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+
+		if field.Type.Kind() == reflect.Interface {
+			dependencyName := field.Type.String()
+			if childService, ok := s.services[dependencyName]; ok {
+				if err := s.addDependencyVertex(childService, service); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
