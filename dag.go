@@ -7,25 +7,25 @@ import (
 	"github.com/dominikbraun/graph"
 )
 
-type dag struct {
-	graph.Graph[string, Service]
+type dag[K comparable, T any] struct {
+	graph.Graph[K, T]
 }
 
-func newDag() *dag {
-	return &dag{
-		graph.New(serviceHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
+func newDag[K comparable, T any](hash graph.Hash[K, T]) *dag[K, T] {
+	return &dag[K, T]{
+		graph.New(hash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
 	}
 }
 
-func (d *dag) AddVertexIfNotExist(service Service) error {
-	err := d.AddVertex(service)
+func (d *dag[K, T]) AddVertexIfNotExist(v T) error {
+	err := d.AddVertex(v)
 	if errors.Is(err, graph.ErrVertexAlreadyExists) {
 		return nil
 	}
 	return err
 }
 
-func (d *dag) AddEdgeIfNotExist(sourceHash, targetHash string, options ...func(*graph.EdgeProperties)) error {
+func (d *dag[K, T]) AddEdgeIfNotExist(sourceHash, targetHash K, options ...func(*graph.EdgeProperties)) error {
 	err := d.AddEdge(sourceHash, targetHash, options...)
 	if errors.Is(err, graph.ErrEdgeAlreadyExists) {
 		return nil
@@ -33,13 +33,13 @@ func (d *dag) AddEdgeIfNotExist(sourceHash, targetHash string, options ...func(*
 	return err
 }
 
-func (d *dag) Vertices() []Service {
+func (d *dag[K, T]) Vertices() []T {
 	// graph.Graph does not have a way to get the list of its vertices.
 	// https://github.com/dominikbraun/graph/pull/149
 
 	adjMap, _ := d.AdjacencyMap()
 
-	vertices := make([]Service, 0, len(adjMap))
+	vertices := make([]T, 0, len(adjMap))
 	for hash := range adjMap {
 		vertex, _ := d.Vertex(hash)
 
@@ -49,16 +49,16 @@ func (d *dag) Vertices() []Service {
 	return vertices
 }
 
-func (d *dag) ForEachVertex(fn func(Service) error) error {
-	for _, service := range d.Vertices() {
-		if err := fn(service); err != nil {
+func (d *dag[K, T]) ForEachVertex(fn func(T) error) error {
+	for _, v := range d.Vertices() {
+		if err := fn(v); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *dag) InReverseTopologicalOrder(fn func(Service) error) error {
+func (d *dag[K, T]) InReverseTopologicalOrder(fn func(T) error) error {
 	order, err := graph.TopologicalSort(d.Graph)
 	if err != nil {
 		return err
@@ -66,31 +66,27 @@ func (d *dag) InReverseTopologicalOrder(fn func(Service) error) error {
 	slices.Reverse(order)
 
 	for _, hash := range order {
-		service, _ := d.Vertex(hash)
+		v, _ := d.Vertex(hash)
 
-		if err := fn(service); err != nil {
+		if err := fn(v); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *dag) InTopologicalOrder(fn func(Service) error) error {
+func (d *dag[K, T]) InTopologicalOrder(fn func(T) error) error {
 	order, err := graph.TopologicalSort(d.Graph)
 	if err != nil {
 		return err
 	}
 
 	for _, hash := range order {
-		service, _ := d.Vertex(hash)
+		v, _ := d.Vertex(hash)
 
-		if err := fn(service); err != nil {
+		if err := fn(v); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func serviceHash(service Service) string {
-	return service.Name()
 }

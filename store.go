@@ -10,7 +10,7 @@ import (
 // store is responsible for storing services, instances and the dependency graph
 type store struct {
 	services map[string]Service
-	graph    *dag
+	graph    *dag[string, Service]
 
 	log loggerFn
 }
@@ -20,7 +20,7 @@ func newStore(services map[string]Service, log loggerFn) *store {
 	return &store{
 		services: services,
 		log:      log,
-		graph:    newDag(),
+		graph:    newDag(serviceHash),
 	}
 }
 
@@ -181,4 +181,8 @@ func (s *store) addDependencyVertex(service Service, parent Service) error {
 	}
 
 	return nil
+}
+
+func serviceHash(service Service) string {
+	return service.Name()
 }
