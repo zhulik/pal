@@ -64,14 +64,10 @@ func (s *store) init(ctx context.Context) error {
 		return nil
 	})
 
-	s.log("Pal initialized. Services: %s", s.Services())
-
 	return err
 }
 
 func (s *store) invoke(ctx context.Context, name string) (any, error) {
-	s.log("invoking %s", name)
-
 	service, err := s.graph.Vertex(name)
 	if err != nil {
 		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, s.Services(), err)

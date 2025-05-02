@@ -111,6 +111,8 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		return errors.Join(err, p.store.shutdown(shutCtx))
 	}
 
+	p.log("Pal initialized. Services: %s", p.Services())
+
 	p.startRunners(ctx)
 
 	go p.forwardSignals(signals)
@@ -135,6 +137,7 @@ func (p *Pal) Services() []Service {
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
+	p.log("invoking %s", name)
 
 	return p.store.invoke(ctx, name)
 }
@@ -171,7 +174,5 @@ func (p *Pal) startRunners(ctx context.Context) {
 		})
 	}
 
-	go func() {
-		p.Shutdown(g.Wait())
-	}()
+	go p.Shutdown(g.Wait())
 }
