@@ -30,7 +30,7 @@ func TestProvide(t *testing.T) {
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerInterface, *RunnerStruct]()
+		service := pal.Provide[RunnerInterface, RunnerStruct]()
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.RunnerInterface", service.Name())

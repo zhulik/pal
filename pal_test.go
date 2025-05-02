@@ -3,8 +3,11 @@ package pal_test
 import (
 	"context"
 	"errors"
+	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -140,6 +143,8 @@ func TestPal_HealthCheck(t *testing.T) {
 
 		assert.NoError(t, err)
 	})
+
+	// TODO: health check times out
 }
 
 // TestPal_Shutdown tests the Shutdown method
@@ -227,4 +232,52 @@ func TestPal_Invoke(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
 	})
+}
+
+// TestPal_Invoke tests the Run method
+func TestPal_Run(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exists immediately when no runners given", func(t *testing.T) {
+		t.Parallel()
+
+		err := pal.New().
+			InitTimeout(3*time.Second).
+			HealthCheckTimeout(1*time.Second).
+			ShutdownTimeout(3*time.Second).
+			Run(t.Context(), syscall.SIGINT)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("exists after runners exist", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.Provide[RunnerInterface, RunnerStruct]()
+
+		err := pal.New(
+			service,
+		).
+			InitTimeout(3*time.Second).
+			HealthCheckTimeout(1*time.Second).
+			ShutdownTimeout(3*time.Second).
+			Run(t.Context(), syscall.SIGINT)
+
+		require.NoError(t, err)
+
+		runner, err := service.Instance(t.Context())
+		assert.NoError(t, err)
+		assert.NotNil(t, runner)
+
+		assert.True(t, runner.(*RunnerStruct).RunCalled)
+	})
+
+	// TODO: errors during init:
+	//   - already initialized services are gracefully shot down
+	//   - run returns an error
+	//   - no runners are started
+
+	// TODO: runners returning errors
+	//   - run returns an error
+	//   - all services including other runners are gracefully shot down
 }
