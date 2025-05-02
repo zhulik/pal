@@ -42,13 +42,16 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
-// ServiceFactory is a factory for creating a service.
-type ServiceFactory interface {
+// Service is a factory for creating a service.
+type Service interface {
 	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
 	Make() any
 
-	// Initialize creates and initializes a new instance of the service.
-	Initialize(ctx context.Context) (any, error)
+	// Initialize - when called, singleton services should create its instances.
+	Initialize(ctx context.Context) error
+
+	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
+	Instance(ctx context.Context) (any, error)
 
 	// Name returns a name of the service, this will be used to identify the service in the container.
 	Name() string

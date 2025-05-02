@@ -24,12 +24,12 @@ type Pal struct {
 	log loggerFn
 }
 
-// New creates and returns a new instance of Pal with the provided ServiceFactory's
-func New(factories ...ServiceFactory) *Pal {
-	index := make(map[string]ServiceFactory)
+// New creates and returns a new instance of Pal with the provided Service's
+func New(services ...Service) *Pal {
+	index := make(map[string]Service)
 
-	for _, factory := range factories {
-		index[factory.Name()] = factory
+	for _, service := range services {
+		index[service.Name()] = service
 	}
 
 	logger := func(string, ...any) {}
@@ -129,8 +129,8 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	return errors.Join(err, p.store.shutdown(shutCt))
 }
 
-func (p *Pal) Services() []ServiceFactory {
-	return p.store.services()
+func (p *Pal) Services() []Service {
+	return p.store.Services()
 }
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
@@ -157,7 +157,7 @@ func (p *Pal) forwardSignals(signals []os.Signal) {
 func (p *Pal) startRunners(ctx context.Context) {
 	g := &errgroup.Group{}
 
-	for name, runner := range p.store.runners() {
+	for name, runner := range p.store.runners(ctx) {
 		g.Go(func() error {
 			p.log("running %s", name)
 			err := runner.Run(ctx)
