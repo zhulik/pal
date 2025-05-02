@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/zhulik/pal/pkg/dag"
 )
 
 // store is responsible for storing services, instances and the dependency graph
 type store struct {
 	services map[string]Service
-	graph    *dag[string, Service]
+	graph    *dag.DAG[string, Service]
 
 	log loggerFn
 }
@@ -20,7 +22,7 @@ func newStore(services map[string]Service, log loggerFn) *store {
 	return &store{
 		services: services,
 		log:      log,
-		graph:    newDag(serviceHash),
+		graph:    dag.New(serviceHash),
 	}
 }
 
