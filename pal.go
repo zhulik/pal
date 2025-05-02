@@ -7,6 +7,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/zhulik/pal/internal/container"
+	"github.com/zhulik/pal/pkg/core"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -17,16 +20,16 @@ const (
 )
 
 type Pal struct {
-	config   *Config
-	store    *store
+	config   *core.Config
+	store    *container.Container
 	stopChan chan error
 
-	log loggerFn
+	log core.LoggerFn
 }
 
 // New creates and returns a new instance of Pal with the provided Service's
-func New(services ...Service) *Pal {
-	index := make(map[string]Service)
+func New(services ...core.Service) *Pal {
+	index := make(map[string]core.Service)
 
 	for _, service := range services {
 		index[service.Name()] = service
@@ -35,8 +38,8 @@ func New(services ...Service) *Pal {
 	logger := func(string, ...any) {}
 
 	return &Pal{
-		config:   &Config{},
-		store:    newStore(index, logger),
+		config:   &core.Config{},
+		store:    container.New(index),
 		stopChan: make(chan error),
 		log:      logger,
 	}
@@ -60,28 +63,28 @@ func (p *Pal) HealthCheckTimeout(t time.Duration) *Pal {
 	return p
 }
 
-// ShutdownTimeout sets the timeout for the shutdown of the services.
+// ShutdownTimeout sets the timeout for the Shutdown of the services.
 func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 	p.config.ShutdownTimeout = t
 	return p
 }
 
 // SetLogger sets the logger instance to be used by Pal
-func (p *Pal) SetLogger(log loggerFn) *Pal {
+func (p *Pal) SetLogger(log core.LoggerFn) *Pal {
 	p.log = log
-	p.store.setLogger(log)
+	p.store.SetLogger(log)
 	return p
 }
 
-// HealthCheck verifies the health of the service store within a configurable timeout.
+// HealthCheck verifies the health of the service Container within a configurable timeout.
 func (p *Pal) HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
 	defer cancel()
 
-	return p.store.healthCheck(ctx)
+	return p.store.HealthCheck(ctx)
 }
 
-// Shutdown schedules graceful shutdown of the app. If any errs given - Run() will return them. Only the first call is effective.
+// Shutdown schedules graceful Shutdown of the app. If any errs given - Run() will return them. Only the first call is effective.
 // The later calls are ignored.
 func (p *Pal) Shutdown(errs ...error) {
 	// In theory this causes a goroutine leak, but it's not a big deal as we are shutting down anyway.
@@ -91,9 +94,39 @@ func (p *Pal) Shutdown(errs ...error) {
 	}()
 }
 
-// Run eagerly initializes and starts Runners, then blocks until one of the given signals is received or all runners
-// finish their work. If any error occurs during initialization, runner operation or shutdown - Run() will return it.
+// Run eagerly initializes and starts Runners, then blocks until one of the given signals is received or all Runners
+// finish their work. If any error occurs during initialization, runner operation or Shutdown - Run() will return it.
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
+	ctx = context.WithValue(ctx, CtxValue, p)
+
+	// TODO: skip if already
+	if err := p.Init(ctx); err != nil {
+		return err
+	}
+
+	p.log("Pal initialized. Services: %s", p.Services())
+
+	go p.forwardSignals(signals)
+
+	go func() {
+		<-ctx.Done()
+		p.stopChan <- ctx.Err()
+	}()
+
+	p.startRunners(ctx)
+
+	p.log("running until one of %+v is received or until job is done", signals)
+
+	// TODO: add proper shutdown handling when Pal is initialized manually and Run is not called
+	err := <-p.stopChan
+
+	shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+	defer cancel()
+	return errors.Join(err, p.store.Shutdown(shutCt))
+}
+
+// Init initializes Pal. Validates config, creates and initializes all singleton services.
+func (p *Pal) Init(ctx context.Context) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
 	if err := p.validate(ctx); err != nil {
@@ -103,44 +136,32 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
 	defer cancel()
 
-	if err := p.store.init(initCtx); err != nil {
-		p.log("init failed with %+v", err)
+	if err := p.store.Init(initCtx); err != nil {
+		p.log("Init failed with %+v", err)
 
 		shutCtx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 		defer cancel()
-		return errors.Join(err, p.store.shutdown(shutCtx))
+
+		return errors.Join(err, p.store.Shutdown(shutCtx))
 	}
+	p.log("Pal initialized. Services: %s", p.Services())
 
-	p.startRunners(ctx)
-
-	go p.forwardSignals(signals)
-
-	go func() {
-		<-ctx.Done()
-		p.stopChan <- ctx.Err()
-	}()
-
-	p.log("running until one of %+v is received or until job is done", signals)
-
-	err := <-p.stopChan
-
-	shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
-	defer cancel()
-	return errors.Join(err, p.store.shutdown(shutCt))
+	return nil
 }
 
-func (p *Pal) Services() []Service {
+func (p *Pal) Services() []core.Service {
 	return p.store.Services()
 }
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
+	p.log("invoking %s", name)
 
-	return p.store.invoke(ctx, name)
+	return p.store.Invoke(ctx, name)
 }
 
 func (p *Pal) validate(ctx context.Context) error {
-	return errors.Join(p.config.validate(ctx), p.store.validate(ctx))
+	return errors.Join(p.config.Validate(ctx), p.store.Validate(ctx))
 }
 
 func (p *Pal) forwardSignals(signals []os.Signal) {
@@ -157,7 +178,7 @@ func (p *Pal) forwardSignals(signals []os.Signal) {
 func (p *Pal) startRunners(ctx context.Context) {
 	g := &errgroup.Group{}
 
-	for name, runner := range p.store.runners(ctx) {
+	for name, runner := range p.store.Runners(ctx) {
 		g.Go(func() error {
 			p.log("running %s", name)
 			err := runner.Run(ctx)
@@ -171,7 +192,5 @@ func (p *Pal) startRunners(ctx context.Context) {
 		})
 	}
 
-	go func() {
-		p.Shutdown(g.Wait())
-	}()
+	go p.Shutdown(g.Wait())
 }
