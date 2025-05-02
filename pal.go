@@ -106,8 +106,6 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	p.log("Pal initialized. Services: %s", p.Services())
 
-	p.startRunners(ctx)
-
 	go p.forwardSignals(signals)
 
 	go func() {
@@ -115,8 +113,11 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		p.stopChan <- ctx.Err()
 	}()
 
+	p.startRunners(ctx)
+
 	p.log("running until one of %+v is received or until job is done", signals)
 
+	// TODO: add proper shutdown handling when Pal is initialized manually and Run is not called
 	err := <-p.stopChan
 
 	shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
@@ -124,6 +125,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	return errors.Join(err, p.store.Shutdown(shutCt))
 }
 
+// Init initializes Pal. Validates config, creates and initializes all singleton services.
 func (p *Pal) Init(ctx context.Context) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
@@ -142,6 +144,8 @@ func (p *Pal) Init(ctx context.Context) error {
 
 		return errors.Join(err, p.store.Shutdown(shutCtx))
 	}
+	p.log("Pal initialized. Services: %s", p.Services())
+
 	return nil
 }
 

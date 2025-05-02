@@ -142,7 +142,7 @@ func TestContainer_Validate(t *testing.T) {
 
 		c := container.New(services)
 
-		err := c.Validate(context.Background())
+		err := c.Validate(t.Context())
 
 		assert.NoError(t, err)
 		assert.True(t, service1.validateCalled)
@@ -164,7 +164,7 @@ func TestContainer_Validate(t *testing.T) {
 
 		c := container.New(services)
 
-		err := c.Validate(context.Background())
+		err := c.Validate(t.Context())
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, expectedErr)
@@ -192,7 +192,7 @@ func TestContainer_Init(t *testing.T) {
 
 		c := container.New(services)
 
-		err := c.Init(context.Background())
+		err := c.Init(t.Context())
 
 		assert.NoError(t, err)
 		assert.True(t, service1.initCalled)
@@ -215,7 +215,7 @@ func TestContainer_Init(t *testing.T) {
 
 		c := container.New(services)
 
-		err := c.Init(context.Background())
+		err := c.Init(t.Context())
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, expectedErr)
@@ -237,9 +237,9 @@ func TestContainer_Invoke(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		instance, err := c.Invoke(context.Background(), "service1")
+		instance, err := c.Invoke(t.Context(), "service1")
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedInstance, instance)
@@ -251,7 +251,7 @@ func TestContainer_Invoke(t *testing.T) {
 
 		c := container.New(nil)
 
-		_, err := c.Invoke(context.Background(), "nonexistent")
+		_, err := c.Invoke(t.Context(), "nonexistent")
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
@@ -268,9 +268,9 @@ func TestContainer_Invoke(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		_, err := c.Invoke(context.Background(), "service1")
+		_, err := c.Invoke(t.Context(), "service1")
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceInitFailed)
@@ -295,9 +295,9 @@ func TestContainer_Shutdown(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		err := c.Shutdown(context.Background())
+		err := c.Shutdown(t.Context())
 
 		assert.NoError(t, err)
 
@@ -324,9 +324,9 @@ func TestContainer_Shutdown(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		err := c.Shutdown(context.Background())
+		err := c.Shutdown(t.Context())
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, expectedErr)
@@ -352,9 +352,9 @@ func TestContainer_HealthCheck(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		err := c.HealthCheck(context.Background())
+		err := c.HealthCheck(t.Context())
 
 		assert.NoError(t, err)
 
@@ -381,9 +381,9 @@ func TestContainer_HealthCheck(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		err := c.HealthCheck(context.Background())
+		err := c.HealthCheck(t.Context())
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, expectedErr)
@@ -407,7 +407,7 @@ func TestContainer_Services(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
 		result := c.Services()
 
@@ -445,9 +445,9 @@ func TestContainer_Runners(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		runners := c.Runners(context.Background())
+		runners := c.Runners(t.Context())
 
 		assert.Len(t, runners, 2)
 		assert.Contains(t, runners, "service2")
@@ -465,9 +465,9 @@ func TestContainer_Runners(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		runners := c.Runners(context.Background())
+		runners := c.Runners(t.Context())
 
 		assert.Empty(t, runners)
 	})
@@ -483,9 +483,9 @@ func TestContainer_Runners(t *testing.T) {
 		}
 
 		c := container.New(services)
-		require.NoError(t, c.Init(context.Background()))
+		require.NoError(t, c.Init(t.Context()))
 
-		runners := c.Runners(context.Background())
+		runners := c.Runners(t.Context())
 
 		assert.Empty(t, runners)
 	})
