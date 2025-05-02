@@ -12,7 +12,10 @@ import (
 
 func main() {
 	err := pal.New(
-		pal.Provide[Service, service](),
+		pal.Provide[Service, service]().BeforeInit(func(_ context.Context, _ *service) error {
+			log.Printf("service before init")
+			return nil
+		}),
 		pal.Provide[LeafService, leafService](),
 		pal.Provide[TransientService, transientService](),
 		// pal.ProvideFactory[Service, *service](),

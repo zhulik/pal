@@ -2,6 +2,7 @@ package pal_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -170,5 +171,65 @@ func TestService_Instance(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, instance2)
 		assert.NotSame(t, instance, instance2)
+	})
+}
+
+// TestService_BeforeInit tests the BeforeInit hook functionality
+func TestService_BeforeInit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("hook is called when set", func(t *testing.T) {
+		t.Parallel()
+
+		hookCalled := false
+		hook := func(_ context.Context, _ *TestStruct) error {
+			hookCalled = true
+			return nil
+		}
+
+		service := pal.Provide[TestInterface, TestStruct]().BeforeInit(hook)
+		p := pal.New(service)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		instance, err := service.Instance(t.Context())
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+
+		// Verify the hook was called
+		assert.True(t, hookCalled)
+	})
+
+	t.Run("no error when hook is not set", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.Provide[TestInterface, TestStruct]()
+		p := pal.New(service)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		instance, err := service.Instance(t.Context())
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+	})
+
+	t.Run("propagates error from hook", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("hook error")
+		hook := func(_ context.Context, _ *TestStruct) error {
+			return expectedErr
+		}
+
+		service := pal.Provide[TestInterface, TestStruct]().BeforeInit(hook)
+		p := pal.New(service)
+
+		// The error should be propagated from the hook through Initialize to Init
+		err := p.Init(t.Context())
+		assert.Error(t, err)
+
+		assert.ErrorIs(t, err, expectedErr)
 	})
 }
