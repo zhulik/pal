@@ -96,8 +96,8 @@ func (m *MockInstance) Run(_ context.Context) error {
 	return m.runErr
 }
 
-// TestNew tests the New function
-func TestNew(t *testing.T) {
+// TestContainer_New tests the New function for Container
+func TestContainer_New(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a new Container with services", func(t *testing.T) {
@@ -125,8 +125,8 @@ func TestNew(t *testing.T) {
 	})
 }
 
-// TestValidate tests the Validate method
-func TestValidate(t *testing.T) {
+// TestContainer_Validate tests the Validate method of Container
+func TestContainer_Validate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("validates all services successfully", func(t *testing.T) {
@@ -173,8 +173,8 @@ func TestValidate(t *testing.T) {
 	})
 }
 
-// TestInit tests the Init method
-func TestInit(t *testing.T) {
+// TestContainer_Init tests the Init method of Container
+func TestContainer_Init(t *testing.T) {
 	t.Parallel()
 
 	t.Run("initializes singleton services successfully", func(t *testing.T) {
@@ -222,8 +222,8 @@ func TestInit(t *testing.T) {
 	})
 }
 
-// TestInvoke tests the Invoke method
-func TestInvoke(t *testing.T) {
+// TestContainer_Invoke tests the Invoke method of Container
+func TestContainer_Invoke(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invokes service successfully", func(t *testing.T) {
@@ -277,8 +277,8 @@ func TestInvoke(t *testing.T) {
 	})
 }
 
-// TestShutdown tests the Shutdown method
-func TestShutdown(t *testing.T) {
+// TestContainer_Shutdown tests the Shutdown method of Container
+func TestContainer_Shutdown(t *testing.T) {
 	t.Parallel()
 
 	t.Run("shuts down all singleton services successfully", func(t *testing.T) {
@@ -334,8 +334,8 @@ func TestShutdown(t *testing.T) {
 	})
 }
 
-// TestHealthCheck tests the HealthCheck method
-func TestHealthCheck(t *testing.T) {
+// TestContainer_HealthCheck tests the HealthCheck method of Container
+func TestContainer_HealthCheck(t *testing.T) {
 	t.Parallel()
 
 	t.Run("health checks all singleton services successfully", func(t *testing.T) {
@@ -391,8 +391,8 @@ func TestHealthCheck(t *testing.T) {
 	})
 }
 
-// TestServices tests the Services method
-func TestServices(t *testing.T) {
+// TestContainer_Services tests the Services method of Container
+func TestContainer_Services(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns all services", func(t *testing.T) {
@@ -427,8 +427,8 @@ func TestServices(t *testing.T) {
 	})
 }
 
-// TestRunners tests the Runners method
-func TestRunners(t *testing.T) {
+// TestContainer_Runners tests the Runners method of Container
+func TestContainer_Runners(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns all runner services", func(t *testing.T) {

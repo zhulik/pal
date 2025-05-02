@@ -13,8 +13,8 @@ import (
 
 func hashFn(i int) int { return i }
 
-// TestNew tests the New function
-func TestNew(t *testing.T) {
+// TestDAG_New tests the New function for DAG
+func TestDAG_New(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a new DAG with hash function", func(t *testing.T) {
@@ -27,8 +27,8 @@ func TestNew(t *testing.T) {
 	})
 }
 
-// TestAddVertexIfNotExist tests the AddVertexIfNotExist method
-func TestAddVertexIfNotExist(t *testing.T) {
+// TestDAG_AddVertexIfNotExist tests the AddVertexIfNotExist method of DAG
+func TestDAG_AddVertexIfNotExist(t *testing.T) {
 	t.Parallel()
 
 	t.Run("adds a vertex if it doesn't exist", func(t *testing.T) {
@@ -65,8 +65,8 @@ func TestAddVertexIfNotExist(t *testing.T) {
 	})
 }
 
-// TestAddEdgeIfNotExist tests the AddEdgeIfNotExist method
-func TestAddEdgeIfNotExist(t *testing.T) {
+// TestDAG_AddEdgeIfNotExist tests the AddEdgeIfNotExist method of DAG
+func TestDAG_AddEdgeIfNotExist(t *testing.T) {
 	t.Parallel()
 
 	t.Run("adds an edge if it doesn't exist", func(t *testing.T) {
@@ -124,8 +124,8 @@ func TestAddEdgeIfNotExist(t *testing.T) {
 	})
 }
 
-// TestVertices tests the Vertices method
-func TestVertices(t *testing.T) {
+// TestDAG_Vertices tests the Vertices method of DAG
+func TestDAG_Vertices(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns empty slice for empty graph", func(t *testing.T) {
@@ -179,8 +179,8 @@ func TestVertices(t *testing.T) {
 	})
 }
 
-// TestForEachVertex tests the ForEachVertex method
-func TestForEachVertex(t *testing.T) {
+// TestDAG_ForEachVertex tests the ForEachVertex method of DAG
+func TestDAG_ForEachVertex(t *testing.T) {
 	t.Parallel()
 
 	t.Run("does nothing for empty graph", func(t *testing.T) {
@@ -247,8 +247,8 @@ func TestForEachVertex(t *testing.T) {
 	})
 }
 
-// TestInTopologicalOrder tests the InTopologicalOrder method
-func TestInTopologicalOrder(t *testing.T) {
+// TestDAG_InTopologicalOrder tests the InTopologicalOrder method of DAG
+func TestDAG_InTopologicalOrder(t *testing.T) {
 	t.Parallel()
 
 	t.Run("does nothing for empty graph", func(t *testing.T) {
@@ -322,8 +322,8 @@ func TestInTopologicalOrder(t *testing.T) {
 	})
 }
 
-// TestInReverseTopologicalOrder tests the InReverseTopologicalOrder method
-func TestInReverseTopologicalOrder(t *testing.T) {
+// TestDAG_InReverseTopologicalOrder tests the InReverseTopologicalOrder method of DAG
+func TestDAG_InReverseTopologicalOrder(t *testing.T) {
 	t.Parallel()
 
 	t.Run("does nothing for empty graph", func(t *testing.T) {
