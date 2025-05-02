@@ -99,19 +99,9 @@ func (p *Pal) Shutdown(errs ...error) {
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	if err := p.validate(ctx); err != nil {
+	// TODO: skip if already
+	if err := p.Init(ctx); err != nil {
 		return err
-	}
-
-	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
-	defer cancel()
-
-	if err := p.store.Init(initCtx); err != nil {
-		p.log("Init failed with %+v", err)
-
-		shutCtx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
-		defer cancel()
-		return errors.Join(err, p.store.Shutdown(shutCtx))
 	}
 
 	p.log("Pal initialized. Services: %s", p.Services())
@@ -132,6 +122,27 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 	defer cancel()
 	return errors.Join(err, p.store.Shutdown(shutCt))
+}
+
+func (p *Pal) Init(ctx context.Context) error {
+	ctx = context.WithValue(ctx, CtxValue, p)
+
+	if err := p.validate(ctx); err != nil {
+		return err
+	}
+
+	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
+	defer cancel()
+
+	if err := p.store.Init(initCtx); err != nil {
+		p.log("Init failed with %+v", err)
+
+		shutCtx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+		defer cancel()
+
+		return errors.Join(err, p.store.Shutdown(shutCtx))
+	}
+	return nil
 }
 
 func (p *Pal) Services() []core.Service {
