@@ -84,11 +84,15 @@ func (p *Pal) HealthCheck(ctx context.Context) error {
 // Shutdown schedules graceful Shutdown of the app. If any errs given - Run() will return them. Only the first call is effective.
 // The later calls are ignored.
 func (p *Pal) Shutdown(errs ...error) {
-	// In theory this causes a goroutine leak, but it's not a big deal as we are shutting down anyway.
-	// TODO: figure out how to handle multiple calls to Shutdown.
-	go func() {
-		p.stopChan <- errors.Join(errs...)
-	}()
+	err := errors.Join(errs...)
+
+	select {
+	case p.stopChan <- err:
+	default:
+		if err != nil {
+			p.log("shutdown already scheduled. %w", err)
+		}
+	}
 }
 
 // Run eagerly initializes and starts Runners, then blocks until one of the given signals is received or all Runners
