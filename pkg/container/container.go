@@ -19,9 +19,15 @@ type Container struct {
 }
 
 // New creates a new Container instance
-func New(services map[string]core.Service) *Container {
+func New(services ...core.Service) *Container {
+	index := make(map[string]core.Service)
+
+	for _, service := range services {
+		index[service.Name()] = service
+	}
+
 	return &Container{
-		services: services,
+		services: index,
 		log:      func(string, ...any) {},
 		graph:    dag.New(serviceHash),
 	}

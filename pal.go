@@ -30,17 +30,11 @@ type Pal struct {
 
 // New creates and returns a new instance of Pal with the provided Service's
 func New(services ...core.Service) *Pal {
-	index := make(map[string]core.Service)
-
-	for _, service := range services {
-		index[service.Name()] = service
-	}
-
 	logger := func(string, ...any) {}
 
 	return &Pal{
 		config:   &core.Config{},
-		store:    container.New(index),
+		store:    container.New(services...),
 		stopChan: make(chan error),
 		log:      logger,
 	}
@@ -48,8 +42,8 @@ func New(services ...core.Service) *Pal {
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
 // Panics if ctx misses the value.
-func FromContext(ctx context.Context) *Pal {
-	return ctx.Value(CtxValue).(*Pal)
+func FromContext(ctx context.Context) core.Invoker {
+	return ctx.Value(CtxValue).(core.Invoker)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.

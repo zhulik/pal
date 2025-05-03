@@ -105,21 +105,18 @@ func TestContainer_New(t *testing.T) {
 	t.Run("creates a new Container with services", func(t *testing.T) {
 		t.Parallel()
 
-		services := map[string]core.Service{
-			"service1": NewMockService("service1", true, false),
-			"service2": NewMockService("service2", true, true),
-		}
-
-		c := container.New(services)
+		c := container.New(
+			NewMockService("service1", true, false),
+			NewMockService("service2", true, true),
+		)
 
 		assert.NotNil(t, c)
-		// We can't directly access private fields, so we'll test functionality instead
 	})
 
-	t.Run("creates a new Container with nil services", func(t *testing.T) {
+	t.Run("creates a new Container with empty services", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New(nil)
+		c := container.New()
 
 		assert.NotNil(t, c)
 		// We can verify it works with nil services by checking that Services() returns empty
@@ -143,12 +140,7 @@ func TestContainer_Validate(t *testing.T) {
 		service1.On("Validate", t.Context()).Return(nil)
 		service2.On("Validate", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2)
 
 		err := c.Validate(t.Context())
 
@@ -164,12 +156,7 @@ func TestContainer_Validate(t *testing.T) {
 		service1.On("Validate", t.Context()).Return(nil)
 		service2.On("Validate", t.Context()).Return(errTest)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2)
 
 		err := c.Validate(t.Context())
 
@@ -221,12 +208,7 @@ func TestContainer_Init(t *testing.T) {
 		serviceB.On("Make").Return(&ServiceBImpl{})
 		serviceB.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"container_test.ServiceA": serviceA,
-			"container_test.ServiceB": serviceB,
-		}
-
-		c := container.New(services)
+		c := container.New(serviceA, serviceB)
 
 		err := c.Init(t.Context())
 
@@ -250,13 +232,7 @@ func TestContainer_Init(t *testing.T) {
 		service2.On("Initialize", t.Context()).Return(nil)
 		service3.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-			"service3": service3,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2, service3)
 
 		err := c.Init(t.Context())
 
@@ -275,12 +251,7 @@ func TestContainer_Init(t *testing.T) {
 		service1.On("Initialize", t.Context()).Return(nil)
 		service2.On("Initialize", t.Context()).Return(errTest)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2)
 
 		err := c.Init(t.Context())
 
@@ -301,11 +272,7 @@ func TestContainer_Invoke(t *testing.T) {
 		service := NewMockService("service1", true, false, expectedInstance)
 		service.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c := container.New(services)
+		c := container.New(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		instance, err := c.Invoke(t.Context(), "service1")
@@ -317,7 +284,7 @@ func TestContainer_Invoke(t *testing.T) {
 	t.Run("returns error when service not found", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New(nil)
+		c := container.New()
 
 		_, err := c.Invoke(t.Context(), "nonexistent")
 
@@ -333,11 +300,7 @@ func TestContainer_Invoke(t *testing.T) {
 		service.On("Initialize", t.Context()).Return(nil)
 		service.On("Instance", t.Context()).Return(nil, errTest)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c := container.New(services)
+		c := container.New(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		_, err := c.Invoke(t.Context(), "service1")
@@ -369,13 +332,7 @@ func TestContainer_Shutdown(t *testing.T) {
 		instance2.On("Shutdown", t.Context()).Return(nil)
 		instance3.On("Shutdown", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-			"service3": service3,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.Shutdown(t.Context())
@@ -392,11 +349,7 @@ func TestContainer_Shutdown(t *testing.T) {
 		service := NewMockService("service1", true, false, instance)
 		service.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c := container.New(services)
+		c := container.New(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.Shutdown(t.Context())
@@ -428,13 +381,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		service2.On("Initialize", t.Context()).Return(nil)
 		service3.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-			"service3": service3,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.HealthCheck(t.Context())
@@ -451,11 +398,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		service := NewMockService("service1", true, false, instance)
 		service.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c := container.New(services)
+		c := container.New(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.HealthCheck(t.Context())
@@ -481,12 +424,7 @@ func TestContainer_Services(t *testing.T) {
 		service1.On("Initialize", t.Context()).Return(nil)
 		service2.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2)
 		require.NoError(t, c.Init(t.Context()))
 
 		result := c.Services()
@@ -499,7 +437,7 @@ func TestContainer_Services(t *testing.T) {
 	t.Run("returns empty slice for empty container", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New(nil)
+		c := container.New()
 
 		result := c.Services()
 
@@ -514,7 +452,7 @@ func TestContainer_SetLogger(t *testing.T) {
 	t.Run("sets logger function", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New(nil)
+		c := container.New()
 
 		var logCalled bool
 		var logMessage string
@@ -534,11 +472,7 @@ func TestContainer_SetLogger(t *testing.T) {
 		service.On("Initialize", t.Context()).Return(nil)
 		instance.On("Shutdown", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c = container.New(services)
+		c = container.New(service)
 		c.SetLogger(logger)
 
 		require.NoError(t, c.Init(t.Context()))
@@ -569,13 +503,7 @@ func TestContainer_Runners(t *testing.T) {
 		service2.On("Initialize", t.Context()).Return(nil)
 		service3.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service1,
-			"service2": service2,
-			"service3": service3,
-		}
-
-		c := container.New(services)
+		c := container.New(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		runners := c.Runners(t.Context())
@@ -595,11 +523,7 @@ func TestContainer_Runners(t *testing.T) {
 
 		service.On("Initialize", t.Context()).Return(nil)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c := container.New(services)
+		c := container.New(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		runners := c.Runners(t.Context())
@@ -616,11 +540,7 @@ func TestContainer_Runners(t *testing.T) {
 		service.On("Make").Return(nil)
 		service.On("Instance", t.Context()).Return(nil, errTest)
 
-		services := map[string]core.Service{
-			"service1": service,
-		}
-
-		c := container.New(services)
+		c := container.New(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		runners := c.Runners(t.Context())
