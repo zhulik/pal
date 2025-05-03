@@ -2,42 +2,77 @@ package pal_test
 
 import (
 	"context"
+	"errors"
+	"testing"
 
-	"github.com/zhulik/pal/pkg/core"
+	"github.com/stretchr/testify/mock"
 )
 
-// TestInterface is a simple interface for testing
-type TestInterface interface {
+var (
+	errTest = errors.New("test error")
+)
+
+// TestServiceInterface is a simple interface for testing
+type TestServiceInterface interface {
 	DoSomething() string
 }
 
-// TestStruct implements TestInterface
-type TestStruct struct {
-	Value string
+type ShutdownTrackingInterface = TestServiceInterface
+type ErrorRunnerInterface = TestServiceInterface
+type FailingInitInterface = TestServiceInterface
+
+// TestServiceStruct implements TestServiceInterface
+type TestServiceStruct struct {
+	mock.Mock
 }
 
-func (t TestStruct) DoSomething() string {
-	return t.Value
+func (t *TestServiceStruct) HealthCheck(ctx context.Context) error {
+	args := t.Called(ctx)
+	return args.Error(0)
+}
+func (t *TestServiceStruct) Init(ctx context.Context) error {
+	args := t.Called(ctx)
+	return args.Error(0)
 }
 
-// RunnerInterface extends TestInterface and core.Runner for testing runner services
-type RunnerInterface interface {
-	TestInterface
-	core.Runner
+func (t *TestServiceStruct) Shutdown(ctx context.Context) error {
+	args := t.Called(ctx)
+	return args.Error(0)
 }
 
-// RunnerStruct implements RunnerInterface
-type RunnerStruct struct {
-	TestStruct
-	RunCalled bool
+func (t *TestServiceStruct) DoSomething() string {
+	args := t.Called()
+	return args.String(0)
 }
 
-func (r *RunnerStruct) Run(_ context.Context) error {
-	r.RunCalled = true
-	return nil
+// RunnerServiceInterface extends TestServiceInterface and core.Runner for testing runner services
+type RunnerServiceInterface interface {
+	DoSomething() string
 }
 
-// DependentStruct is a struct with a dependency on TestInterface
+// RunnerServiceStruct implements RunnerServiceInterface
+type RunnerServiceStruct struct {
+	mock.Mock
+}
+
+func (r *RunnerServiceStruct) Run(ctx context.Context) error {
+	args := r.Called(ctx)
+	return args.Error(0)
+}
+
+func (r *RunnerServiceStruct) DoSomething() string {
+	args := r.Called()
+	return args.String(0)
+}
+
+// DependentStruct is a struct with a dependency on TestServiceInterface
 type DependentStruct struct {
-	Dependency TestInterface
+	Dependency TestServiceInterface
+}
+
+func eventuallyAssertExpectations(t *testing.T, instance any) {
+	t.Helper()
+
+	m := instance.(interface{ AssertExpectations(t mock.TestingT) bool })
+	m.AssertExpectations(t)
 }

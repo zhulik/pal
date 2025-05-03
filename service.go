@@ -39,8 +39,9 @@ func (f *Service[I, S]) Initialize(ctx context.Context) error {
 }
 
 func (f *Service[I, S]) Make() any {
-	return empty[S]()
+	return new(S)
 }
+
 func (f *Service[I, S]) BeforeInit(hook core.LifecycleHook[S]) *Service[I, S] {
 	f.beforeInit = hook
 	return f
@@ -65,7 +66,7 @@ func (f *Service[I, S]) Validate(_ context.Context) error {
 		return fmt.Errorf("%w: type parameter S (%v) must be a struct", core.ErrServiceInvalid, sType)
 	}
 
-	if !sType.Implements(iType) {
+	if _, ok := any(new(S)).(I); !ok {
 		return fmt.Errorf("%w: type %v does not implement interface %v", core.ErrServiceInvalid, sType, iType)
 	}
 

@@ -1,6 +1,7 @@
 package pal_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,10 +20,10 @@ func TestProvide(t *testing.T) {
 	t.Run("creates a singleton service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[TestInterface, TestStruct]()
+		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestInterface", service.Name())
+		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
 		assert.True(t, service.IsSingleton())
 		assert.False(t, service.IsRunner())
 	})
@@ -30,10 +31,15 @@ func TestProvide(t *testing.T) {
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerInterface, *RunnerStruct]()
+		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
+			eventuallyAssertExpectations(t, service)
+			service.On("Run", ctx).Return(nil)
+
+			return nil
+		})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.RunnerInterface", service.Name())
+		assert.Equal(t, "pal_test.RunnerServiceInterface", service.Name())
 		assert.True(t, service.IsSingleton())
 		assert.True(t, service.IsRunner())
 	})
@@ -46,10 +52,10 @@ func TestProvideFactory(t *testing.T) {
 	t.Run("creates a factory service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory[TestInterface, TestStruct]()
+		service := pal.ProvideFactory[TestServiceInterface, TestServiceStruct]()
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestInterface", service.Name())
+		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
 		assert.False(t, service.IsSingleton())
 		assert.False(t, service.IsRunner())
 	})
@@ -63,12 +69,17 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		p := pal.New(
-			pal.Provide[TestInterface, TestStruct](),
+			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+
+				return nil
+			}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
 
-		instance, err := pal.Invoke[TestInterface](t.Context(), p)
+		instance, err := pal.Invoke[TestServiceInterface](t.Context(), p)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
@@ -81,7 +92,7 @@ func TestInvoke(t *testing.T) {
 		p := pal.New()
 
 		// Try to invoke a non-existent service
-		_, err := pal.Invoke[TestInterface](t.Context(), p)
+		_, err := pal.Invoke[TestServiceInterface](t.Context(), p)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
@@ -96,19 +107,25 @@ func TestInject(t *testing.T) {
 		t.Parallel()
 
 		p := pal.New(
-			pal.Provide[TestInterface, TestStruct](),
+			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+
+				return nil
+			}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
 
 		type DependentStruct struct {
-			Dependency TestInterface
+			Dependency TestServiceInterface
 		}
 
 		instance, err := pal.Inject[DependentStruct](t.Context(), p)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
+		assert.NotNil(t, instance.Dependency)
 	})
 
 	t.Run("returns error when dependency not found", func(t *testing.T) {
@@ -146,11 +163,11 @@ func TestInject(t *testing.T) {
 		t.Parallel()
 
 		type StructWithUnexportedField struct {
-			dependency TestInterface
+			dependency TestServiceInterface
 		}
 
 		// Create a Pal instance with our test service
-		p := pal.New(pal.Provide[TestInterface, TestStruct]())
+		p := pal.New(pal.Provide[TestServiceInterface, TestServiceStruct]())
 
 		// No need to initialize Pal for this test
 

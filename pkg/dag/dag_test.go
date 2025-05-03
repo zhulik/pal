@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	errTest = errors.New("test error")
+)
+
 func hashFn(i int) int { return i }
 
 // TestDAG_New tests the New function for DAG
@@ -122,6 +126,27 @@ func TestDAG_AddEdgeIfNotExist(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, graph.ErrVertexNotFound)
 	})
+
+	t.Run("returns error when adding edge would create a cycle", func(t *testing.T) {
+		t.Parallel()
+
+		d := dag.New(hashFn)
+
+		// Add vertices
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+
+		// Create a path: 1 -> 2 -> 3
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(2, 3))
+
+		// Try to add edge 3 -> 1, which would create a cycle: 1 -> 2 -> 3 -> 1
+		err := d.AddEdgeIfNotExist(3, 1)
+		assert.Error(t, err)
+		// The exact error depends on the underlying graph implementation
+		// but it should indicate a cycle issue
+	})
 }
 
 // TestDAG_Vertices tests the Vertices method of DAG
@@ -232,17 +257,16 @@ func TestDAG_ForEachVertex(t *testing.T) {
 
 		// Track visited vertices
 		visited := map[int]bool{}
-		expectedErr := errors.New("test error")
 
 		err := d.ForEachVertex(func(i int) error {
 			visited[i] = true
 			if i == 2 {
-				return expectedErr
+				return errTest
 			}
 			return nil
 		})
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, errTest)
 		assert.Equal(t, map[int]bool{1: true, 2: true}, visited)
 	})
 }
@@ -307,18 +331,56 @@ func TestDAG_InTopologicalOrder(t *testing.T) {
 
 		// Track visited vertices
 		var visited []int
-		expectedErr := errors.New("test error")
 
 		err := d.InTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			if i == 2 {
-				return expectedErr
+				return errTest
 			}
 			return nil
 		})
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, errTest)
 		assert.Equal(t, []int{1, 2}, visited)
+	})
+
+	t.Run("handles complex graph structures correctly", func(t *testing.T) {
+		t.Parallel()
+
+		d := dag.New(hashFn)
+
+		// Create a more complex DAG:
+		//    1
+		//   / \
+		//  2   3
+		//   \ /
+		//    4
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+		require.NoError(t, d.AddVertex(4))
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(1, 3))
+		require.NoError(t, d.AddEdge(2, 4))
+		require.NoError(t, d.AddEdge(3, 4))
+
+		// Track order of visited vertices
+		var visited []int
+
+		err := d.InTopologicalOrder(func(i int) error {
+			visited = append(visited, i)
+			return nil
+		})
+
+		assert.NoError(t, err)
+		assert.Len(t, visited, 4)
+
+		// In topological order, we should visit 1 first, then 2 and 3 (in any order), then 4
+		assert.Equal(t, 1, visited[0])
+		assert.Equal(t, 4, visited[3])
+		assert.Contains(t, []int{2, 3}, visited[1])
+		assert.Contains(t, []int{2, 3}, visited[2])
+		assert.NotEqual(t, visited[1], visited[2])
 	})
 }
 
@@ -382,17 +444,55 @@ func TestDAG_InReverseTopologicalOrder(t *testing.T) {
 
 		// Track visited vertices
 		var visited []int
-		expectedErr := errors.New("test error")
 
 		err := d.InReverseTopologicalOrder(func(i int) error {
 			visited = append(visited, i)
 			if i == 2 {
-				return expectedErr
+				return errTest
 			}
 			return nil
 		})
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, errTest)
 		assert.Equal(t, []int{3, 2}, visited)
+	})
+
+	t.Run("handles complex graph structures correctly", func(t *testing.T) {
+		t.Parallel()
+
+		d := dag.New(hashFn)
+
+		// Create a more complex DAG:
+		//    1
+		//   / \
+		//  2   3
+		//   \ /
+		//    4
+		require.NoError(t, d.AddVertex(1))
+		require.NoError(t, d.AddVertex(2))
+		require.NoError(t, d.AddVertex(3))
+		require.NoError(t, d.AddVertex(4))
+		require.NoError(t, d.AddEdge(1, 2))
+		require.NoError(t, d.AddEdge(1, 3))
+		require.NoError(t, d.AddEdge(2, 4))
+		require.NoError(t, d.AddEdge(3, 4))
+
+		// Track order of visited vertices
+		var visited []int
+
+		err := d.InReverseTopologicalOrder(func(i int) error {
+			visited = append(visited, i)
+			return nil
+		})
+
+		assert.NoError(t, err)
+		assert.Len(t, visited, 4)
+
+		// In reverse topological order, we should visit 4 first, then 2 and 3 (in any order), then 1
+		assert.Equal(t, 4, visited[0])
+		assert.Equal(t, 1, visited[3])
+		assert.Contains(t, []int{2, 3}, visited[1])
+		assert.Contains(t, []int{2, 3}, visited[2])
+		assert.NotEqual(t, visited[1], visited[2])
 	})
 }

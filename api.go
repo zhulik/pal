@@ -11,7 +11,7 @@ import (
 // Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 func Provide[I any, S any]() *Service[I, S] {
-	_, isRunner := any(empty[S]()).(core.Runner)
+	_, isRunner := any(new(S)).(core.Runner)
 
 	return &Service[I, S]{
 		singleton: true,
@@ -29,10 +29,10 @@ func ProvideFactory[I any, S any]() *Service[I, S] {
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
-func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
+func Invoke[I any](ctx context.Context, invoker core.Invoker) (I, error) {
 	name := elem[I]().String()
 
-	a, err := p.Invoke(ctx, name)
+	a, err := invoker.Invoke(ctx, name)
 	if err != nil {
 		return empty[I](), err
 	}
@@ -48,7 +48,7 @@ func Invoke[I any](ctx context.Context, p *Pal) (I, error) {
 // Inject resolves dependencies for a struct of type S using the provided context and Pal instance.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
-func Inject[S any](ctx context.Context, p *Pal) (*S, error) {
+func Inject[S any](ctx context.Context, invoker core.Invoker) (*S, error) {
 	s := new(S)
 	v := reflect.ValueOf(s).Elem()
 	t := v.Type()
@@ -65,7 +65,7 @@ func Inject[S any](ctx context.Context, p *Pal) (*S, error) {
 			continue
 		}
 
-		dependency, err := p.Invoke(ctx, fieldType.String())
+		dependency, err := invoker.Invoke(ctx, fieldType.String())
 		if err != nil {
 			return nil, err
 		}

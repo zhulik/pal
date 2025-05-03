@@ -19,9 +19,15 @@ type Container struct {
 }
 
 // New creates a new Container instance
-func New(services map[string]core.Service) *Container {
+func New(services ...core.Service) *Container {
+	index := make(map[string]core.Service)
+
+	for _, service := range services {
+		index[service.Name()] = service
+	}
+
 	return &Container{
-		services: services,
+		services: index,
 		log:      func(string, ...any) {},
 		graph:    dag.New(serviceHash),
 	}
@@ -76,7 +82,7 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 
 	instance, err := service.Instance(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: '%s'", core.ErrServiceInitFailed, name)
+		return nil, fmt.Errorf("%w: '%s': %v", core.ErrServiceInitFailed, name, err)
 	}
 
 	return instance, nil
@@ -93,12 +99,12 @@ func (c *Container) Shutdown(ctx context.Context) error {
 
 				err := shutdowner.Shutdown(ctx)
 				if err != nil {
-					c.log("%s shot down with error=%+v", service.Name(), err)
+					c.log("%s shut down with error=%+v", service.Name(), err)
 					errs = append(errs, err)
 					return nil
 				}
 
-				c.log("%s shot down successfully", service.Name())
+				c.log("%s shut down successfully", service.Name())
 			}
 		}
 		return nil
@@ -112,15 +118,15 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 			instance, _ := service.Instance(ctx)
 
 			if healthChecker, ok := instance.(core.HealthChecker); ok {
-				c.log("health checking %s", instance)
+				c.log("health checking %s", service.Name())
 
 				err := healthChecker.HealthCheck(ctx)
 				if err != nil {
-					c.log("%s failed health check error=%+v", instance, err)
+					c.log("%s failed health check error=%+v", service.Name(), err)
 					return err
 				}
 
-				c.log("%s passed health check successfully", instance)
+				c.log("%s passed health check successfully", service.Name())
 			}
 		}
 
@@ -163,6 +169,10 @@ func (c *Container) addDependencyVertex(service core.Service, parent core.Servic
 	val := reflect.ValueOf(instance)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
+	}
+
+	if !val.IsValid() {
+		return nil
 	}
 
 	typ := val.Type()
