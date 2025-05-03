@@ -14,15 +14,6 @@ import (
 	"github.com/zhulik/pal/pkg/core"
 )
 
-// MockLogger is a mock implementation of the core.LoggerFn
-type MockLogger struct {
-	mock.Mock
-}
-
-func (m *MockLogger) Log(fmt string, args ...any) {
-	m.Called(fmt, args)
-}
-
 // TestPal_New tests the New function
 func TestPal_New(t *testing.T) {
 	t.Parallel()

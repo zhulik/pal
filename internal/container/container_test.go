@@ -192,6 +192,48 @@ func newMockInstance(t *testing.T) *MockInstance {
 func TestContainer_Init(t *testing.T) {
 	t.Parallel()
 
+	t.Run("returns error when there is a cycle in the dependency graph", func(t *testing.T) {
+		t.Parallel()
+
+		// Define interface types that will be used for dependencies
+		type ServiceA interface{}
+		type ServiceB interface{}
+
+		// Create a struct with fields that will be detected as dependencies
+		type ServiceAImpl struct {
+			B ServiceB // Depends on ServiceB
+		}
+
+		type ServiceBImpl struct {
+			A ServiceA // Depends on ServiceA, creating a cycle
+		}
+
+		// Create services with circular dependencies
+		serviceA := NewMockService("container_test.ServiceA", true, false)
+		serviceB := NewMockService("container_test.ServiceB", true, false)
+
+		// Service A depends on Service B
+		serviceA.On("Make").Return(&ServiceAImpl{})
+		serviceA.On("Initialize", t.Context()).Return(nil)
+
+		// Service B depends on Service A, creating a cycle
+		serviceB.On("Make").Return(&ServiceBImpl{})
+		serviceB.On("Initialize", t.Context()).Return(nil)
+
+		services := map[string]core.Service{
+			"container_test.ServiceA": serviceA,
+			"container_test.ServiceB": serviceB,
+		}
+
+		c := container.New(services)
+
+		err := c.Init(t.Context())
+
+		assert.Error(t, err)
+		// The exact error message will depend on the underlying graph implementation
+		// but it should indicate a cycle or similar issue
+	})
+
 	t.Run("initializes singleton services successfully", func(t *testing.T) {
 		t.Parallel()
 
@@ -397,15 +439,6 @@ func TestContainer_HealthCheck(t *testing.T) {
 		err := c.HealthCheck(t.Context())
 
 		assert.NoError(t, err)
-
-		//// Check that HealthCheck was called on the instances
-		//instance1 := service1.instance.(*MockInstance)
-		//instance2 := service2.instance.(*MockInstance)
-		//instance3 := service3.instance.(*MockInstance)
-		//
-		//assert.True(t, instance1.healthCheckCalled)
-		//assert.False(t, instance2.healthCheckCalled) // Not a singleton
-		//assert.True(t, instance3.healthCheckCalled)
 	})
 
 	t.Run("returns error when service health check fails", func(t *testing.T) {
@@ -470,6 +503,49 @@ func TestContainer_Services(t *testing.T) {
 		result := c.Services()
 
 		assert.Empty(t, result)
+	})
+}
+
+// TestContainer_SetLogger tests the SetLogger method of Container
+func TestContainer_SetLogger(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets logger function", func(t *testing.T) {
+		t.Parallel()
+
+		c := container.New(nil)
+
+		var logCalled bool
+		var logMessage string
+		var logArgs []any
+
+		logger := func(fmt string, args ...any) {
+			logCalled = true
+			logMessage = fmt
+			logArgs = args
+		}
+
+		c.SetLogger(logger)
+
+		// Add a service to trigger logging
+		instance := newMockInstance(t)
+		service := NewMockService("service1", true, false, instance)
+		service.On("Initialize", t.Context()).Return(nil)
+		instance.On("Shutdown", t.Context()).Return(nil)
+
+		services := map[string]core.Service{
+			"service1": service,
+		}
+
+		c = container.New(services)
+		c.SetLogger(logger)
+
+		require.NoError(t, c.Init(t.Context()))
+		require.NoError(t, c.Shutdown(t.Context()))
+
+		assert.True(t, logCalled)
+		assert.Contains(t, logMessage, "%s")
+		assert.Equal(t, "service1", logArgs[0])
 	})
 }
 
