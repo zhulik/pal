@@ -21,9 +21,11 @@ const (
 )
 
 type Pal struct {
-	config   *core.Config
-	store    *container.Container
+	config *core.Config
+	store  *container.Container
+
 	stopChan chan error
+	done     errgroup.Group
 
 	log core.LoggerFn
 }
@@ -94,7 +96,6 @@ func (p *Pal) Shutdown(errs ...error) {
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	// TODO: skip if already
 	if err := p.Init(ctx); err != nil {
 		return err
 	}
@@ -105,24 +106,29 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	go func() {
 		<-ctx.Done()
-		p.stopChan <- ctx.Err()
+		p.Shutdown(ctx.Err())
 	}()
 
 	p.startRunners(ctx)
 
 	p.log("running until one of %+v is received or until job is done", signals)
 
-	// TODO: add proper shutdown handling when Pal is initialized manually and Run is not called
-	err := <-p.stopChan
-
-	shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
-	defer cancel()
-	return errors.Join(err, p.store.Shutdown(shutCt))
+	return p.done.Wait()
 }
 
 // Init initializes Pal. Validates config, creates and initializes all singleton services.
 func (p *Pal) Init(ctx context.Context) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
+
+	// TODO: skip if already
+
+	p.done.Go(func() error {
+		err := <-p.stopChan
+
+		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+		defer cancel()
+		return errors.Join(err, p.store.Shutdown(shutCt))
+	})
 
 	if err := p.validate(ctx); err != nil {
 		return err
@@ -166,14 +172,13 @@ func (p *Pal) forwardSignals(signals []os.Signal) {
 
 	p.log("signal received: %+v", sig)
 
-	p.stopChan <- nil
+	p.Shutdown()
 }
 
 func (p *Pal) startRunners(ctx context.Context) {
-	g := &errgroup.Group{}
-
+	wg := &errgroup.Group{}
 	for name, runner := range p.store.Runners(ctx) {
-		g.Go(func() error {
+		wg.Go(func() error {
 			p.log("running %s", name)
 			err := runner.Run(ctx)
 			if err != nil {
@@ -185,6 +190,9 @@ func (p *Pal) startRunners(ctx context.Context) {
 			return nil
 		})
 	}
-
-	go p.Shutdown(g.Wait())
+	p.done.Go(func() error {
+		err := wg.Wait()
+		p.Shutdown(err)
+		return err
+	})
 }
