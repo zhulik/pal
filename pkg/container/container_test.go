@@ -5,11 +5,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/zhulik/pal/pkg/container"
+
 	"github.com/stretchr/testify/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zhulik/pal/internal/container"
 	"github.com/zhulik/pal/pkg/core"
 )
 

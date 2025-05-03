@@ -7,7 +7,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/zhulik/pal/internal/container"
+	"github.com/zhulik/pal/pkg/container"
+
 	"github.com/zhulik/pal/pkg/core"
 
 	"golang.org/x/sync/errgroup"
