@@ -25,7 +25,9 @@ type Pal struct {
 	store  *container.Container
 
 	stopChan chan error
-	done     errgroup.Group
+	tasks    errgroup.Group
+
+	initialized bool
 
 	log core.LoggerFn
 }
@@ -117,16 +119,18 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	p.log("running until one of %+v is received or until job is done", signals)
 
-	return p.done.Wait()
+	return p.tasks.Wait()
 }
 
 // Init initializes Pal. Validates config, creates and initializes all singleton services.
 func (p *Pal) Init(ctx context.Context) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	// TODO: skip if already
+	if p.initialized {
+		return nil
+	}
 
-	p.done.Go(func() error {
+	p.tasks.Go(func() error {
 		err := <-p.stopChan
 
 		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
@@ -149,6 +153,8 @@ func (p *Pal) Init(ctx context.Context) error {
 
 		return errors.Join(err, p.store.Shutdown(shutCtx))
 	}
+
+	p.initialized = true
 
 	return nil
 }
@@ -194,7 +200,7 @@ func (p *Pal) startRunners(ctx context.Context) {
 			return nil
 		})
 	}
-	p.done.Go(func() error {
+	p.tasks.Go(func() error {
 		err := wg.Wait()
 		p.Shutdown(err)
 		return err
