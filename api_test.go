@@ -94,7 +94,6 @@ func TestInvoke(t *testing.T) {
 		// Try to invoke a non-existent service
 		_, err := pal.Invoke[TestServiceInterface](t.Context(), p)
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
 	})
 }
@@ -137,7 +136,6 @@ func TestInject(t *testing.T) {
 		// Try to inject dependencies with no services registered
 		_, err := pal.Inject[DependentStruct](t.Context(), p)
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
 	})
 

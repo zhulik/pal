@@ -160,7 +160,6 @@ func TestContainer_Validate(t *testing.T) {
 
 		err := c.Validate(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, errTest)
 	})
 }
@@ -255,7 +254,6 @@ func TestContainer_Init(t *testing.T) {
 
 		err := c.Init(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, errTest)
 	})
 }
@@ -288,7 +286,6 @@ func TestContainer_Invoke(t *testing.T) {
 
 		_, err := c.Invoke(t.Context(), "nonexistent")
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
 	})
 
@@ -305,7 +302,6 @@ func TestContainer_Invoke(t *testing.T) {
 
 		_, err := c.Invoke(t.Context(), "service1")
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceInitFailed)
 	})
 }
@@ -354,7 +350,6 @@ func TestContainer_Shutdown(t *testing.T) {
 
 		err := c.Shutdown(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, errTest)
 	})
 }
@@ -403,7 +398,6 @@ func TestContainer_HealthCheck(t *testing.T) {
 
 		err := c.HealthCheck(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, errTest)
 	})
 }

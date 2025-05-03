@@ -123,7 +123,6 @@ func TestDAG_AddEdgeIfNotExist(t *testing.T) {
 		// Try to add edge without adding vertices first
 		// This should fail with an error other than ErrEdgeAlreadyExists
 		err := d.AddEdgeIfNotExist(1, 2)
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, graph.ErrVertexNotFound)
 	})
 

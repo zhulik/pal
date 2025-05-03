@@ -233,7 +233,6 @@ func TestPal_Invoke(t *testing.T) {
 
 		_, err := p.Invoke(t.Context(), "nonexistent")
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceNotFound)
 	})
 }
@@ -365,7 +364,6 @@ func TestPal_Run(t *testing.T) {
 			Run(t.Context(), syscall.SIGINT)
 
 		// Verify that Run returns an error
-		require.Error(t, err)
-		assert.Error(t, err, errTest)
+		assert.ErrorIs(t, err, errTest)
 	})
 }

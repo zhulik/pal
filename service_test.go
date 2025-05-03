@@ -101,7 +101,6 @@ func TestService_Validate(t *testing.T) {
 
 		err := service.Validate(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceInvalid)
 	})
 
@@ -113,7 +112,6 @@ func TestService_Validate(t *testing.T) {
 
 		err := service.Validate(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceInvalid)
 	})
 
@@ -125,7 +123,6 @@ func TestService_Validate(t *testing.T) {
 
 		err := service.Validate(t.Context())
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, core.ErrServiceInvalid)
 	})
 }
@@ -244,8 +241,6 @@ func TestService_BeforeInit(t *testing.T) {
 
 		// The error should be propagated from the hook through Initialize to Init
 		err := p.Init(t.Context())
-		assert.Error(t, err)
-
 		assert.ErrorIs(t, err, errTest)
 	})
 }
