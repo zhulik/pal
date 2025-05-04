@@ -33,7 +33,7 @@ TODO: write me
 ## Non-goals
 - Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only 
   performs periodic health checks. Thus pal's initialization and shutdown should not be blazing fast, it should be *fast enough*. 
-  Using factory services is more expensive that using singleton services, but should generally be *fast enough*.
+  Using factory services is more expensive than using singleton services, but should generally be *fast enough*.
 
 - Extensibility and configurability: pal is not designed to be the most flexible IoC framework, only *flexible enough*
   to reach its goals.
