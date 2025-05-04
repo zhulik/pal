@@ -10,8 +10,6 @@ import (
 	"github.com/zhulik/pal/pkg/container"
 
 	"github.com/zhulik/pal/pkg/core"
-
-	"golang.org/x/sync/errgroup"
 )
 
 type ContextKey int
@@ -29,8 +27,6 @@ type Pal struct {
 
 	// shutdownChan is used to wait for the graceful shutdown of the app.
 	shutdownChan chan error
-
-	runnerTasks errgroup.Group
 
 	initialized bool
 
@@ -103,7 +99,7 @@ func (p *Pal) Shutdown(errs ...error) {
 	}
 }
 
-// Run eagerly starts Runners, then blocks until one of the given signals is received or all Runners
+// Run eagerly starts runners, then blocks until one of the given signals is received or all runners
 // finish their work. If any error occurs during initialization, runner operation or Shutdown - Run() will return it.
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
@@ -115,7 +111,9 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	p.log("Pal initialized. Services: %s", p.Services())
 
 	go p.listenToStopSignals(ctx, signals)
-	go p.Shutdown(p.startRunners(ctx))
+	go func() {
+		p.Shutdown(p.store.StartRunners(ctx))
+	}()
 
 	p.log("running until one of %+v is received or until job is done", signals)
 
@@ -135,10 +133,8 @@ func (p *Pal) Init(ctx context.Context) error {
 
 		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 		defer cancel()
-		// TODO: shutdown runners first
 
-		runErr := p.runnerTasks.Wait()
-		p.shutdownChan <- errors.Join(err, runErr, p.store.Shutdown(shutCt))
+		p.shutdownChan <- errors.Join(err, p.store.Shutdown(shutCt))
 	}()
 
 	if err := p.validate(ctx); err != nil {
@@ -189,27 +185,4 @@ func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
 
 		p.Shutdown()
 	}
-}
-
-func (p *Pal) startRunners(ctx context.Context) error {
-	for name, runner := range p.store.Runners(ctx) {
-		p.runnerTasks.Go(func() error {
-			p.log("running %s", name)
-			err := runner.Run(ctx)
-			if err != nil {
-				p.log("runner %s exited with error='%+v'", name, err)
-				return err
-			}
-
-			p.log("runner %s finished successfully", name)
-			return nil
-		})
-	}
-	p.log("waiting for runners to finish")
-	err := p.runnerTasks.Wait()
-	if err != nil {
-		p.log("all runners finished with error='%+v'", err)
-	}
-	p.log("all runners finished successfully")
-	return err
 }

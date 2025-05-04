@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/zhulik/pal/pkg/core"
 
 	"github.com/zhulik/pal/pkg/dag"
@@ -16,6 +18,8 @@ type Container struct {
 	services map[string]core.Service
 	graph    *dag.DAG[string, core.Service]
 	log      core.LoggerFn
+
+	runnerTasks errgroup.Group
 }
 
 // New creates a new Container instance
@@ -91,6 +95,8 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
 	c.graph.InTopologicalOrder(func(service core.Service) error { // nolint:errcheck
+		// TODO: after all runners are shut down, wait for them to finish.
+
 		if service.IsSingleton() {
 			instance, _ := service.Instance(ctx)
 
@@ -138,7 +144,7 @@ func (c *Container) Services() []core.Service {
 	return c.graph.Vertices()
 }
 
-func (c *Container) Runners(ctx context.Context) map[string]core.Runner {
+func (c *Container) runners(ctx context.Context) map[string]core.Runner {
 	runners := map[string]core.Runner{}
 
 	c.graph.ForEachVertex(func(service core.Service) error { // nolint:errcheck
@@ -151,6 +157,29 @@ func (c *Container) Runners(ctx context.Context) map[string]core.Runner {
 	})
 
 	return runners
+}
+
+func (c *Container) StartRunners(ctx context.Context) error {
+	for name, runner := range c.runners(ctx) {
+		c.runnerTasks.Go(func() error {
+			c.log("running %s", name)
+			err := runner.Run(ctx)
+			if err != nil {
+				c.log("runner %s exited with error='%+v'", name, err)
+				return err
+			}
+
+			c.log("runner %s finished successfully", name)
+			return nil
+		})
+	}
+	c.log("waiting for runners to finish")
+	err := c.runnerTasks.Wait()
+	if err != nil {
+		c.log("all runners finished with error='%+v'", err)
+	}
+	c.log("all runners finished successfully")
+	return err
 }
 
 func (c *Container) addDependencyVertex(service core.Service, parent core.Service) error {
