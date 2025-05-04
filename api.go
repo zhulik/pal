@@ -39,7 +39,7 @@ func Invoke[I any](ctx context.Context, invoker core.Invoker) (I, error) {
 
 	casted, ok := a.(I)
 	if !ok {
-		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", core.ErrServiceInvalid, a, name, name)
+		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", core.ErrServiceInvalid, name, a, name)
 	}
 
 	return casted, nil

@@ -86,7 +86,7 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 
 	instance, err := service.Instance(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: '%s': %v", core.ErrServiceInitFailed, name, err)
+		return nil, fmt.Errorf("%w: '%s': %w", core.ErrServiceInitFailed, name, err)
 	}
 
 	return instance, nil
