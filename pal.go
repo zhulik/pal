@@ -147,10 +147,8 @@ func (p *Pal) Init(ctx context.Context) error {
 	if err := p.store.Init(initCtx); err != nil {
 		p.log("Init failed with %+v", err)
 
-		shutCtx, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
-		defer cancel()
-
-		return errors.Join(err, p.store.Shutdown(shutCtx))
+		p.Shutdown(err)
+		return err
 	}
 
 	p.initialized = true

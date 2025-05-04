@@ -94,27 +94,37 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
+
 	c.graph.InTopologicalOrder(func(service core.Service) error { // nolint:errcheck
-		// TODO: after all runners are shut down, wait for them to finish.
-
-		if service.IsSingleton() {
-			instance, _ := service.Instance(ctx)
-
-			if shutdowner, ok := instance.(core.Shutdowner); ok {
-				c.log("shutting down %s", service.Name())
-
-				err := shutdowner.Shutdown(ctx)
-				if err != nil {
-					c.log("%s shut down with error=%+v", service.Name(), err)
-					errs = append(errs, err)
-					return nil
-				}
-
-				c.log("%s shut down successfully", service.Name())
-			}
+		if !service.IsSingleton() {
+			return nil
 		}
+
+		// In topological order runners appear first naturally, once there are no more runners in the list,
+		// we can wait for them to finish.
+		if !service.IsRunner() {
+			errs = append(errs, c.runnerTasks.Wait())
+		}
+
+		// TODO: after all runners are shut down, wait for them to finish.
+		instance, _ := service.Instance(ctx)
+
+		if shutdowner, ok := instance.(core.Shutdowner); ok {
+			c.log("shutting down %s", service.Name())
+
+			err := shutdowner.Shutdown(ctx)
+			if err != nil {
+				c.log("%s shut down with error=%+v", service.Name(), err)
+				errs = append(errs, err)
+				return nil
+			}
+
+			c.log("%s shut down successfully", service.Name())
+		}
+
 		return nil
 	})
+
 	return errors.Join(errs...)
 }
 
