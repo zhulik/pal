@@ -14,13 +14,13 @@ tasks:
   test:
     desc: Run tests
     cmds:
-      - go test -race ./...
+      - go test -race ./... -test.timeout=2s
 
   cover:
     desc: Run tests with cover report
     cmds:
       - mkdir -p coverage/
-      - go test -coverpkg=./... -coverprofile=coverage/cover.out ./...
+      - go test -coverpkg=./... -coverprofile=coverage/cover.out ./... -test.timeout=2s
       - go tool cover -html coverage/cover.out -o coverage/cover.html
 
   lint:

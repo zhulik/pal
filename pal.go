@@ -24,8 +24,11 @@ type Pal struct {
 	config *core.Config
 	store  *container.Container
 
+	// stopChan is used to initiate the shutdown of the app.
 	stopChan chan error
-	tasks    errgroup.Group
+
+	// shutdownChan is used to wait for the graceful shutdown of the app.
+	shutdownChan chan error
 
 	initialized bool
 
@@ -37,10 +40,11 @@ func New(services ...core.Service) *Pal {
 	logger := func(string, ...any) {}
 
 	return &Pal{
-		config:   &core.Config{},
-		store:    container.New(services...),
-		stopChan: make(chan error),
-		log:      logger,
+		config:       &core.Config{},
+		store:        container.New(services...),
+		stopChan:     make(chan error, 1),
+		shutdownChan: make(chan error, 1),
+		log:          logger,
 	}
 }
 
@@ -97,7 +101,7 @@ func (p *Pal) Shutdown(errs ...error) {
 	}
 }
 
-// Run eagerly initializes and starts Runners, then blocks until one of the given signals is received or all Runners
+// Run eagerly starts Runners, then blocks until one of the given signals is received or all Runners
 // finish their work. If any error occurs during initialization, runner operation or Shutdown - Run() will return it.
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
@@ -108,18 +112,12 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	p.log("Pal initialized. Services: %s", p.Services())
 
-	go p.forwardSignals(signals)
-
-	go func() {
-		<-ctx.Done()
-		p.Shutdown(ctx.Err())
-	}()
-
-	p.startRunners(ctx)
+	go p.listenToStopSignals(ctx, signals)
+	go p.startRunners(ctx)
 
 	p.log("running until one of %+v is received or until job is done", signals)
 
-	return p.tasks.Wait()
+	return <-p.shutdownChan
 }
 
 // Init initializes Pal. Validates config, creates and initializes all singleton services.
@@ -130,13 +128,14 @@ func (p *Pal) Init(ctx context.Context) error {
 		return nil
 	}
 
-	p.tasks.Go(func() error {
+	go func() {
 		err := <-p.stopChan
 
 		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 		defer cancel()
-		return errors.Join(err, p.store.Shutdown(shutCt))
-	})
+		// TODO: stop and wait for all runners first, then shutdown all other services.
+		p.shutdownChan <- errors.Join(err, p.store.Shutdown(shutCt))
+	}()
 
 	if err := p.validate(ctx); err != nil {
 		return err
@@ -174,19 +173,21 @@ func (p *Pal) validate(ctx context.Context) error {
 	return errors.Join(p.config.Validate(ctx), p.store.Validate(ctx))
 }
 
-func (p *Pal) forwardSignals(signals []os.Signal) {
+func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, signals...)
 
-	sig := <-sigChan
-
-	p.log("signal received: %+v", sig)
-
-	p.Shutdown()
+	select {
+	case <-ctx.Done():
+		p.Shutdown(ctx.Err())
+	case <-sigChan:
+		p.Shutdown()
+	}
 }
 
 func (p *Pal) startRunners(ctx context.Context) {
 	wg := &errgroup.Group{}
+
 	for name, runner := range p.store.Runners(ctx) {
 		wg.Go(func() error {
 			p.log("running %s", name)
@@ -200,9 +201,11 @@ func (p *Pal) startRunners(ctx context.Context) {
 			return nil
 		})
 	}
-	p.tasks.Go(func() error {
-		err := wg.Wait()
-		p.Shutdown(err)
-		return err
-	})
+	p.log("waiting for runners to finish")
+	err := wg.Wait()
+	if err != nil {
+		p.log("all runners finished with error='%+v'", err)
+	}
+	p.log("all runners finished successfully")
+	p.Shutdown(err)
 }
