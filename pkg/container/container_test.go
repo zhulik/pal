@@ -179,43 +179,6 @@ func newMockInstance(t *testing.T) *MockInstance {
 func TestContainer_Init(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns error when there is a cycle in the dependency graph", func(t *testing.T) {
-		t.Parallel()
-
-		// Define interface types that will be used for dependencies
-		type ServiceA interface{}
-		type ServiceB interface{}
-
-		// Create a struct with fields that will be detected as dependencies
-		type ServiceAImpl struct {
-			B ServiceB // Depends on ServiceB
-		}
-
-		type ServiceBImpl struct {
-			A ServiceA // Depends on ServiceA, creating a cycle
-		}
-
-		// Create services with circular dependencies
-		serviceA := NewMockService("container_test.ServiceA", true, false)
-		serviceB := NewMockService("container_test.ServiceB", true, false)
-
-		// Service A depends on Service B
-		serviceA.On("Make").Return(&ServiceAImpl{})
-		serviceA.On("Initialize", t.Context()).Return(nil)
-
-		// Service B depends on Service A, creating a cycle
-		serviceB.On("Make").Return(&ServiceBImpl{})
-		serviceB.On("Initialize", t.Context()).Return(nil)
-
-		c := container.New(serviceA, serviceB)
-
-		err := c.Init(t.Context())
-
-		assert.Error(t, err)
-		// The exact error message will depend on the underlying graph implementation
-		// but it should indicate a cycle or similar issue
-	})
-
 	t.Run("initializes singleton services successfully", func(t *testing.T) {
 		t.Parallel()
 

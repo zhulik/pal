@@ -192,6 +192,11 @@ func (c *Container) StartRunners(ctx context.Context) error {
 }
 
 func (c *Container) addDependencyVertex(service core.Service, parent core.Service) error {
+	if _, err := c.graph.Vertex(service.Name()); err == nil {
+		// service and all it's dependencies already exist in the graph.
+		return nil
+	}
+
 	if err := c.graph.AddVertexIfNotExist(service); err != nil {
 		return err
 	}
