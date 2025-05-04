@@ -19,8 +19,8 @@ const (
 )
 
 type Pal struct {
-	config *core.Config
-	store  *container.Container
+	config    *core.Config
+	container *container.Container
 
 	// stopChan is used to initiate the shutdown of the app.
 	stopChan chan error
@@ -39,7 +39,7 @@ func New(services ...core.Service) *Pal {
 
 	return &Pal{
 		config:       &core.Config{},
-		store:        container.New(services...),
+		container:    container.New(services...),
 		stopChan:     make(chan error, 1),
 		shutdownChan: make(chan error, 1),
 		log:          logger,
@@ -73,7 +73,7 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 // SetLogger sets the logger instance to be used by Pal
 func (p *Pal) SetLogger(log core.LoggerFn) *Pal {
 	p.log = log
-	p.store.SetLogger(log)
+	p.container.SetLogger(log)
 	return p
 }
 
@@ -82,7 +82,7 @@ func (p *Pal) HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
 	defer cancel()
 
-	return p.store.HealthCheck(ctx)
+	return p.container.HealthCheck(ctx)
 }
 
 // Shutdown schedules graceful Shutdown of the app. If any errs given - Run() will return them. Only the first call is effective.
@@ -112,7 +112,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	go p.listenToStopSignals(ctx, signals)
 	go func() {
-		p.Shutdown(p.store.StartRunners(ctx))
+		p.Shutdown(p.container.StartRunners(ctx))
 	}()
 
 	p.log("running until one of %+v is received or until job is done", signals)
@@ -134,7 +134,7 @@ func (p *Pal) Init(ctx context.Context) error {
 		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 		defer cancel()
 
-		p.shutdownChan <- errors.Join(err, p.store.Shutdown(shutCt))
+		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
 	}()
 
 	if err := p.validate(ctx); err != nil {
@@ -144,7 +144,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	initCtx, cancel := context.WithTimeout(ctx, p.config.InitTimeout)
 	defer cancel()
 
-	if err := p.store.Init(initCtx); err != nil {
+	if err := p.container.Init(initCtx); err != nil {
 		p.log("Init failed with %+v", err)
 
 		p.Shutdown(err)
@@ -157,18 +157,18 @@ func (p *Pal) Init(ctx context.Context) error {
 }
 
 func (p *Pal) Services() []core.Service {
-	return p.store.Services()
+	return p.container.Services()
 }
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
 	p.log("invoking %s", name)
 
-	return p.store.Invoke(ctx, name)
+	return p.container.Invoke(ctx, name)
 }
 
 func (p *Pal) validate(ctx context.Context) error {
-	return errors.Join(p.config.Validate(ctx), p.store.Validate(ctx))
+	return errors.Join(p.config.Validate(ctx), p.container.Validate(ctx))
 }
 
 func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
