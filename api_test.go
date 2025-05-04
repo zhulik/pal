@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/zhulik/pal"
-	"github.com/zhulik/pal/pkg/core"
 )
 
 // Test interfaces and implementations are defined in common_test.go
@@ -94,7 +93,7 @@ func TestInvoke(t *testing.T) {
 		// Try to invoke a non-existent service
 		_, err := pal.Invoke[TestServiceInterface](t.Context(), p)
 
-		assert.ErrorIs(t, err, core.ErrServiceNotFound)
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
 	})
 }
 
@@ -136,7 +135,7 @@ func TestInject(t *testing.T) {
 		// Try to inject dependencies with no services registered
 		_, err := pal.Inject[DependentStruct](t.Context(), p)
 
-		assert.ErrorIs(t, err, core.ErrServiceNotFound)
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
 	})
 
 	t.Run("skips non-interface fields", func(t *testing.T) {

@@ -9,12 +9,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zhulik/pal/pkg/core"
 )
 
 // MockService implements the core.Service interface for testing
 type MockService struct {
 	mock.Mock
+
 	name        string
 	isSingleton bool
 	isRunner    bool
@@ -243,7 +243,7 @@ func TestContainer_Invoke(t *testing.T) {
 
 		_, err := c.Invoke(t.Context(), "nonexistent")
 
-		assert.ErrorIs(t, err, core.ErrServiceNotFound)
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
 	})
 
 	t.Run("returns error when service instance creation fails", func(t *testing.T) {
@@ -259,7 +259,7 @@ func TestContainer_Invoke(t *testing.T) {
 
 		_, err := c.Invoke(t.Context(), "service1")
 
-		assert.ErrorIs(t, err, core.ErrServiceInitFailed)
+		assert.ErrorIs(t, err, pal.ErrServiceInitFailed)
 	})
 }
 

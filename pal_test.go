@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/zhulik/pal"
-	"github.com/zhulik/pal/pkg/core"
 )
 
 // TestPal_New tests the New function
@@ -189,7 +188,7 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.Equal(t, []core.Service{service}, services)
+		assert.Equal(t, []pal.ServiceImpl{service}, services)
 	})
 
 	t.Run("returns empty slice for no services", func(t *testing.T) {
@@ -233,7 +232,7 @@ func TestPal_Invoke(t *testing.T) {
 
 		_, err := p.Invoke(t.Context(), "nonexistent")
 
-		assert.ErrorIs(t, err, core.ErrServiceNotFound)
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
 	})
 }
 
@@ -282,7 +281,7 @@ func TestPal_Run(t *testing.T) {
 		m := i.(*RunnerServiceStruct)
 		m.AssertExpectations(t)
 
-		//assert.True(t, runner.(*RunnerServiceStruct).RunCalled)
+		// assert.True(t, runner.(*RunnerServiceStruct).RunCalled)
 	})
 
 	t.Run("errors during init - services are gracefully shut down", func(t *testing.T) {

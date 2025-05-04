@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-
-	"github.com/zhulik/pal/pkg/core"
 )
 
 type Service[I any, S any] struct {
 	singleton bool
 	runner    bool
 
-	beforeInit core.LifecycleHook[S]
+	beforeInit LifecycleHook[S]
 
 	instance I
 }
@@ -42,7 +40,7 @@ func (f *Service[I, S]) Make() any {
 	return new(S)
 }
 
-func (f *Service[I, S]) BeforeInit(hook core.LifecycleHook[S]) *Service[I, S] {
+func (f *Service[I, S]) BeforeInit(hook LifecycleHook[S]) *Service[I, S] {
 	f.beforeInit = hook
 	return f
 }
@@ -58,16 +56,16 @@ func (f *Service[I, S]) IsRunner() bool {
 func (f *Service[I, S]) Validate(_ context.Context) error {
 	iType := elem[I]()
 	if iType.Kind() != reflect.Interface {
-		return fmt.Errorf("%w: type parameter I (%v) must be an interface", core.ErrServiceInvalid, iType)
+		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
 	}
 
 	sType := elem[S]()
 	if sType.Kind() != reflect.Struct {
-		return fmt.Errorf("%w: type parameter S (%v) must be a struct", core.ErrServiceInvalid, sType)
+		return fmt.Errorf("%w: type parameter S (%v) must be a struct", ErrServiceInvalid, sType)
 	}
 
 	if _, ok := any(new(S)).(I); !ok {
-		return fmt.Errorf("%w: type %v does not implement interface %v", core.ErrServiceInvalid, sType, iType)
+		return fmt.Errorf("%w: type %v does not implement interface %v", ErrServiceInvalid, sType, iType)
 	}
 
 	return nil
@@ -98,7 +96,7 @@ func (f *Service[I, S]) build(ctx context.Context) (*S, error) {
 		}
 	}
 
-	if initer, ok := any(s).(core.Initer); ok {
+	if initer, ok := any(s).(Initer); ok {
 		if err := initer.Init(ctx); err != nil {
 			return nil, err
 		}

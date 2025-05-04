@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-
-	"github.com/zhulik/pal/pkg/core"
 )
 
 // Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 func Provide[I any, S any]() *Service[I, S] {
-	_, isRunner := any(new(S)).(core.Runner)
+	_, isRunner := any(new(S)).(Runner)
 
 	return &Service[I, S]{
 		singleton: true,
@@ -29,7 +27,7 @@ func ProvideFactory[I any, S any]() *Service[I, S] {
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
-func Invoke[I any](ctx context.Context, invoker core.Invoker) (I, error) {
+func Invoke[I any](ctx context.Context, invoker Invoker) (I, error) {
 	name := elem[I]().String()
 
 	a, err := invoker.Invoke(ctx, name)
@@ -39,7 +37,7 @@ func Invoke[I any](ctx context.Context, invoker core.Invoker) (I, error) {
 
 	casted, ok := a.(I)
 	if !ok {
-		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", core.ErrServiceInvalid, name, a, name)
+		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", ErrServiceInvalid, name, a, name)
 	}
 
 	return casted, nil
@@ -48,7 +46,7 @@ func Invoke[I any](ctx context.Context, invoker core.Invoker) (I, error) {
 // Inject resolves dependencies for a struct of type S using the provided context and Pal instance.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
-func Inject[S any](ctx context.Context, invoker core.Invoker) (*S, error) {
+func Inject[S any](ctx context.Context, invoker Invoker) (*S, error) {
 	s := new(S)
 	v := reflect.ValueOf(s).Elem()
 	t := v.Type()

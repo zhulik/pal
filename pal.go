@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"time"
-
-	"github.com/zhulik/pal/pkg/core"
 )
 
 type ContextKey int
@@ -17,7 +15,7 @@ const (
 )
 
 type Pal struct {
-	config    *core.Config
+	config    *Config
 	container *Container
 
 	// stopChan is used to initiate the shutdown of the app.
@@ -28,15 +26,15 @@ type Pal struct {
 
 	initialized bool
 
-	log core.LoggerFn
+	log LoggerFn
 }
 
 // New creates and returns a new instance of Pal with the provided Service's
-func New(services ...core.Service) *Pal {
+func New(services ...ServiceImpl) *Pal {
 	logger := func(string, ...any) {}
 
 	return &Pal{
-		config:       &core.Config{},
+		config:       &Config{},
 		container:    NewContainer(services...),
 		stopChan:     make(chan error, 1),
 		shutdownChan: make(chan error, 1),
@@ -46,8 +44,8 @@ func New(services ...core.Service) *Pal {
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
 // Panics if ctx misses the value.
-func FromContext(ctx context.Context) core.Invoker {
-	return ctx.Value(CtxValue).(core.Invoker)
+func FromContext(ctx context.Context) Invoker {
+	return ctx.Value(CtxValue).(Invoker)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -69,7 +67,7 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 }
 
 // SetLogger sets the logger instance to be used by Pal
-func (p *Pal) SetLogger(log core.LoggerFn) *Pal {
+func (p *Pal) SetLogger(log LoggerFn) *Pal {
 	p.log = log
 	p.container.SetLogger(log)
 	return p
@@ -154,7 +152,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
-func (p *Pal) Services() []core.Service {
+func (p *Pal) Services() []ServiceImpl {
 	return p.container.Services()
 }
 
