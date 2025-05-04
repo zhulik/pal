@@ -105,8 +105,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 		if !service.IsRunner() {
 			errs = append(errs, c.runnerTasks.Wait())
 		}
-
-		// TODO: after all runners are shut down, wait for them to finish.
+		
 		instance, _ := service.Instance(ctx)
 
 		if shutdowner, ok := instance.(core.Shutdowner); ok {
