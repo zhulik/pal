@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/zhulik/pal/pkg/container"
-
 	"github.com/zhulik/pal/pkg/core"
 )
 
@@ -20,7 +18,7 @@ const (
 
 type Pal struct {
 	config    *core.Config
-	container *container.Container
+	container *Container
 
 	// stopChan is used to initiate the shutdown of the app.
 	stopChan chan error
@@ -39,7 +37,7 @@ func New(services ...core.Service) *Pal {
 
 	return &Pal{
 		config:       &core.Config{},
-		container:    container.New(services...),
+		container:    NewContainer(services...),
 		stopChan:     make(chan error, 1),
 		shutdownChan: make(chan error, 1),
 		log:          logger,

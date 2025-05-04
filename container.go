@@ -1,4 +1,4 @@
-package container
+package pal
 
 import (
 	"context"
@@ -22,8 +22,8 @@ type Container struct {
 	runnerTasks errgroup.Group
 }
 
-// New creates a new Container instance
-func New(services ...core.Service) *Container {
+// NewContainer creates a new Container instance
+func NewContainer(services ...core.Service) *Container {
 	index := make(map[string]core.Service)
 
 	for _, service := range services {

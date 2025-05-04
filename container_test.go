@@ -1,21 +1,15 @@
-package container_test
+package pal_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/zhulik/pal/pkg/container"
-
 	"github.com/stretchr/testify/mock"
+	"github.com/zhulik/pal"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zhulik/pal/pkg/core"
-)
-
-var (
-	errTest = errors.New("test error")
 )
 
 // MockService implements the core.Service interface for testing
@@ -105,7 +99,7 @@ func TestContainer_New(t *testing.T) {
 	t.Run("creates a new Container with services", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New(
+		c := pal.NewContainer(
 			NewMockService("service1", true, false),
 			NewMockService("service2", true, true),
 		)
@@ -116,7 +110,7 @@ func TestContainer_New(t *testing.T) {
 	t.Run("creates a new Container with empty services", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New()
+		c := pal.NewContainer()
 
 		assert.NotNil(t, c)
 		// We can verify it works with nil services by checking that Services() returns empty
@@ -140,7 +134,7 @@ func TestContainer_Validate(t *testing.T) {
 		service1.On("Validate", t.Context()).Return(nil)
 		service2.On("Validate", t.Context()).Return(nil)
 
-		c := container.New(service1, service2)
+		c := pal.NewContainer(service1, service2)
 
 		err := c.Validate(t.Context())
 
@@ -156,7 +150,7 @@ func TestContainer_Validate(t *testing.T) {
 		service1.On("Validate", t.Context()).Return(nil)
 		service2.On("Validate", t.Context()).Return(errTest)
 
-		c := container.New(service1, service2)
+		c := pal.NewContainer(service1, service2)
 
 		err := c.Validate(t.Context())
 
@@ -194,7 +188,7 @@ func TestContainer_Init(t *testing.T) {
 		service2.On("Initialize", t.Context()).Return(nil)
 		service3.On("Initialize", t.Context()).Return(nil)
 
-		c := container.New(service1, service2, service3)
+		c := pal.NewContainer(service1, service2, service3)
 
 		err := c.Init(t.Context())
 
@@ -213,7 +207,7 @@ func TestContainer_Init(t *testing.T) {
 		service1.On("Initialize", t.Context()).Return(nil)
 		service2.On("Initialize", t.Context()).Return(errTest)
 
-		c := container.New(service1, service2)
+		c := pal.NewContainer(service1, service2)
 
 		err := c.Init(t.Context())
 
@@ -233,7 +227,7 @@ func TestContainer_Invoke(t *testing.T) {
 		service := NewMockService("service1", true, false, expectedInstance)
 		service.On("Initialize", t.Context()).Return(nil)
 
-		c := container.New(service)
+		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		instance, err := c.Invoke(t.Context(), "service1")
@@ -245,7 +239,7 @@ func TestContainer_Invoke(t *testing.T) {
 	t.Run("returns error when service not found", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New()
+		c := pal.NewContainer()
 
 		_, err := c.Invoke(t.Context(), "nonexistent")
 
@@ -260,7 +254,7 @@ func TestContainer_Invoke(t *testing.T) {
 		service.On("Initialize", t.Context()).Return(nil)
 		service.On("Instance", t.Context()).Return(nil, errTest)
 
-		c := container.New(service)
+		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		_, err := c.Invoke(t.Context(), "service1")
@@ -291,7 +285,7 @@ func TestContainer_Shutdown(t *testing.T) {
 		instance2.On("Shutdown", t.Context()).Return(nil)
 		instance3.On("Shutdown", t.Context()).Return(nil)
 
-		c := container.New(service1, service2, service3)
+		c := pal.NewContainer(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.Shutdown(t.Context())
@@ -308,7 +302,7 @@ func TestContainer_Shutdown(t *testing.T) {
 		service := NewMockService("service1", true, false, instance)
 		service.On("Initialize", t.Context()).Return(nil)
 
-		c := container.New(service)
+		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.Shutdown(t.Context())
@@ -339,7 +333,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		service2.On("Initialize", t.Context()).Return(nil)
 		service3.On("Initialize", t.Context()).Return(nil)
 
-		c := container.New(service1, service2, service3)
+		c := pal.NewContainer(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.HealthCheck(t.Context())
@@ -356,7 +350,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		service := NewMockService("service1", true, false, instance)
 		service.On("Initialize", t.Context()).Return(nil)
 
-		c := container.New(service)
+		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.HealthCheck(t.Context())
@@ -381,7 +375,7 @@ func TestContainer_Services(t *testing.T) {
 		service1.On("Initialize", t.Context()).Return(nil)
 		service2.On("Initialize", t.Context()).Return(nil)
 
-		c := container.New(service1, service2)
+		c := pal.NewContainer(service1, service2)
 		require.NoError(t, c.Init(t.Context()))
 
 		result := c.Services()
@@ -394,7 +388,7 @@ func TestContainer_Services(t *testing.T) {
 	t.Run("returns empty slice for empty container", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New()
+		c := pal.NewContainer()
 
 		result := c.Services()
 
@@ -409,7 +403,7 @@ func TestContainer_SetLogger(t *testing.T) {
 	t.Run("sets logger function", func(t *testing.T) {
 		t.Parallel()
 
-		c := container.New()
+		c := pal.NewContainer()
 
 		var logCalled bool
 		var logMessage string
@@ -429,7 +423,7 @@ func TestContainer_SetLogger(t *testing.T) {
 		service.On("Initialize", t.Context()).Return(nil)
 		instance.On("Shutdown", t.Context()).Return(nil)
 
-		c = container.New(service)
+		c = pal.NewContainer(service)
 		c.SetLogger(logger)
 
 		require.NoError(t, c.Init(t.Context()))
