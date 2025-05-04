@@ -30,6 +30,8 @@ type Pal struct {
 	// shutdownChan is used to wait for the graceful shutdown of the app.
 	shutdownChan chan error
 
+	runnerTasks errgroup.Group
+
 	initialized bool
 
 	log core.LoggerFn
@@ -113,7 +115,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	p.log("Pal initialized. Services: %s", p.Services())
 
 	go p.listenToStopSignals(ctx, signals)
-	go p.startRunners(ctx)
+	go p.Shutdown(p.startRunners(ctx))
 
 	p.log("running until one of %+v is received or until job is done", signals)
 
@@ -133,8 +135,10 @@ func (p *Pal) Init(ctx context.Context) error {
 
 		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
 		defer cancel()
-		// TODO: stop and wait for all runners first, then shutdown all other services.
-		p.shutdownChan <- errors.Join(err, p.store.Shutdown(shutCt))
+		// TODO: shutdown runners first
+
+		runErr := p.runnerTasks.Wait()
+		p.shutdownChan <- errors.Join(err, runErr, p.store.Shutdown(shutCt))
 	}()
 
 	if err := p.validate(ctx); err != nil {
@@ -180,16 +184,16 @@ func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
 	select {
 	case <-ctx.Done():
 		p.Shutdown(ctx.Err())
-	case <-sigChan:
+	case sig := <-sigChan:
+		p.log("received signal: %s", sig)
+
 		p.Shutdown()
 	}
 }
 
-func (p *Pal) startRunners(ctx context.Context) {
-	wg := &errgroup.Group{}
-
+func (p *Pal) startRunners(ctx context.Context) error {
 	for name, runner := range p.store.Runners(ctx) {
-		wg.Go(func() error {
+		p.runnerTasks.Go(func() error {
 			p.log("running %s", name)
 			err := runner.Run(ctx)
 			if err != nil {
@@ -202,10 +206,10 @@ func (p *Pal) startRunners(ctx context.Context) {
 		})
 	}
 	p.log("waiting for runners to finish")
-	err := wg.Wait()
+	err := p.runnerTasks.Wait()
 	if err != nil {
 		p.log("all runners finished with error='%+v'", err)
 	}
 	p.log("all runners finished successfully")
-	p.Shutdown(err)
+	return err
 }
