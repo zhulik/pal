@@ -1,4 +1,4 @@
-package container
+package pal
 
 import (
 	"context"
@@ -8,23 +8,21 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/zhulik/pal/pkg/core"
-
 	"github.com/zhulik/pal/pkg/dag"
 )
 
 // Container is responsible for storing services, instances and the dependency graph
 type Container struct {
-	services map[string]core.Service
-	graph    *dag.DAG[string, core.Service]
-	log      core.LoggerFn
+	services map[string]ServiceImpl
+	graph    *dag.DAG[string, ServiceImpl]
+	log      LoggerFn
 
 	runnerTasks errgroup.Group
 }
 
-// New creates a new Container instance
-func New(services ...core.Service) *Container {
-	index := make(map[string]core.Service)
+// NewContainer creates a new Container instance
+func NewContainer(services ...ServiceImpl) *Container {
+	index := make(map[string]ServiceImpl)
 
 	for _, service := range services {
 		index[service.Name()] = service
@@ -37,7 +35,7 @@ func New(services ...core.Service) *Container {
 	}
 }
 
-func (c *Container) SetLogger(log core.LoggerFn) {
+func (c *Container) SetLogger(log LoggerFn) {
 	c.log = log
 }
 
@@ -61,7 +59,7 @@ func (c *Container) Init(ctx context.Context) error {
 	// file, _ := os.Initialize("./mygraph.gv")
 	// _ = draw.DOT(c.graph, file)
 
-	err := c.graph.InReverseTopologicalOrder(func(service core.Service) error {
+	err := c.graph.InReverseTopologicalOrder(func(service ServiceImpl) error {
 		if service.IsSingleton() {
 			c.log("initializing %s", service.Name())
 
@@ -81,12 +79,12 @@ func (c *Container) Init(ctx context.Context) error {
 func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 	service, err := c.graph.Vertex(name)
 	if err != nil {
-		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", core.ErrServiceNotFound, name, c.Services(), err)
+		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, c.Services(), err)
 	}
 
 	instance, err := service.Instance(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: '%s': %w", core.ErrServiceInitFailed, name, err)
+		return nil, fmt.Errorf("%w: '%s': %w", ErrServiceInitFailed, name, err)
 	}
 
 	return instance, nil
@@ -95,7 +93,7 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
 
-	c.graph.InTopologicalOrder(func(service core.Service) error { // nolint:errcheck
+	c.graph.InTopologicalOrder(func(service ServiceImpl) error { // nolint:errcheck
 		if !service.IsSingleton() {
 			return nil
 		}
@@ -108,7 +106,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 
 		instance, _ := service.Instance(ctx)
 
-		if shutdowner, ok := instance.(core.Shutdowner); ok {
+		if shutdowner, ok := instance.(Shutdowner); ok {
 			c.log("shutting down %s", service.Name())
 
 			err := shutdowner.Shutdown(ctx)
@@ -128,11 +126,11 @@ func (c *Container) Shutdown(ctx context.Context) error {
 }
 
 func (c *Container) HealthCheck(ctx context.Context) error {
-	return c.graph.ForEachVertex(func(service core.Service) error { // nolint:errcheck
+	return c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
 		if service.IsSingleton() {
 			instance, _ := service.Instance(ctx)
 
-			if healthChecker, ok := instance.(core.HealthChecker); ok {
+			if healthChecker, ok := instance.(HealthChecker); ok {
 				c.log("health checking %s", service.Name())
 
 				err := healthChecker.HealthCheck(ctx)
@@ -149,17 +147,17 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	})
 }
 
-func (c *Container) Services() []core.Service {
+func (c *Container) Services() []ServiceImpl {
 	return c.graph.Vertices()
 }
 
-func (c *Container) runners(ctx context.Context) map[string]core.Runner {
-	runners := map[string]core.Runner{}
+func (c *Container) runners(ctx context.Context) map[string]Runner {
+	runners := map[string]Runner{}
 
-	c.graph.ForEachVertex(func(service core.Service) error { // nolint:errcheck
+	c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
 		if service.IsRunner() {
 			if runner, err := service.Instance(ctx); err == nil {
-				runners[service.Name()] = runner.(core.Runner)
+				runners[service.Name()] = runner.(Runner)
 			}
 		}
 		return nil
@@ -191,7 +189,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	return err
 }
 
-func (c *Container) addDependencyVertex(service core.Service, parent core.Service) error {
+func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl) error {
 	if _, err := c.graph.Vertex(service.Name()); err == nil {
 		// service and all it's dependencies already exist in the graph.
 		return nil
@@ -235,6 +233,6 @@ func (c *Container) addDependencyVertex(service core.Service, parent core.Servic
 	return nil
 }
 
-func serviceHash(service core.Service) string {
+func serviceHash(service ServiceImpl) string {
 	return service.Name()
 }

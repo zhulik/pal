@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/zhulik/pal"
-	"github.com/zhulik/pal/pkg/core"
 )
 
 // TestService_Name tests the Name method of the service struct
@@ -101,7 +100,7 @@ func TestService_Validate(t *testing.T) {
 
 		err := service.Validate(t.Context())
 
-		assert.ErrorIs(t, err, core.ErrServiceInvalid)
+		assert.ErrorIs(t, err, pal.ErrServiceInvalid)
 	})
 
 	t.Run("returns error when S is not a struct", func(t *testing.T) {
@@ -112,7 +111,7 @@ func TestService_Validate(t *testing.T) {
 
 		err := service.Validate(t.Context())
 
-		assert.ErrorIs(t, err, core.ErrServiceInvalid)
+		assert.ErrorIs(t, err, pal.ErrServiceInvalid)
 	})
 
 	t.Run("returns error when S does not implement I", func(t *testing.T) {
@@ -123,7 +122,7 @@ func TestService_Validate(t *testing.T) {
 
 		err := service.Validate(t.Context())
 
-		assert.ErrorIs(t, err, core.ErrServiceInvalid)
+		assert.ErrorIs(t, err, pal.ErrServiceInvalid)
 	})
 }
 
