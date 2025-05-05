@@ -6,6 +6,9 @@
 
 Pal is an opinionated [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) framework for Go.
 
+Pal is at very early stages of development. Technically, it's almost feature complete, but it needs some testing and 
+polishing.
+
 ## Motivation
 
 The exising IoC frameworks are either too "heavy" and too flexible for my purpose like [fx](https://github.com/go-uber/fx) 
@@ -82,13 +85,29 @@ a few rules described below.
     time it is invoked.
 
   Each service can implement any of optional service interfaces:
-  - [Initer](./interfaces.go#L31) — if the service requires initialization such as connecting to a database.
-  - [Shutdowner](./interfaces.go#L20) — if the service requires finalization such as closing connection to a database.
-  - [HealthChecker](./interfaces.go#L10) — if the service can be inspected by checking its database connection status.
+  - [Initer](./interfaces.go#L31) — if a service requires initialization such as connecting to a database.
+  - [Shutdowner](./interfaces.go#L20) — if a service requires finalization such as closing connection to a database.
+  - [HealthChecker](./interfaces.go#L10) — if a service can be inspected by checking its database connection status.
 
 ## Examples:
 
 Examples can be found here:
 - [example_container_test.go](./example_container_test.go)
 - [example_pal_test.go](./example_pal_test.go)
- 
+
+## Example apps:
+- TODO: [web](./examples/web)
+- TODO: [consumer](./examples/consumer)
+- TODO: [cli](./examples/cli)
+
+## Service and container lifecycle
+
+// TODO
+
+## Best practices
+
+// TODO
+
+## Troubleshooting
+
+// TODO
