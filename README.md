@@ -1,5 +1,9 @@
 # Pal
 
+[![GoDoc](https://godoc.org/github.com/zhulik/pal?status.svg)](https://pkg.go.dev/github.com/zhulik/pal)
+![Build Status](https://github.com/zhulik/pal/actions/workflows/ci.yml/badge.svg)
+[![License](https://img.shields.io/github/license/zhulik/pal)](./LICENSE)
+
 Pal is an opinionated [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) framework for Go.
 
 ## Motivation
