@@ -140,7 +140,7 @@ func TestService_Instance(t *testing.T) {
 			return nil
 		})
 
-		p := pal.New(service)
+		p := newPal(service)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
@@ -166,7 +166,7 @@ func TestService_Instance(t *testing.T) {
 
 			return nil
 		})
-		p := pal.New(service)
+		p := newPal(service)
 		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
 
 		// First call to Instance should create a new instance
@@ -199,7 +199,7 @@ func TestService_BeforeInit(t *testing.T) {
 		}
 
 		service := pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(hook)
-		p := pal.New(service)
+		p := newPal(service)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
@@ -218,7 +218,7 @@ func TestService_BeforeInit(t *testing.T) {
 
 			return nil
 		})
-		p := pal.New(service)
+		p := newPal(service)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
@@ -236,7 +236,7 @@ func TestService_BeforeInit(t *testing.T) {
 		}
 
 		service := pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(hook)
-		p := pal.New(service)
+		p := newPal(service)
 
 		// The error should be propagated from the hook through Initialize to Init
 		err := p.Init(t.Context())

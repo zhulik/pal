@@ -57,8 +57,9 @@ func Example_pal_runner() {
 	p := pal.New(
 		pal.Provide[ExampleService, ExampleServiceImpl](),
 	).
-		InitTimeout(1 * time.Second).
-		ShutdownTimeout(1 * time.Second)
+		InitTimeout(time.Second).
+		HealthCheckTimeout(time.Second).
+		ShutdownTimeout(time.Second)
 
 	err := p.Run(context.Background())
 	if err != nil {
