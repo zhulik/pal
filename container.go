@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -18,6 +19,9 @@ type Container struct {
 	log      LoggerFn
 
 	runnerTasks errgroup.Group
+
+	cancelMu sync.RWMutex
+	cancel   context.CancelFunc
 }
 
 // NewContainer creates a new Container instance
@@ -93,15 +97,19 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
 
+	// Shutting down runners by cancelling their root context
+	c.cancelMu.RLock()
+	if c.cancel != nil {
+		c.cancel()
+	}
+	c.cancelMu.RUnlock()
+
+	// Await for runners to exit and safe possible error.
+	errs = append(errs, c.runnerTasks.Wait())
+
 	c.graph.InTopologicalOrder(func(service ServiceImpl) error { // nolint:errcheck
 		if !service.IsSingleton() {
 			return nil
-		}
-
-		// In topological order runners appear first naturally, once there are no more runners in the list,
-		// we can wait for them to finish.
-		if !service.IsRunner() {
-			errs = append(errs, c.runnerTasks.Wait())
 		}
 
 		instance, _ := service.Instance(ctx)
@@ -127,20 +135,22 @@ func (c *Container) Shutdown(ctx context.Context) error {
 
 func (c *Container) HealthCheck(ctx context.Context) error {
 	return c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
-		if service.IsSingleton() {
-			instance, _ := service.Instance(ctx)
+		if !service.IsSingleton() {
+			return nil
+		}
 
-			if healthChecker, ok := instance.(HealthChecker); ok {
-				c.log("health checking %s", service.Name())
+		instance, _ := service.Instance(ctx)
 
-				err := healthChecker.HealthCheck(ctx)
-				if err != nil {
-					c.log("%s failed health check error=%+v", service.Name(), err)
-					return err
-				}
+		if healthChecker, ok := instance.(HealthChecker); ok {
+			c.log("health checking %s", service.Name())
 
-				c.log("%s passed health check successfully", service.Name())
+			err := healthChecker.HealthCheck(ctx)
+			if err != nil {
+				c.log("%s failed health check error=%+v", service.Name(), err)
+				return err
 			}
+
+			c.log("%s passed health check successfully", service.Name())
 		}
 
 		return nil
@@ -151,35 +161,37 @@ func (c *Container) Services() []ServiceImpl {
 	return c.graph.Vertices()
 }
 
-func (c *Container) runners(ctx context.Context) map[string]Runner {
-	runners := map[string]Runner{}
-
-	c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
-		if service.IsRunner() {
-			if runner, err := service.Instance(ctx); err == nil {
-				runners[service.Name()] = runner.(Runner)
-			}
-		}
-		return nil
-	})
-
-	return runners
-}
-
 func (c *Container) StartRunners(ctx context.Context) error {
-	for name, runner := range c.runners(ctx) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	c.cancelMu.Lock()
+	c.cancel = cancel
+	c.cancelMu.Unlock()
+
+	for _, service := range c.Services() {
+		if !service.IsRunner() {
+			continue
+		}
+
+		runner, err := service.Instance(ctx)
+		if err != nil {
+			return err
+		}
+
 		c.runnerTasks.Go(func() error {
-			c.log("running %s", name)
-			err := runner.Run(ctx)
+			c.log("running %s", service.Name())
+			err := runner.(Runner).Run(ctx)
 			if err != nil {
-				c.log("runner %s exited with error='%+v'", name, err)
+				c.log("runner %s exited with error='%+v'", service.Name(), err)
 				return err
 			}
 
-			c.log("runner %s finished successfully", name)
+			c.log("runner %s finished successfully", service.Name())
 			return nil
 		})
 	}
+
 	c.log("waiting for runners to finish")
 	err := c.runnerTasks.Wait()
 	if err != nil {
