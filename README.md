@@ -33,6 +33,9 @@ a few rules described below.
   - Pal is aware of other IoC tools and application frameworks, so it tries to coexist with them 
     rather than conflict.
 
+- Testability: 
+  - Pal should provide tools to simplify testing as much as possible.[TODO]
+
 - Safety:
   - When following simple rules, pal never explodes in runtime in the middle of the night. It will only explode
     during initialization, so you can catch it immediately after deployment. Unfortunately, we can't check everything in 
@@ -88,5 +91,4 @@ a few rules described below.
 Examples can be found here:
 - [example_container_test.go](./example_container_test.go)
 - [example_pal_test.go](./example_pal_test.go)
-
-## 
+ 
