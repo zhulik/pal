@@ -20,7 +20,7 @@ func TestPal_New(t *testing.T) {
 	t.Run("creates a new Pal instance with no services", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 
 		assert.NotNil(t, p)
 		assert.Empty(t, p.Services())
@@ -29,7 +29,7 @@ func TestPal_New(t *testing.T) {
 	t.Run("creates a new Pal instance with services", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New(
+		p := newPal(
 			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
@@ -49,7 +49,7 @@ func TestPal_FromContext(t *testing.T) {
 	t.Run("retrieves Pal from context", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
 
 		result := pal.FromContext(ctx)
@@ -65,7 +65,7 @@ func TestPal_InitTimeout(t *testing.T) {
 	t.Run("sets the init timeout", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 		timeout := 5 * time.Second
 
 		result := p.InitTimeout(timeout)
@@ -81,7 +81,7 @@ func TestPal_HealthCheckTimeout(t *testing.T) {
 	t.Run("sets the health check timeout", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 		timeout := 5 * time.Second
 
 		result := p.HealthCheckTimeout(timeout)
@@ -97,7 +97,7 @@ func TestPal_ShutdownTimeout(t *testing.T) {
 	t.Run("sets the shutdown timeout", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 		timeout := 5 * time.Second
 
 		result := p.ShutdownTimeout(timeout)
@@ -113,7 +113,7 @@ func TestPal_SetLogger(t *testing.T) {
 	t.Run("sets the logger", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 		logger := func(string, ...any) {}
 
 		result := p.SetLogger(logger)
@@ -131,7 +131,7 @@ func TestPal_HealthCheck(t *testing.T) {
 
 		// Create a service that implements HealthChecker
 		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
-		p := pal.New(service)
+		p := newPal(service)
 
 		err := p.HealthCheck(t.Context())
 
@@ -148,7 +148,7 @@ func TestPal_Shutdown(t *testing.T) {
 	t.Run("schedules shutdown with no errors", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 
 		// This is a non-blocking call
 		p.Shutdown()
@@ -159,7 +159,7 @@ func TestPal_Shutdown(t *testing.T) {
 	t.Run("schedules shutdown with errors", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 
 		// This is a non-blocking call
 		p.Shutdown(errTest)
@@ -182,7 +182,7 @@ func TestPal_Services(t *testing.T) {
 			return nil
 		})
 
-		p := pal.New(service)
+		p := newPal(service)
 
 		assert.NoError(t, p.Init(t.Context()))
 
@@ -194,7 +194,7 @@ func TestPal_Services(t *testing.T) {
 	t.Run("returns empty slice for no services", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 
 		services := p.Services()
 
@@ -209,7 +209,7 @@ func TestPal_Invoke(t *testing.T) {
 	t.Run("invokes a service successfully", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New(
+		p := newPal(
 			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
@@ -228,7 +228,7 @@ func TestPal_Invoke(t *testing.T) {
 	t.Run("returns error when service not found", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New()
+		p := newPal()
 
 		_, err := p.Invoke(t.Context(), "nonexistent")
 
@@ -243,7 +243,7 @@ func TestPal_Run(t *testing.T) {
 	t.Run("exists immediately when no runners given", func(t *testing.T) {
 		t.Parallel()
 
-		err := pal.New().
+		err := newPal().
 			InitTimeout(3*time.Second).
 			HealthCheckTimeout(1*time.Second).
 			ShutdownTimeout(3*time.Second).
@@ -262,7 +262,7 @@ func TestPal_Run(t *testing.T) {
 			return nil
 		})
 
-		err := pal.New(
+		err := newPal(
 			service,
 		).
 			InitTimeout(3*time.Second).
@@ -309,7 +309,7 @@ func TestPal_Run(t *testing.T) {
 		runnerService := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]()
 
 		// Run the application - this should fail because failingService fails to initialize
-		err := pal.New(
+		err := newPal(
 			shutdownService,
 			failingService,
 			runnerService,
@@ -352,7 +352,7 @@ func TestPal_Run(t *testing.T) {
 		})
 
 		// Run the application - this should fail because errorRunnerService returns an error
-		err := pal.New(
+		err := newPal(
 			shutdownService,
 			errorRunnerService,
 			runnerService,

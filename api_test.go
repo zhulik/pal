@@ -67,7 +67,7 @@ func TestInvoke(t *testing.T) {
 	t.Run("invokes a service successfully", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New(
+		p := newPal(
 			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
@@ -88,7 +88,7 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		// Create an empty Pal instance
-		p := pal.New()
+		p := newPal()
 
 		// Try to invoke a non-existent service
 		_, err := pal.Invoke[TestServiceInterface](t.Context(), p)
@@ -104,7 +104,7 @@ func TestInject(t *testing.T) {
 	t.Run("injects dependencies successfully", func(t *testing.T) {
 		t.Parallel()
 
-		p := pal.New(
+		p := newPal(
 			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
@@ -130,7 +130,7 @@ func TestInject(t *testing.T) {
 		t.Parallel()
 
 		// Create an empty Pal instance
-		p := pal.New()
+		p := newPal()
 
 		// Try to inject dependencies with no services registered
 		_, err := pal.Inject[DependentStruct](t.Context(), p)
@@ -146,7 +146,7 @@ func TestInject(t *testing.T) {
 		}
 
 		// Create an empty Pal instance
-		p := pal.New()
+		p := newPal()
 
 		// Inject dependencies into a struct with no interface fields
 		result, err := pal.Inject[StructWithNonInterfaceField](t.Context(), p)
@@ -164,7 +164,7 @@ func TestInject(t *testing.T) {
 		}
 
 		// Create a Pal instance with our test service
-		p := pal.New(pal.Provide[TestServiceInterface, TestServiceStruct]())
+		p := newPal(pal.Provide[TestServiceInterface, TestServiceStruct]())
 
 		// No need to initialize Pal for this test
 

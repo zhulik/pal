@@ -13,9 +13,9 @@ var (
 
 // Config is the configuration for pal.
 type Config struct {
-	InitTimeout        time.Duration `Validate:"gt=0"`
-	HealthCheckTimeout time.Duration `Validate:"gt=0"`
-	ShutdownTimeout    time.Duration `Validate:"gt=0"`
+	InitTimeout        time.Duration `validate:"gt=0"`
+	HealthCheckTimeout time.Duration `validate:"gt=0"`
+	ShutdownTimeout    time.Duration `validate:"gt=0"`
 }
 
 func (c *Config) Validate(_ context.Context) error {

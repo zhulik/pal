@@ -3,6 +3,7 @@ package pal_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/zhulik/pal"
 )
@@ -25,7 +26,10 @@ func Example_container() {
 	// Create a Pal instance with the service
 	p := pal.New(
 		pal.Provide[SimpleService, SimpleServiceImpl](),
-	)
+	).
+		InitTimeout(time.Second).
+		HealthCheckTimeout(time.Second).
+		ShutdownTimeout(time.Second)
 
 	// Initialize Pal
 	ctx := context.Background()

@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/mock"
+	"github.com/zhulik/pal"
 )
 
 var (
@@ -75,4 +77,11 @@ func eventuallyAssertExpectations(t *testing.T, instance any) {
 
 	m := instance.(interface{ AssertExpectations(t mock.TestingT) bool })
 	m.AssertExpectations(t)
+}
+
+func newPal(services ...pal.ServiceImpl) *pal.Pal {
+	return pal.New(services...).
+		InitTimeout(time.Second).
+		HealthCheckTimeout(time.Second).
+		ShutdownTimeout(time.Second)
 }
