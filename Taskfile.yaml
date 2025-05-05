@@ -32,3 +32,8 @@ tasks:
     desc: Run golangci-lint with auto-fix
     cmds:
       - golangci-lint run --fix
+
+  doc:
+    desc: Run pkgsite
+    cmds:
+      - go tool golang.org/x/pkgsite/cmd/pkgsite
