@@ -126,7 +126,7 @@ func TestInject(t *testing.T) {
 		assert.NotNil(t, instance.Dependency)
 	})
 
-	t.Run("returns error when dependency not found", func(t *testing.T) {
+	t.Run("ignores missing dependencies", func(t *testing.T) {
 		t.Parallel()
 
 		// Create an empty Pal instance
@@ -135,7 +135,7 @@ func TestInject(t *testing.T) {
 		// Try to inject dependencies with no services registered
 		_, err := pal.Inject[DependentStruct](t.Context(), p)
 
-		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
+		assert.NoError(t, err)
 	})
 
 	t.Run("skips non-interface fields", func(t *testing.T) {

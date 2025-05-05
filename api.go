@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -65,6 +66,9 @@ func Inject[S any](ctx context.Context, invoker Invoker) (*S, error) {
 
 		dependency, err := invoker.Invoke(ctx, fieldType.String())
 		if err != nil {
+			if errors.Is(err, ErrServiceNotFound) {
+				continue
+			}
 			return nil, err
 		}
 
