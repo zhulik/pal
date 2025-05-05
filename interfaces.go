@@ -72,5 +72,12 @@ type Invoker interface {
 	Invoke(ctx context.Context, name string) (any, error)
 }
 
+type Context interface {
+	Invoker
+	HealthChecker
+
+	Shutdown(errs ...error)
+}
+
 // LoggerFn defines a function type for a logger passed from the outside to log Pal activity.
 type LoggerFn func(fmt string, args ...any)
