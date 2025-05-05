@@ -134,27 +134,34 @@ func (c *Container) Shutdown(ctx context.Context) error {
 }
 
 func (c *Container) HealthCheck(ctx context.Context) error {
-	return c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
+	var wg errgroup.Group
+
+	c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
 		if !service.IsSingleton() {
 			return nil
 		}
 
-		instance, _ := service.Instance(ctx)
+		wg.Go(func() error {
+			instance, _ := service.Instance(ctx)
 
-		if healthChecker, ok := instance.(HealthChecker); ok {
-			c.log("health checking %s", service.Name())
+			if healthChecker, ok := instance.(HealthChecker); ok {
+				c.log("health checking %s", service.Name())
 
-			err := healthChecker.HealthCheck(ctx)
-			if err != nil {
-				c.log("%s failed health check error=%+v", service.Name(), err)
-				return err
+				err := healthChecker.HealthCheck(ctx)
+				if err != nil {
+					c.log("%s failed health check error=%+v", service.Name(), err)
+					return err
+				}
+
+				c.log("%s passed health check successfully", service.Name())
 			}
-
-			c.log("%s passed health check successfully", service.Name())
-		}
+			return nil
+		})
 
 		return nil
 	})
+
+	return wg.Wait()
 }
 
 func (c *Container) Services() []ServiceImpl {
