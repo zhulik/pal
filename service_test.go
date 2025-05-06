@@ -133,8 +133,9 @@ func TestService_Instance(t *testing.T) {
 	t.Run("returns instance for singleton service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
 			eventuallyAssertExpectations(t, service)
+
 			service.On("Init", ctx).Return(nil)
 
 			return nil
@@ -142,15 +143,17 @@ func TestService_Instance(t *testing.T) {
 
 		p := newPal(service)
 
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		instance1, err := service.Instance(t.Context())
+		instance1, err := service.Instance(ctx)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance1)
 
-		instance2, err := service.Instance(t.Context())
+		instance2, err := service.Instance(ctx)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance1)
@@ -201,10 +204,12 @@ func TestService_BeforeInit(t *testing.T) {
 		service := pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(hook)
 		p := newPal(service)
 
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		instance, err := service.Instance(t.Context())
+		instance, err := service.Instance(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
 	})
@@ -220,10 +225,12 @@ func TestService_BeforeInit(t *testing.T) {
 		})
 		p := newPal(service)
 
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		instance, err := service.Instance(t.Context())
+		instance, err := service.Instance(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
 	})

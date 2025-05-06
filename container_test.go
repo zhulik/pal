@@ -199,7 +199,7 @@ func TestContainer_Init(t *testing.T) {
 		t.Parallel()
 
 		service1 := NewMockService("service1", true, false)
-		service2 := NewMockService("service2", true, false)
+		service2 := NewMockService("service2", true, true)
 
 		service1.On("Make").Return(nil)
 		service2.On("Make").Return(nil)
@@ -347,7 +347,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		instance := newMockInstance(t)
 		instance.On("HealthCheck", t.Context()).Return(errTest)
 
-		service := NewMockService("service1", true, false, instance)
+		service := NewMockService("service1", true, true, instance)
 		service.On("Initialize", t.Context()).Return(nil)
 
 		c := pal.NewContainer(service)
