@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"sync"
 
+	"github.com/dominikbraun/graph"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/zhulik/pal/pkg/dag"
@@ -54,16 +56,28 @@ func (c *Container) Validate(ctx context.Context) error {
 }
 
 func (c *Container) Init(ctx context.Context) error {
+	c.log("Building dependency tree...")
+
 	for _, service := range c.services {
 		if err := c.addDependencyVertex(service, nil); err != nil {
 			return err
 		}
 	}
 
-	// file, _ := os.Initialize("./mygraph.gv")
-	// _ = draw.DOT(c.graph, file)
+	adjMap, err := c.graph.AdjacencyMap()
+	if err != nil {
+		return err
+	}
 
-	err := c.graph.InReverseTopologicalOrder(func(service ServiceImpl) error {
+	order, err := graph.TopologicalSort(c.graph)
+	if err != nil {
+		return err
+	}
+	slices.Reverse(order)
+
+	c.log("Dependency tree built: %+v. Initialization order: %+v", adjMap, order)
+
+	return c.graph.InReverseTopologicalOrder(func(service ServiceImpl) error {
 		if service.IsSingleton() {
 			c.log("initializing %s", service.Name())
 
@@ -76,8 +90,6 @@ func (c *Container) Init(ctx context.Context) error {
 
 		return nil
 	})
-
-	return err
 }
 
 func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
