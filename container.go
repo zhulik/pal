@@ -69,7 +69,7 @@ func (c *Container) Init(ctx context.Context) error {
 		return err
 	}
 
-	order, err := graph.TopologicalSort(c.graph)
+	order, err := graph.TopologicalSort[string, ServiceImpl](c.graph)
 	if err != nil {
 		return err
 	}
@@ -221,11 +221,6 @@ func (c *Container) StartRunners(ctx context.Context) error {
 }
 
 func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl) error {
-	if _, err := c.graph.Vertex(service.Name()); err == nil {
-		// service and all it's dependencies already exist in the graph.
-		return nil
-	}
-
 	if err := c.graph.AddVertexIfNotExist(service); err != nil {
 		return err
 	}
@@ -236,9 +231,7 @@ func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl)
 		}
 	}
 
-	instance := service.Make()
-
-	val := reflect.ValueOf(instance)
+	val := reflect.ValueOf(service.Make())
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
