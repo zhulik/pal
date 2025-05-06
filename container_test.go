@@ -92,6 +92,17 @@ func (m *MockInstance) Run(ctx context.Context) error {
 	return args.Error(0)
 }
 
+func newMockInstance(t *testing.T) *MockInstance {
+	t.Helper()
+
+	m := &MockInstance{}
+	t.Cleanup(func() {
+		m.AssertExpectations(t)
+	})
+
+	return m
+}
+
 // TestContainer_New tests the New function for Container
 func TestContainer_New(t *testing.T) {
 	t.Parallel()
@@ -156,17 +167,6 @@ func TestContainer_Validate(t *testing.T) {
 
 		assert.ErrorIs(t, err, errTest)
 	})
-}
-
-func newMockInstance(t *testing.T) *MockInstance {
-	t.Helper()
-
-	m := &MockInstance{}
-	t.Cleanup(func() {
-		m.AssertExpectations(t)
-	})
-
-	return m
 }
 
 // TestContainer_Init tests the Init method of Container
