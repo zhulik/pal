@@ -124,15 +124,6 @@ func (p *Pal) Init(ctx context.Context) error {
 		return nil
 	}
 
-	go func() {
-		err := <-p.stopChan
-
-		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
-		defer cancel()
-
-		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
-	}()
-
 	if err := p.validate(ctx); err != nil {
 		return err
 	}
@@ -148,6 +139,15 @@ func (p *Pal) Init(ctx context.Context) error {
 	}
 
 	p.initialized = true
+
+	go func() {
+		err := <-p.stopChan
+
+		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+		defer cancel()
+
+		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
+	}()
 
 	return nil
 }

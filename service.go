@@ -77,6 +77,9 @@ func (f *Service[I, S]) String() string {
 
 func (f *Service[I, S]) Instance(ctx context.Context) (any, error) {
 	if f.singleton {
+		if any(f.instance) == nil {
+			return nil, fmt.Errorf("%w: singleton service %s has not been initialized", ErrServiceInvalid, f.Name())
+		}
 		return f.instance, nil
 	}
 
