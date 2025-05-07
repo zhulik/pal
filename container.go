@@ -202,7 +202,8 @@ func (c *Container) StartRunners(ctx context.Context) error {
 			c.log("running %s", service.Name())
 			err := runner.(Runner).Run(ctx)
 			if err != nil {
-				c.log("runner %s exited with error='%+v'", service.Name(), err)
+				c.log("runner %s exited with error='%+v', scheduling shutdown", service.Name(), err)
+				FromContext(ctx).Shutdown(err)
 				return err
 			}
 
