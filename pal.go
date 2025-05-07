@@ -146,7 +146,6 @@ func (p *Pal) Init(ctx context.Context) error {
 		p.log("shutdown requested. err=%+v", err)
 
 		go func() {
-			``
 			<-time.After(p.config.ShutdownTimeout)
 
 			panic("shutdown timed out")
