@@ -143,10 +143,20 @@ func (p *Pal) Init(ctx context.Context) error {
 	go func() {
 		err := <-p.stopChan
 
-		shutCt, cancel := context.WithTimeout(ctx, p.config.ShutdownTimeout)
+		p.log("shutdown requested. err=%+v", err)
+
+		go func() {
+			``
+			<-time.After(p.config.ShutdownTimeout)
+
+			panic("shutdown timed out")
+		}()
+
+		shutCt, cancel := context.WithTimeout(ctx, time.Duration(float64(p.config.ShutdownTimeout)*0.9))
 		defer cancel()
 
 		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
+		p.log("shutdown completed.")
 	}()
 
 	return nil
