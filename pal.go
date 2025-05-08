@@ -90,7 +90,7 @@ func (p *Pal) Shutdown(errs ...error) {
 	case p.stopChan <- err:
 	default:
 		if err != nil {
-			p.log("shutdown already scheduled. %w", err)
+			p.log("shutdown already scheduled. %+v", err)
 		}
 	}
 }
