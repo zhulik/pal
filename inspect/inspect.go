@@ -20,11 +20,6 @@ type Inspect struct {
 	server *http.Server
 }
 
-func (i *Inspect) HealthCheck(ctx context.Context) error {
-	i.logger.Info("TEST")
-	return nil
-}
-
 func (i *Inspect) Shutdown(ctx context.Context) error {
 	err := i.server.Shutdown(ctx)
 	if err != nil {
