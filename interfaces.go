@@ -78,12 +78,3 @@ type Context interface {
 
 	Shutdown(errs ...error)
 }
-
-// Logger is an interface for an external logger. Internally pal uses slog and expect the given logger
-// to be compatible.
-type Logger interface {
-	Info(string, ...any)
-	Error(string, ...any)
-	Warn(string, ...any)
-	Debug(string, ...any)
-}

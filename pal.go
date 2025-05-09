@@ -27,7 +27,7 @@ type Pal struct {
 
 	initialized bool
 
-	logger Logger
+	logger *slog.Logger
 }
 
 // New creates and returns a new instance of Pal with the provided Services
