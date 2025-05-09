@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"slices"
 	"sync"
@@ -18,7 +19,7 @@ import (
 type Container struct {
 	services map[string]ServiceImpl
 	graph    *dag.DAG[string, ServiceImpl]
-	log      LoggerFn
+	logger   Logger
 
 	runnerTasks errgroup.Group
 
@@ -36,13 +37,9 @@ func NewContainer(services ...ServiceImpl) *Container {
 
 	return &Container{
 		services: index,
-		log:      func(string, ...any) {},
 		graph:    dag.New(serviceHash),
+		logger:   slog.With("palComponent", "Container"),
 	}
-}
-
-func (c *Container) SetLogger(log LoggerFn) {
-	c.log = log
 }
 
 func (c *Container) Validate(ctx context.Context) error {
@@ -56,7 +53,7 @@ func (c *Container) Validate(ctx context.Context) error {
 }
 
 func (c *Container) Init(ctx context.Context) error {
-	c.log("Building dependency tree...")
+	c.logger.Info("Building dependency tree...")
 
 	for _, service := range c.services {
 		if err := c.addDependencyVertex(service, nil); err != nil {
@@ -75,17 +72,17 @@ func (c *Container) Init(ctx context.Context) error {
 	}
 	slices.Reverse(order)
 
-	c.log("Dependency tree built: %+v. Initialization order: %+v", adjMap, order)
+	c.logger.Info("Dependency tree built", "tree", adjMap, "order", order)
 
 	return c.graph.InReverseTopologicalOrder(func(service ServiceImpl) error {
 		if service.IsSingleton() {
-			c.log("initializing %s", service.Name())
+			c.logger.Info("Initializing", "service", service.Name())
 
 			if err := service.Initialize(ctx); err != nil {
 				return err
 			}
 
-			c.log("%s initialized", service.Name())
+			c.logger.Info("Initialized", "service", service.Name())
 		}
 
 		return nil
@@ -127,16 +124,16 @@ func (c *Container) Shutdown(ctx context.Context) error {
 		instance, _ := service.Instance(ctx)
 
 		if shutdowner, ok := instance.(Shutdowner); ok {
-			c.log("shutting down %s", service.Name())
+			c.logger.Info("Shutting down", "service", service.Name())
 
 			err := shutdowner.Shutdown(ctx)
 			if err != nil {
-				c.log("%s shut down with error=%+v", service.Name(), err)
+				c.logger.Warn("Shut down with error", "service", service.Name(), "error", err)
 				errs = append(errs, err)
 				return nil
 			}
 
-			c.log("%s shut down successfully", service.Name())
+			c.logger.Info("Shut down successfully", "service", service.Name())
 		}
 
 		return nil
@@ -157,15 +154,15 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 			instance, _ := service.Instance(ctx)
 
 			if healthChecker, ok := instance.(HealthChecker); ok {
-				c.log("health checking %s", service.Name())
+				c.logger.Debug("Health checking", "service", service.Name())
 
 				err := healthChecker.HealthCheck(ctx)
 				if err != nil {
-					c.log("%s failed health check error=%+v", service.Name(), err)
+					c.logger.Warn("Health check failed", "service", service.Name(), "error", err)
 					return err
 				}
 
-				c.log("%s passed health check successfully", service.Name())
+				c.logger.Debug("Health check successful", "service", service.Name())
 			}
 			return nil
 		})
@@ -199,25 +196,25 @@ func (c *Container) StartRunners(ctx context.Context) error {
 		}
 
 		c.runnerTasks.Go(func() error {
-			c.log("running %s", service.Name())
+			c.logger.Info("Running", "service", service.Name())
 			err := runner.(Runner).Run(ctx)
 			if err != nil {
-				c.log("runner %s exited with error='%+v', scheduling shutdown", service.Name(), err)
+				c.logger.Warn("Runner exited with error, scheduling shutdown", "service", service.Name(), "error", err)
 				FromContext(ctx).Shutdown(err)
 				return err
 			}
 
-			c.log("runner %s finished successfully", service.Name())
+			c.logger.Info("Runner finished successfully", "service", service.Name())
 			return nil
 		})
 	}
 
-	c.log("waiting for runners to finish")
+	c.logger.Info("Waiting for runners to finish")
 	err := c.runnerTasks.Wait()
 	if err != nil {
-		c.log("all runners finished with error='%+v'", err)
+		c.logger.Warn("Runners finished with", "error", err)
 	}
-	c.log("all runners finished successfully")
+	c.logger.Info("All runners finished successfully")
 	return err
 }
 
