@@ -19,7 +19,7 @@ import (
 type Container struct {
 	services map[string]ServiceImpl
 	graph    *dag.DAG[string, ServiceImpl]
-	logger   Logger
+	logger   *slog.Logger
 
 	runnerTasks errgroup.Group
 
