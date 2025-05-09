@@ -31,7 +31,7 @@ func (i *Inspect) Shutdown(ctx context.Context) error {
 		return err
 	}
 
-	i.vm.Interrupt("shutdown")
+	i.vm.Shutdown(ctx)
 	return nil
 }
 
