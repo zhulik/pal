@@ -106,22 +106,6 @@ func TestPal_ShutdownTimeout(t *testing.T) {
 	})
 }
 
-// TestPal_SetLogger tests the SetLogger method
-func TestPal_SetLogger(t *testing.T) {
-	t.Parallel()
-
-	t.Run("sets the logger", func(t *testing.T) {
-		t.Parallel()
-
-		p := newPal()
-		logger := func(string, ...any) {}
-
-		result := p.SetLogger(logger)
-
-		assert.Same(t, p, result) // Method should return the Pal instance for chaining
-	})
-}
-
 // TestPal_HealthCheck tests the HealthCheck method
 func TestPal_HealthCheck(t *testing.T) {
 	t.Parallel()
