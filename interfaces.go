@@ -79,5 +79,11 @@ type Context interface {
 	Shutdown(errs ...error)
 }
 
-// LoggerFn defines a function type for a logger passed from the outside to log Pal activity.
-type LoggerFn func(fmt string, args ...any)
+// Logger is an interface for an external logger. Internally pal uses slog and expect the given logger
+// to be compatible.
+type Logger interface {
+	Info(string, ...any)
+	Error(string, ...any)
+	Warn(string, ...any)
+	Debug(string, ...any)
+}

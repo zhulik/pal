@@ -26,19 +26,17 @@ type Pal struct {
 
 	initialized bool
 
-	log LoggerFn
+	logger Logger
 }
 
 // New creates and returns a new instance of Pal with the provided Service's
 func New(services ...ServiceImpl) *Pal {
-	logger := func(string, ...any) {}
-
 	return &Pal{
 		config:       &Config{},
 		container:    NewContainer(services...),
 		stopChan:     make(chan error, 1),
 		shutdownChan: make(chan error, 1),
-		log:          logger,
+		logger:       emptyLogger,
 	}
 }
 
@@ -67,9 +65,9 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 }
 
 // SetLogger sets the logger instance to be used by Pal
-func (p *Pal) SetLogger(log LoggerFn) *Pal {
-	p.log = log
-	p.container.SetLogger(log)
+func (p *Pal) SetLogger(logger Logger) *Pal {
+	p.logger = logger
+	p.container.SetLogger(logger)
 	return p
 }
 
@@ -90,7 +88,7 @@ func (p *Pal) Shutdown(errs ...error) {
 	case p.stopChan <- err:
 	default:
 		if err != nil {
-			p.log("shutdown already scheduled. %+v", err)
+			p.logger.Warn("Shutdown already scheduled", "error", err)
 		}
 	}
 }
@@ -104,14 +102,14 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		return err
 	}
 
-	p.log("Pal initialized. Services: %s", p.Services())
+	p.logger.Info("Pal initialized", "services", p.Services())
 
 	go p.listenToStopSignals(ctx, signals)
 	go func() {
 		p.Shutdown(p.container.StartRunners(ctx))
 	}()
 
-	p.log("running until one of %+v is received or until job is done", signals)
+	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
 
 	return <-p.shutdownChan
 }
@@ -132,7 +130,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	defer cancel()
 
 	if err := p.container.Init(initCtx); err != nil {
-		p.log("Init failed with %+v", err)
+		p.logger.Warn("Init failed", "error", err)
 
 		p.Shutdown(err)
 		return err
@@ -143,7 +141,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	go func() {
 		err := <-p.stopChan
 
-		p.log("shutdown requested. err=%+v", err)
+		p.logger.Warn("Shutdown requested", "error", err)
 
 		go func() {
 			<-time.After(p.config.ShutdownTimeout)
@@ -155,7 +153,7 @@ func (p *Pal) Init(ctx context.Context) error {
 		defer cancel()
 
 		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
-		p.log("shutdown completed.")
+		p.logger.Info("Shutdown completed.")
 	}()
 
 	return nil
@@ -167,7 +165,7 @@ func (p *Pal) Services() []ServiceImpl {
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
-	p.log("invoking %s", name)
+	p.logger.Debug("Invoking", "service", name)
 
 	return p.container.Invoke(ctx, name)
 }
@@ -184,7 +182,7 @@ func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
 	case <-ctx.Done():
 		p.Shutdown(ctx.Err())
 	case sig := <-sigChan:
-		p.log("received signal: %s", sig)
+		p.logger.Warn("Received signal", "signal", sig)
 
 		p.Shutdown()
 	}
