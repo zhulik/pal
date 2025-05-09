@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"reflect"
 	"slices"
 	"sync"
@@ -14,12 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/zhulik/pal/pkg/dag"
-)
-
-var (
-	emptyLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelError,
-	}))
 )
 
 // Container is responsible for storing services, instances and the dependency graph
@@ -45,12 +38,8 @@ func NewContainer(services ...ServiceImpl) *Container {
 	return &Container{
 		services: index,
 		graph:    dag.New(serviceHash),
-		logger:   emptyLogger,
+		logger:   slog.With("palComponent", "Container"),
 	}
-}
-
-func (c *Container) SetLogger(logger Logger) {
-	c.logger = logger
 }
 
 func (c *Container) Validate(ctx context.Context) error {

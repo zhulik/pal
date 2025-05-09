@@ -3,6 +3,7 @@ package pal
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"os/signal"
 	"time"
@@ -29,14 +30,14 @@ type Pal struct {
 	logger Logger
 }
 
-// New creates and returns a new instance of Pal with the provided Service's
+// New creates and returns a new instance of Pal with the provided Services
 func New(services ...ServiceImpl) *Pal {
 	return &Pal{
 		config:       &Config{},
 		container:    NewContainer(services...),
 		stopChan:     make(chan error, 1),
 		shutdownChan: make(chan error, 1),
-		logger:       emptyLogger,
+		logger:       slog.With("palComponent", "Pal"),
 	}
 }
 
@@ -61,13 +62,6 @@ func (p *Pal) HealthCheckTimeout(t time.Duration) *Pal {
 // ShutdownTimeout sets the timeout for the Shutdown of the services.
 func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 	p.config.ShutdownTimeout = t
-	return p
-}
-
-// SetLogger sets the logger instance to be used by Pal
-func (p *Pal) SetLogger(logger Logger) *Pal {
-	p.logger = logger
-	p.container.SetLogger(logger)
 	return p
 }
 
