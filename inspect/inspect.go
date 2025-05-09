@@ -1,21 +1,31 @@
 package inspect
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"github.com/zhulik/pal"
 	"io"
-	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/dominikbraun/graph/draw"
+	"github.com/goccy/go-graphviz"
+	"github.com/zhulik/pal"
+)
+
+const (
+	gvContentType = "text/vnd.graphviz"
+	// svg mime type
+	svgContentType = "image/svg+xml"
 )
 
 type Inspect struct {
 	logger *slog.Logger
 	vm     *VM
 	p      *pal.Pal
+	gv     *graphviz.Graphviz
 
 	server *http.Server
 }
@@ -40,6 +50,11 @@ func (i *Inspect) Init(ctx context.Context) error {
 		return err
 	}
 
+	i.gv, err = graphviz.New(ctx)
+	if err != nil {
+		return err
+	}
+
 	i.server = &http.Server{
 		Addr:              ":24242",
 		ReadHeaderTimeout: time.Second,
@@ -50,7 +65,9 @@ func (i *Inspect) Init(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", i.httpHealth)
-	mux.HandleFunc("/eval", i.httpEval)
+
+	mux.HandleFunc("/pal/eval", i.httpEval)
+	mux.HandleFunc("/pal/graph", i.httpGraph)
 
 	i.server.Handler = mux
 
@@ -83,7 +100,7 @@ func (i *Inspect) httpHealth(w http.ResponseWriter, r *http.Request) {
 	err := i.p.HealthCheck(r.Context())
 
 	if err != nil {
-		log.Printf("Health check failed: %+v", err)
+		i.logger.Warn("Health check failed: %+v", err)
 		w.WriteHeader(500)
 	}
 }
@@ -111,4 +128,34 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(res.String()))
+}
+
+func (i *Inspect) httpGraph(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Accept") == gvContentType {
+		w.Header().Set("Content-Type", gvContentType)
+		_ = draw.DOT(i.p.Container().Graph().Graph, w)
+	}
+
+	buf := &bytes.Buffer{}
+
+	if err := draw.DOT(i.p.Container().Graph().Graph, buf); err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	graph, err := graphviz.ParseBytes(buf.Bytes())
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	if r.Header.Get("Accept") == svgContentType {
+		w.Header().Set("Content-Type", svgContentType)
+
+		err = i.gv.Render(r.Context(), graph, graphviz.SVG, w)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+	}
 }
