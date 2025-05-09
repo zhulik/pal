@@ -164,6 +164,10 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	return p.container.Invoke(ctx, name)
 }
 
+func (p *Pal) Container() *Container {
+	return p.container
+}
+
 func (p *Pal) validate(ctx context.Context) error {
 	return errors.Join(p.config.Validate(ctx), p.container.Validate(ctx))
 }

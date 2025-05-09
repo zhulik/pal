@@ -218,6 +218,10 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	return err
 }
 
+func (c *Container) Graph() *dag.DAG[string, ServiceImpl] {
+	return c.graph
+}
+
 func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl) error {
 	if err := c.graph.AddVertexIfNotExist(service); err != nil {
 		return err
