@@ -11,7 +11,7 @@ import (
 type Console struct {
 	logger *slog.Logger
 	vm     *VM
-	p      *pal.Pal
+	P      *pal.Pal
 }
 
 func (c *Console) Shutdown(ctx context.Context) error {
@@ -20,7 +20,6 @@ func (c *Console) Shutdown(ctx context.Context) error {
 }
 
 func (c *Console) Init(ctx context.Context) error {
-	c.p = pal.FromContext(ctx).(*pal.Pal)
 	var err error
 
 	c.logger = slog.With("palComponent", "Console")

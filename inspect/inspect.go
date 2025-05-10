@@ -24,7 +24,7 @@ const (
 type Inspect struct {
 	logger *slog.Logger
 	vm     *VM
-	p      *pal.Pal
+	P      *pal.Pal
 	gv     *graphviz.Graphviz
 
 	server *http.Server
@@ -41,7 +41,6 @@ func (i *Inspect) Shutdown(ctx context.Context) error {
 }
 
 func (i *Inspect) Init(ctx context.Context) error {
-	i.p = pal.FromContext(ctx).(*pal.Pal)
 	var err error
 
 	i.logger = slog.With("palComponent", "Inspect")
@@ -97,7 +96,7 @@ func (i *Inspect) Run(ctx context.Context) error {
 func (i *Inspect) httpHealth(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	err := i.p.HealthCheck(r.Context())
+	err := i.P.HealthCheck(r.Context())
 
 	if err != nil {
 		i.logger.Warn("Health check failed: %+v", err)
@@ -133,12 +132,12 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 func (i *Inspect) httpGraph(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") == gvContentType {
 		w.Header().Set("Content-Type", gvContentType)
-		_ = draw.DOT(i.p.Container().Graph().Graph, w)
+		_ = draw.DOT(i.P.Container().Graph().Graph, w)
 	}
 
 	buf := &bytes.Buffer{}
 
-	if err := draw.DOT(i.p.Container().Graph().Graph, buf); err != nil {
+	if err := draw.DOT(i.P.Container().Graph().Graph, buf); err != nil {
 		w.WriteHeader(500)
 		return
 	}
