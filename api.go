@@ -72,10 +72,6 @@ func Inject[S any](ctx context.Context, invoker Invoker) (*S, error) {
 		}
 
 		fieldType := t.Field(i).Type
-		if fieldType.Kind() != reflect.Interface {
-			continue
-		}
-
 		dependency, err := invoker.Invoke(ctx, fieldType.String())
 		if err != nil {
 			if errors.Is(err, ErrServiceNotFound) {
