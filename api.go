@@ -27,6 +27,18 @@ func ProvideFactory[I any, S any]() *Service[I, S] {
 	}
 }
 
+// ProvideConst registers a const as a service.
+func ProvideConst[I any](value I) *Service[I, I] {
+	_, isRunner := any(new(I)).(Runner)
+
+	return &Service[I, I]{
+		singleton:  true,
+		runner:     isRunner,
+		beforeInit: nil,
+		instance:   value,
+	}
+}
+
 // Invoke retrieves or creates an instance of type I from the given Pal container.
 func Invoke[I any](ctx context.Context, invoker Invoker) (I, error) {
 	name := elem[I]().String()

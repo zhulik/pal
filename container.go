@@ -232,8 +232,11 @@ func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl)
 			return err
 		}
 	}
-
-	val := reflect.ValueOf(service.Make())
+	m := service.Make()
+	if _, ok := m.(*Pal); ok {
+		return nil
+	}
+	val := reflect.ValueOf(m)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}

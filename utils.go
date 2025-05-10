@@ -12,3 +12,7 @@ func empty[T any]() T {
 func elem[T any]() reflect.Type {
 	return reflect.TypeOf((*T)(nil)).Elem()
 }
+func isNil(val any) bool {
+	v := reflect.ValueOf(val)
+	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || v.IsZero()
+}
