@@ -153,6 +153,11 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 		wg.Go(func() error {
 			instance, _ := service.Instance(ctx)
 
+			// Do not check pal again, this leads to recursion
+			if _, ok := instance.(*Pal); ok {
+				return nil
+			}
+
 			if healthChecker, ok := instance.(HealthChecker); ok {
 				c.logger.Debug("Health checking", "service", service.Name())
 
