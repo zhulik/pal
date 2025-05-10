@@ -3,7 +3,6 @@ package pal
 import (
 	"context"
 	"fmt"
-	"reflect"
 )
 
 type Service[I any, S any] struct {
@@ -26,6 +25,10 @@ func (f *Service[I, S]) Initialize(ctx context.Context) error {
 		return nil
 	}
 
+	if !isNil(f.instance) {
+		return nil
+	}
+
 	s, err := f.build(ctx)
 	if err != nil {
 		return err
@@ -37,6 +40,9 @@ func (f *Service[I, S]) Initialize(ctx context.Context) error {
 }
 
 func (f *Service[I, S]) Make() any {
+	if !isNil(f.instance) {
+		return nil
+	}
 	return new(S)
 }
 
@@ -54,15 +60,12 @@ func (f *Service[I, S]) IsRunner() bool {
 }
 
 func (f *Service[I, S]) Validate(_ context.Context) error {
-	iType := elem[I]()
-	if iType.Kind() != reflect.Interface {
-		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
+	if !isNil(f.instance) {
+		return nil
 	}
+	iType := elem[I]()
 
 	sType := elem[S]()
-	if sType.Kind() != reflect.Struct {
-		return fmt.Errorf("%w: type parameter S (%v) must be a struct", ErrServiceInvalid, sType)
-	}
 
 	if _, ok := any(new(S)).(I); !ok {
 		return fmt.Errorf("%w: type %v does not implement interface %v", ErrServiceInvalid, sType, iType)
@@ -77,7 +80,7 @@ func (f *Service[I, S]) String() string {
 
 func (f *Service[I, S]) Instance(ctx context.Context) (any, error) {
 	if f.singleton {
-		if any(f.instance) == nil {
+		if isNil(f.instance) {
 			return nil, fmt.Errorf("%w: singleton service %s has not been initialized", ErrServiceInvalid, f.Name())
 		}
 		return f.instance, nil

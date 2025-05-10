@@ -32,13 +32,16 @@ type Pal struct {
 
 // New creates and returns a new instance of Pal with the provided Services
 func New(services ...ServiceImpl) *Pal {
-	return &Pal{
+	pal := &Pal{
 		config:       &Config{},
-		container:    NewContainer(services...),
 		stopChan:     make(chan error, 1),
 		shutdownChan: make(chan error, 1),
 		logger:       slog.With("palComponent", "Pal"),
 	}
+
+	pal.container = NewContainer(append(services, ProvideConst(pal))...)
+
+	return pal
 }
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
@@ -162,6 +165,10 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	p.logger.Debug("Invoking", "service", name)
 
 	return p.container.Invoke(ctx, name)
+}
+
+func (p *Pal) Container() *Container {
+	return p.container
 }
 
 func (p *Pal) validate(ctx context.Context) error {

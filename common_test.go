@@ -19,10 +19,6 @@ type TestServiceInterface interface {
 	DoSomething() string
 }
 
-type ShutdownTrackingInterface = TestServiceInterface
-type ErrorRunnerInterface = TestServiceInterface
-type FailingInitInterface = TestServiceInterface
-
 // TestServiceStruct implements TestServiceInterface
 type TestServiceStruct struct {
 	mock.Mock

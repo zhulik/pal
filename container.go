@@ -218,6 +218,10 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	return err
 }
 
+func (c *Container) Graph() *dag.DAG[string, ServiceImpl] {
+	return c.graph
+}
+
 func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl) error {
 	if err := c.graph.AddVertexIfNotExist(service); err != nil {
 		return err
@@ -228,8 +232,11 @@ func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl)
 			return err
 		}
 	}
-
-	val := reflect.ValueOf(service.Make())
+	m := service.Make()
+	if _, ok := m.(*Pal); ok {
+		return nil
+	}
+	val := reflect.ValueOf(m)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
