@@ -217,10 +217,11 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.logger.Info("Waiting for runners to finish")
 	err := c.runnerTasks.Wait()
 	if err != nil {
-		c.logger.Warn("Runners finished with", "error", err)
+		c.logger.Warn("Runners finished with error", "error", err)
+		return nil
 	}
 	c.logger.Info("All runners finished successfully")
-	return err
+	return nil
 }
 
 func (c *Container) Graph() *dag.DAG[string, ServiceImpl] {
