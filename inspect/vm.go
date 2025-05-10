@@ -8,6 +8,7 @@ import (
 
 type VM struct {
 	*goja.Runtime
+	P *pal.Pal
 
 	Logger *Logger
 
@@ -20,7 +21,7 @@ func (vm *VM) Init(ctx context.Context) error {
 	ctx, vm.cancel = context.WithCancel(ctx)
 
 	vars := map[string]goja.Value{
-		"pal": vm.ToValue(pal.FromContext(ctx)),
+		"pal": vm.ToValue(vm.P),
 		"console": vm.ToValue(map[string]any{
 			"log": vm.Logger.With("ECMAScript", true).Info,
 		}),
