@@ -21,13 +21,26 @@ const (
 	svgContentType = "image/svg+xml"
 )
 
+type Logger = slog.Logger
+
 type Inspect struct {
-	logger *slog.Logger
-	vm     *VM
-	P      *pal.Pal
-	gv     *graphviz.Graphviz
+	P *pal.Pal
+
+	Logger *Logger
+	VM     *VM
+	GV     *Graphviz
 
 	server *http.Server
+}
+
+func Provide() []pal.ServiceImpl {
+	return []pal.ServiceImpl{
+		pal.ProvideConst[*Logger](slog.With("palComponent", "Inspect")),
+		pal.Provide[*Inspect, Inspect](),
+		pal.Provide[*Console, Console](),
+		pal.ProvideFactory[*VM, VM](),
+		pal.ProvideFactory[*Graphviz, Graphviz](),
+	}
 }
 
 func (i *Inspect) Shutdown(ctx context.Context) error {
@@ -36,24 +49,10 @@ func (i *Inspect) Shutdown(ctx context.Context) error {
 		return err
 	}
 
-	i.vm.Shutdown(ctx)
 	return nil
 }
 
 func (i *Inspect) Init(ctx context.Context) error {
-	var err error
-
-	i.logger = slog.With("palComponent", "Inspect")
-	i.vm, err = NewVM(ctx, i.logger)
-	if err != nil {
-		return err
-	}
-
-	i.gv, err = graphviz.New(ctx)
-	if err != nil {
-		return err
-	}
-
 	i.server = &http.Server{
 		Addr:              ":24242",
 		ReadHeaderTimeout: time.Second,
@@ -78,7 +77,7 @@ func (i *Inspect) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	i.logger.Info("Starting Inspect HTTP server", "address", i.server.Addr)
+	i.Logger.Info("Starting Inspect HTTP server", "address", i.server.Addr)
 
 	go func() {
 		<-ctx.Done()
@@ -99,7 +98,7 @@ func (i *Inspect) httpHealth(w http.ResponseWriter, r *http.Request) {
 	err := i.P.HealthCheck(r.Context())
 
 	if err != nil {
-		i.logger.Warn("Health check failed: %+v", err)
+		i.Logger.Warn("Health check failed", "err", err)
 		w.WriteHeader(500)
 	}
 }
@@ -118,7 +117,7 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := i.vm.RunString(string(bytes))
+	res, err := i.VM.RunString(string(bytes))
 
 	if err != nil {
 		w.Write([]byte(err.Error()))
@@ -151,7 +150,7 @@ func (i *Inspect) httpGraph(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") == svgContentType {
 		w.Header().Set("Content-Type", svgContentType)
 
-		err = i.gv.Render(r.Context(), graph, graphviz.SVG, w)
+		err = i.GV.Render(r.Context(), graph, graphviz.SVG, w)
 		if err != nil {
 			w.WriteHeader(500)
 			return

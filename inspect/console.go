@@ -5,29 +5,16 @@ import (
 	"fmt"
 	"github.com/chzyer/readline"
 	"github.com/zhulik/pal"
-	"log/slog"
 )
 
 type Console struct {
-	logger *slog.Logger
-	vm     *VM
+	Logger *Logger
+	VM     *VM
 	P      *pal.Pal
 }
 
 func (c *Console) Shutdown(ctx context.Context) error {
-	c.vm.Shutdown(ctx)
-	return nil
-}
-
-func (c *Console) Init(ctx context.Context) error {
-	var err error
-
-	c.logger = slog.With("palComponent", "Console")
-	c.vm, err = NewVM(ctx, c.logger)
-	if err != nil {
-		return err
-	}
-
+	c.VM.Shutdown(ctx)
 	return nil
 }
 
@@ -58,7 +45,7 @@ func (c *Console) Run(ctx context.Context) error {
 			continue
 		}
 
-		result, err := c.vm.RunString(line)
+		result, err := c.VM.RunString(line)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			continue

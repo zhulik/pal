@@ -4,37 +4,36 @@ import (
 	"context"
 	"github.com/dop251/goja"
 	"github.com/zhulik/pal"
-	"log/slog"
 )
 
 type VM struct {
 	*goja.Runtime
 
+	Logger *Logger
+
 	cancel context.CancelFunc
 }
 
-func NewVM(ctx context.Context, logger *slog.Logger) (*VM, error) {
-	vm := goja.New()
+func (vm *VM) Init(ctx context.Context) error {
+	vm.Runtime = goja.New()
 
-	logger = logger.With("ECMAScript", true)
-
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, vm.cancel = context.WithCancel(ctx)
 
 	vars := map[string]goja.Value{
 		"pal": vm.ToValue(pal.FromContext(ctx)),
 		"console": vm.ToValue(map[string]any{
-			"log": logger.Info,
+			"log": vm.Logger.With("ECMAScript", true).Info,
 		}),
-		"ctx": vm.ToValue(ctx), // TODO: cancel when shutting down?
+		"ctx": vm.ToValue(ctx),
 	}
 
 	for k, v := range vars {
 		if err := vm.Set(k, v); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return &VM{vm, cancel}, nil
+	return nil
 }
 
 func (v *VM) Shutdown(ctx context.Context) error {
