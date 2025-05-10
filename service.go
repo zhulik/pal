@@ -55,9 +55,6 @@ func (f *Service[I, S]) IsRunner() bool {
 
 func (f *Service[I, S]) Validate(_ context.Context) error {
 	iType := elem[I]()
-	if iType.Kind() != reflect.Interface {
-		return fmt.Errorf("%w: type parameter I (%v) must be an interface", ErrServiceInvalid, iType)
-	}
 
 	sType := elem[S]()
 	if sType.Kind() != reflect.Struct {

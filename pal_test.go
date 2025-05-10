@@ -30,12 +30,13 @@ func TestPal_New(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
+			pal.Provide[TestServiceInterface, TestServiceStruct]().
+				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+					eventuallyAssertExpectations(t, service)
+					service.On("Init", ctx).Return(nil)
 
-				return nil
-			}),
+					return nil
+				}),
 		)
 
 		assert.NoError(t, p.Init(t.Context()))
@@ -159,12 +160,13 @@ func TestPal_Services(t *testing.T) {
 	t.Run("returns all services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Init", ctx).Return(nil)
+		service := pal.Provide[TestServiceInterface, TestServiceStruct]().
+			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
 
-			return nil
-		})
+				return nil
+			})
 
 		p := newPal(service)
 
@@ -194,12 +196,13 @@ func TestPal_Invoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
+			pal.Provide[TestServiceInterface, TestServiceStruct]().
+				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+					eventuallyAssertExpectations(t, service)
+					service.On("Init", ctx).Return(nil)
 
-				return nil
-			}),
+					return nil
+				}),
 		)
 
 		assert.NoError(t, p.Init(t.Context()))
@@ -239,12 +242,13 @@ func TestPal_Run(t *testing.T) {
 	t.Run("exists after runners exist", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Run", mock.Anything).Return(nil)
+		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().
+			BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Run", mock.Anything).Return(nil)
 
-			return nil
-		})
+				return nil
+			})
 
 		err := newPal(
 			service,
@@ -272,7 +276,7 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that will be initialized successfully
-		shutdownService := pal.Provide[ShutdownTrackingInterface, TestServiceStruct]().
+		shutdownService := pal.Provide[*TestServiceStruct, TestServiceStruct]().
 			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
@@ -282,12 +286,13 @@ func TestPal_Run(t *testing.T) {
 			})
 
 		// Create a service that will fail during initialization
-		failingService := pal.Provide[FailingInitInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Init", ctx).Return(errTest)
+		failingService := pal.Provide[*TestServiceStruct, TestServiceStruct]().
+			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(errTest)
 
-			return nil
-		})
+				return nil
+			})
 
 		// Create a runner that should not be started
 		runnerService := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]()
@@ -312,28 +317,34 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that will track if it was shut down
-		shutdownService := pal.Provide[ShutdownTrackingInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Init", ctx).Return(nil)
+		shutdownService := pal.Provide[*TestServiceStruct, TestServiceStruct]().
+			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+				service.On("Shutdown", mock.Anything).Return(nil)
 
-			return nil
-		})
+				return nil
+			})
 
+		// for a different name in the container
+		type errorRunnerInterface = TestServiceInterface
 		// Create a runner that will return an error
-		errorRunnerService := pal.Provide[ErrorRunnerInterface, RunnerServiceStruct]().BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Run", mock.Anything).Return(errTest)
+		errorRunnerService := pal.Provide[errorRunnerInterface, RunnerServiceStruct]().
+			BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Run", mock.Anything).Return(errTest)
 
-			return nil
-		})
+				return nil
+			})
 
 		// Create a normal runner
-		runnerService := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Run", mock.Anything).Return(nil)
+		runnerService := pal.Provide[*RunnerServiceStruct, RunnerServiceStruct]().
+			BeforeInit(func(_ context.Context, service *RunnerServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Run", mock.Anything).Return(nil)
 
-			return nil
-		})
+				return nil
+			})
 
 		// Run the application - this should fail because errorRunnerService returns an error
 		err := newPal(
