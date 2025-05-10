@@ -200,7 +200,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 			return err
 		}
 
-		c.runnerTasks.Go(func() error {
+		c.runnerTasks.Go(tryWrap(func() error {
 			c.logger.Info("Running", "service", service.Name())
 			err := runner.(Runner).Run(ctx)
 			if err != nil {
@@ -211,7 +211,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 
 			c.logger.Info("Runner finished successfully", "service", service.Name())
 			return nil
-		})
+		}))
 	}
 
 	c.logger.Info("Waiting for runners to finish")
