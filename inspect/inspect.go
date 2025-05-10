@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -16,6 +17,8 @@ import (
 )
 
 const (
+	inspectPort = 24242
+
 	gvContentType = "text/vnd.graphviz"
 	// svg mime type
 	svgContentType = "image/svg+xml"
@@ -37,24 +40,18 @@ func Provide() []pal.ServiceImpl {
 	return []pal.ServiceImpl{
 		pal.ProvideConst[*Logger](slog.With("palComponent", "Inspect")),
 		pal.Provide[*Inspect, Inspect](),
-		pal.Provide[*Console, Console](),
 		pal.ProvideFactory[*VM, VM](),
 		pal.ProvideFactory[*Graphviz, Graphviz](),
 	}
 }
 
 func (i *Inspect) Shutdown(ctx context.Context) error {
-	err := i.server.Shutdown(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return i.server.Shutdown(ctx)
 }
 
 func (i *Inspect) Init(ctx context.Context) error {
 	i.server = &http.Server{
-		Addr:              ":24242",
+		Addr:              fmt.Sprintf(":%d", inspectPort),
 		ReadHeaderTimeout: time.Second,
 		WriteTimeout:      time.Second,
 		ReadTimeout:       time.Second,
@@ -120,8 +117,9 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 	res, err := i.VM.RunString(string(bytes))
 
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(422)
+		
+		w.Write([]byte(err.Error()))
 		return
 	}
 

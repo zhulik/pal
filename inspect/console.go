@@ -4,18 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/chzyer/readline"
-	"github.com/zhulik/pal"
 )
 
 type Console struct {
 	Logger *Logger
 	VM     *VM
-	P      *pal.Pal
 }
 
 func (c *Console) Shutdown(ctx context.Context) error {
-	c.VM.Shutdown(ctx)
-	return nil
+	return c.VM.Shutdown(ctx)
 }
 
 func (c *Console) Run(ctx context.Context) error {
