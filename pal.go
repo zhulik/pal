@@ -46,8 +46,8 @@ func New(services ...ServiceDef) *Pal {
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
 // Panics if ctx misses the value.
-func FromContext(ctx context.Context) Context {
-	return ctx.Value(CtxValue).(Context)
+func FromContext(ctx context.Context) *Pal {
+	return ctx.Value(CtxValue).(*Pal)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.

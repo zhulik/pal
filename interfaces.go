@@ -67,10 +67,3 @@ type ServiceDef interface {
 type Invoker interface {
 	Invoke(ctx context.Context, name string) (any, error)
 }
-
-type Context interface {
-	Invoker
-	HealthChecker
-
-	Shutdown(errs ...error)
-}
