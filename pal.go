@@ -31,7 +31,7 @@ type Pal struct {
 }
 
 // New creates and returns a new instance of Pal with the provided Services
-func New(services ...ServiceImpl) *Pal {
+func New(services ...ServiceDef) *Pal {
 	pal := &Pal{
 		config:       &Config{},
 		stopChan:     make(chan error, 1),
@@ -46,8 +46,8 @@ func New(services ...ServiceImpl) *Pal {
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
 // Panics if ctx misses the value.
-func FromContext(ctx context.Context) Context {
-	return ctx.Value(CtxValue).(Context)
+func FromContext(ctx context.Context) *Pal {
+	return ctx.Value(CtxValue).(*Pal)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -156,7 +156,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
-func (p *Pal) Services() []ServiceImpl {
+func (p *Pal) Services() map[string]ServiceDef {
 	return p.container.Services()
 }
 

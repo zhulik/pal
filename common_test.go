@@ -75,7 +75,7 @@ func eventuallyAssertExpectations(t *testing.T, instance any) {
 	m.AssertExpectations(t)
 }
 
-func newPal(services ...pal.ServiceImpl) *pal.Pal {
+func newPal(services ...pal.ServiceDef) *pal.Pal {
 	return pal.New(services...).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).

@@ -15,92 +15,51 @@ import (
 type MockService struct {
 	mock.Mock
 
-	name        string
-	isSingleton bool
-	isRunner    bool
-	instance    *MockInstance
+	name string
 }
 
-func NewMockService(name string, isSingleton bool, isRunner bool, instance ...*MockInstance) *MockService {
-	var instancePtr *MockInstance
-	if len(instance) > 0 {
-		instancePtr = instance[0]
-	}
+func NewMockService(name string) *MockService {
 	return &MockService{
-		name:        name,
-		isSingleton: isSingleton,
-		isRunner:    isRunner,
-		instance:    instancePtr,
+		name: name,
 	}
 }
 
 func (m *MockService) Make() any {
-	if m.instance != nil {
-		return m.instance
-	}
-	args := m.Called()
-	return args.Get(0)
+	return nil
 }
 
-func (m *MockService) Initialize(ctx context.Context) error {
+func (m *MockService) Run(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockService) Init(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockService) Shutdown(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
 }
 
 func (m *MockService) Instance(ctx context.Context) (any, error) {
-	if m.instance != nil {
-		return m.instance, nil
-	}
 	args := m.Called(ctx)
 	return args.Get(0), args.Error(1)
+}
+
+func (m *MockService) HealthCheck(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
 }
 
 func (m *MockService) Name() string {
 	return m.name
 }
 
-func (m *MockService) IsSingleton() bool {
-	return m.isSingleton
-}
-
-func (m *MockService) IsRunner() bool {
-	return m.isRunner
-}
-
 func (m *MockService) Validate(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
-}
-
-// MockInstance implements various optional interfaces for testing
-type MockInstance struct {
-	mock.Mock
-}
-
-func (m *MockInstance) Shutdown(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func (m *MockInstance) HealthCheck(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func (m *MockInstance) Run(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func newMockInstance(t *testing.T) *MockInstance {
-	t.Helper()
-
-	m := &MockInstance{}
-	t.Cleanup(func() {
-		m.AssertExpectations(t)
-	})
-
-	return m
 }
 
 // TestContainer_New tests the New function for Container
@@ -111,8 +70,8 @@ func TestContainer_New(t *testing.T) {
 		t.Parallel()
 
 		c := pal.NewContainer(
-			NewMockService("service1", true, false),
-			NewMockService("service2", true, true),
+			NewMockService("service1"),
+			NewMockService("service2"),
 		)
 
 		assert.NotNil(t, c)
@@ -136,11 +95,8 @@ func TestContainer_Validate(t *testing.T) {
 	t.Run("validates all services successfully", func(t *testing.T) {
 		t.Parallel()
 
-		instance1 := newMockInstance(t)
-		instance2 := newMockInstance(t)
-
-		service1 := NewMockService("service1", true, false, instance1)
-		service2 := NewMockService("service2", true, true, instance2)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
 
 		service1.On("Validate", t.Context()).Return(nil)
 		service2.On("Validate", t.Context()).Return(nil)
@@ -155,8 +111,8 @@ func TestContainer_Validate(t *testing.T) {
 	t.Run("returns error when service validation fails", func(t *testing.T) {
 		t.Parallel()
 
-		service1 := NewMockService("service1", true, false)
-		service2 := NewMockService("service2", true, true)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
 
 		service1.On("Validate", t.Context()).Return(nil)
 		service2.On("Validate", t.Context()).Return(errTest)
@@ -176,17 +132,13 @@ func TestContainer_Init(t *testing.T) {
 	t.Run("initializes singleton services successfully", func(t *testing.T) {
 		t.Parallel()
 
-		instance1 := newMockInstance(t)
-		instance2 := newMockInstance(t)
-		instance3 := newMockInstance(t)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
+		service3 := NewMockService("service3")
 
-		service1 := NewMockService("service1", true, false, instance1)
-		service2 := NewMockService("service2", true, true, instance2)
-		service3 := NewMockService("service3", true, false, instance3)
-
-		service1.On("Initialize", t.Context()).Return(nil)
-		service2.On("Initialize", t.Context()).Return(nil)
-		service3.On("Initialize", t.Context()).Return(nil)
+		service1.On("Init", t.Context()).Return(nil)
+		service2.On("Init", t.Context()).Return(nil)
+		service3.On("Init", t.Context()).Return(nil)
 
 		c := pal.NewContainer(service1, service2, service3)
 
@@ -198,14 +150,14 @@ func TestContainer_Init(t *testing.T) {
 	t.Run("returns error when service initialization fails", func(t *testing.T) {
 		t.Parallel()
 
-		service1 := NewMockService("service1", true, false)
-		service2 := NewMockService("service2", true, true)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
 
 		service1.On("Make").Return(nil)
 		service2.On("Make").Return(nil)
 
-		service1.On("Initialize", t.Context()).Return(nil)
-		service2.On("Initialize", t.Context()).Return(errTest)
+		service1.On("Init", t.Context()).Return(nil)
+		service2.On("Init", t.Context()).Return(errTest)
 
 		c := pal.NewContainer(service1, service2)
 
@@ -222,10 +174,11 @@ func TestContainer_Invoke(t *testing.T) {
 	t.Run("invokes service successfully", func(t *testing.T) {
 		t.Parallel()
 
-		expectedInstance := newMockInstance(t)
+		expectedInstance := struct{}{}
 
-		service := NewMockService("service1", true, false, expectedInstance)
-		service.On("Initialize", t.Context()).Return(nil)
+		service := NewMockService("service1")
+		service.On("Init", t.Context()).Return(nil)
+		service.On("Instance", t.Context()).Return(expectedInstance, nil)
 
 		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
@@ -233,7 +186,7 @@ func TestContainer_Invoke(t *testing.T) {
 		instance, err := c.Invoke(t.Context(), "service1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, expectedInstance, instance)
+		assert.Exactly(t, expectedInstance, instance)
 	})
 
 	t.Run("returns error when service not found", func(t *testing.T) {
@@ -249,9 +202,9 @@ func TestContainer_Invoke(t *testing.T) {
 	t.Run("returns error when service instance creation fails", func(t *testing.T) {
 		t.Parallel()
 
-		service := NewMockService("service1", true, false)
+		service := NewMockService("service1")
 		service.On("Make").Return(nil)
-		service.On("Initialize", t.Context()).Return(nil)
+		service.On("Init", t.Context()).Return(nil)
 		service.On("Instance", t.Context()).Return(nil, errTest)
 
 		c := pal.NewContainer(service)
@@ -269,21 +222,18 @@ func TestContainer_Shutdown(t *testing.T) {
 
 	t.Run("shuts down all singleton services successfully", func(t *testing.T) {
 		t.Parallel()
-		instance1 := newMockInstance(t)
-		instance2 := newMockInstance(t)
-		instance3 := newMockInstance(t)
 
-		service1 := NewMockService("service1", true, false, instance1)
-		service2 := NewMockService("service2", true, true, instance2)
-		service3 := NewMockService("service3", true, false, instance3)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
+		service3 := NewMockService("service3")
 
-		service1.On("Initialize", t.Context()).Return(nil)
-		service2.On("Initialize", t.Context()).Return(nil)
-		service3.On("Initialize", t.Context()).Return(nil)
+		service1.On("Init", t.Context()).Return(nil)
+		service2.On("Init", t.Context()).Return(nil)
+		service3.On("Init", t.Context()).Return(nil)
 
-		instance1.On("Shutdown", t.Context()).Return(nil)
-		instance2.On("Shutdown", t.Context()).Return(nil)
-		instance3.On("Shutdown", t.Context()).Return(nil)
+		service1.On("Shutdown", t.Context()).Return(nil)
+		service2.On("Shutdown", t.Context()).Return(nil)
+		service3.On("Shutdown", t.Context()).Return(nil)
 
 		c := pal.NewContainer(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
@@ -296,11 +246,9 @@ func TestContainer_Shutdown(t *testing.T) {
 	t.Run("returns error when service shutdown fails", func(t *testing.T) {
 		t.Parallel()
 
-		instance := newMockInstance(t)
-		instance.On("Shutdown", t.Context()).Return(errTest)
-
-		service := NewMockService("service1", true, false, instance)
-		service.On("Initialize", t.Context()).Return(nil)
+		service := NewMockService("service1")
+		service.On("Init", t.Context()).Return(nil)
+		service.On("Shutdown", t.Context()).Return(errTest)
 
 		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
@@ -318,20 +266,17 @@ func TestContainer_HealthCheck(t *testing.T) {
 	t.Run("health checks all singleton services successfully", func(t *testing.T) {
 		t.Parallel()
 
-		instance1 := newMockInstance(t)
-		instance1.On("HealthCheck", t.Context()).Return(nil)
-		instance2 := newMockInstance(t)
-		instance2.On("HealthCheck", t.Context()).Return(nil)
-		instance3 := newMockInstance(t)
-		instance3.On("HealthCheck", t.Context()).Return(nil)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
+		service3 := NewMockService("service3")
 
-		service1 := NewMockService("service1", true, false, instance1)
-		service2 := NewMockService("service2", true, true, instance2)
-		service3 := NewMockService("service3", true, false, instance3)
+		service1.On("Init", t.Context()).Return(nil)
+		service2.On("Init", t.Context()).Return(nil)
+		service3.On("Init", t.Context()).Return(nil)
 
-		service1.On("Initialize", t.Context()).Return(nil)
-		service2.On("Initialize", t.Context()).Return(nil)
-		service3.On("Initialize", t.Context()).Return(nil)
+		service1.On("HealthCheck", t.Context()).Return(nil)
+		service2.On("HealthCheck", t.Context()).Return(nil)
+		service3.On("HealthCheck", t.Context()).Return(nil)
 
 		c := pal.NewContainer(service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
@@ -344,11 +289,9 @@ func TestContainer_HealthCheck(t *testing.T) {
 	t.Run("returns error when service health check fails", func(t *testing.T) {
 		t.Parallel()
 
-		instance := newMockInstance(t)
-		instance.On("HealthCheck", t.Context()).Return(errTest)
-
-		service := NewMockService("service1", true, true, instance)
-		service.On("Initialize", t.Context()).Return(nil)
+		service := NewMockService("service1")
+		service.On("Init", t.Context()).Return(nil)
+		service.On("HealthCheck", t.Context()).Return(errTest)
 
 		c := pal.NewContainer(service)
 		require.NoError(t, c.Init(t.Context()))
@@ -366,14 +309,11 @@ func TestContainer_Services(t *testing.T) {
 	t.Run("returns all services", func(t *testing.T) {
 		t.Parallel()
 
-		instance1 := newMockInstance(t)
-		instance2 := newMockInstance(t)
+		service1 := NewMockService("service1")
+		service2 := NewMockService("service2")
 
-		service1 := NewMockService("service1", true, false, instance1)
-		service2 := NewMockService("service2", true, true, instance2)
-
-		service1.On("Initialize", t.Context()).Return(nil)
-		service2.On("Initialize", t.Context()).Return(nil)
+		service1.On("Init", t.Context()).Return(nil)
+		service2.On("Init", t.Context()).Return(nil)
 
 		c := pal.NewContainer(service1, service2)
 		require.NoError(t, c.Init(t.Context()))
@@ -381,11 +321,11 @@ func TestContainer_Services(t *testing.T) {
 		result := c.Services()
 
 		assert.Len(t, result, 2)
-		assert.Contains(t, result, service1)
-		assert.Contains(t, result, service2)
+		assert.Contains(t, result, "service1")
+		assert.Contains(t, result, "service2")
 	})
 
-	t.Run("returns empty slice for empty container", func(t *testing.T) {
+	t.Run("returns empty map for empty container", func(t *testing.T) {
 		t.Parallel()
 
 		c := pal.NewContainer()

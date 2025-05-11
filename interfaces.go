@@ -44,37 +44,27 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
-// ServiceImpl is a factory for creating a service.
-type ServiceImpl interface {
-	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
-	Make() any
-
-	// Initialize - when called, singleton services should create its instances.
-	Initialize(ctx context.Context) error
-
-	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
-	Instance(ctx context.Context) (any, error)
+// ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
+type ServiceDef interface {
+	Initer
+	HealthChecker
+	Shutdowner
+	Runner
 
 	// Name returns a name of the service, this will be used to identify the service in the container.
 	Name() string
 
-	// IsSingleton returns true if the service is a singleton and should be cached and reused.
-	IsSingleton() bool
+	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
+	Make() any
 
-	// IsRunner returns true if the service is a runner.
-	IsRunner() bool
+	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
+	Instance(ctx context.Context) (any, error)
 
-	// Validate validates the service factory.
+	// Validate validates the definition.
+	// TODO: make it optional and implement for shipped services
 	Validate(_ context.Context) error
 }
 
 type Invoker interface {
 	Invoke(ctx context.Context, name string) (any, error)
-}
-
-type Context interface {
-	Invoker
-	HealthChecker
-
-	Shutdown(errs ...error)
 }

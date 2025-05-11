@@ -17,8 +17,8 @@ import (
 
 // Container is responsible for storing services, instances and the dependency graph
 type Container struct {
-	services map[string]ServiceImpl
-	graph    *dag.DAG[string, ServiceImpl]
+	services map[string]ServiceDef
+	graph    *dag.DAG[string, ServiceDef]
 	logger   *slog.Logger
 
 	runnerTasks errgroup.Group
@@ -28,8 +28,8 @@ type Container struct {
 }
 
 // NewContainer creates a new Container instance
-func NewContainer(services ...ServiceImpl) *Container {
-	index := make(map[string]ServiceImpl)
+func NewContainer(services ...ServiceDef) *Container {
+	index := make(map[string]ServiceDef)
 
 	for _, service := range services {
 		index[service.Name()] = service
@@ -66,7 +66,7 @@ func (c *Container) Init(ctx context.Context) error {
 		return err
 	}
 
-	order, err := graph.TopologicalSort[string, ServiceImpl](c.graph)
+	order, err := graph.TopologicalSort[string, ServiceDef](c.graph)
 	if err != nil {
 		return err
 	}
@@ -74,15 +74,9 @@ func (c *Container) Init(ctx context.Context) error {
 
 	c.logger.Info("Dependency tree built", "tree", adjMap, "order", order)
 
-	return c.graph.InReverseTopologicalOrder(func(service ServiceImpl) error {
-		if service.IsSingleton() {
-			c.logger.Info("Initializing", "service", service.Name())
-
-			if err := service.Initialize(ctx); err != nil {
-				return err
-			}
-
-			c.logger.Info("Initialized", "service", service.Name())
+	return c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
+		if err := service.Init(ctx); err != nil {
+			return err
 		}
 
 		return nil
@@ -90,9 +84,9 @@ func (c *Container) Init(ctx context.Context) error {
 }
 
 func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
-	service, err := c.graph.Vertex(name)
-	if err != nil {
-		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, c.Services(), err)
+	service, ok := c.services[name]
+	if !ok {
+		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, c.services)
 	}
 
 	instance, err := service.Instance(ctx)
@@ -116,26 +110,15 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	// Await for runners to exit and safe possible error.
 	errs = append(errs, c.runnerTasks.Wait())
 
-	c.graph.InTopologicalOrder(func(service ServiceImpl) error { // nolint:errcheck
-		if !service.IsSingleton() {
+	c.graph.InTopologicalOrder(func(service ServiceDef) error { // nolint:errcheck
+		err := service.Shutdown(ctx)
+		if err != nil {
+			c.logger.Warn("Shut down with error", "service", service.Name(), "error", err)
+			errs = append(errs, err)
 			return nil
 		}
 
-		instance, _ := service.Instance(ctx)
-
-		if shutdowner, ok := instance.(Shutdowner); ok {
-			c.logger.Info("Shutting down", "service", service.Name())
-
-			err := shutdowner.Shutdown(ctx)
-			if err != nil {
-				c.logger.Warn("Shut down with error", "service", service.Name(), "error", err)
-				errs = append(errs, err)
-				return nil
-			}
-
-			c.logger.Info("Shut down successfully", "service", service.Name())
-		}
-
+		c.logger.Info("Shut down successfully", "service", service.Name())
 		return nil
 	})
 
@@ -145,30 +128,20 @@ func (c *Container) Shutdown(ctx context.Context) error {
 func (c *Container) HealthCheck(ctx context.Context) error {
 	var wg errgroup.Group
 
-	c.graph.ForEachVertex(func(service ServiceImpl) error { // nolint:errcheck
-		if !service.IsSingleton() {
-			return nil
-		}
-
+	c.graph.ForEachVertex(func(service ServiceDef) error { // nolint:errcheck
 		wg.Go(func() error {
-			instance, _ := service.Instance(ctx)
-
 			// Do not check pal again, this leads to recursion
-			if _, ok := instance.(*Pal); ok {
+			if service.Name() == "*pal.Pal" {
 				return nil
 			}
 
-			if healthChecker, ok := instance.(HealthChecker); ok {
-				c.logger.Debug("Health checking", "service", service.Name())
-
-				err := healthChecker.HealthCheck(ctx)
-				if err != nil {
-					c.logger.Warn("Health check failed", "service", service.Name(), "error", err)
-					return err
-				}
-
-				c.logger.Debug("Health check successful", "service", service.Name())
+			err := service.HealthCheck(ctx)
+			if err != nil {
+				c.logger.Warn("Health check failed", "service", service.Name(), "error", err)
+				return err
 			}
+
+			c.logger.Debug("Health check successful", "service", service.Name())
 			return nil
 		})
 
@@ -178,8 +151,8 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	return wg.Wait()
 }
 
-func (c *Container) Services() []ServiceImpl {
-	return c.graph.Vertices()
+func (c *Container) Services() map[string]ServiceDef {
+	return c.services
 }
 
 func (c *Container) StartRunners(ctx context.Context) error {
@@ -190,28 +163,10 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.cancel = cancel
 	c.cancelMu.Unlock()
 
-	for _, service := range c.Services() {
-		if !service.IsRunner() {
-			continue
-		}
-
-		runner, err := service.Instance(ctx)
-		if err != nil {
-			return err
-		}
-
-		c.runnerTasks.Go(tryWrap(func() error {
-			c.logger.Info("Running", "service", service.Name())
-			err := runner.(Runner).Run(ctx)
-			if err != nil {
-				c.logger.Warn("Runner exited with error, scheduling shutdown", "service", service.Name(), "error", err)
-				FromContext(ctx).Shutdown(err)
-				return err
-			}
-
-			c.logger.Info("Runner finished successfully", "service", service.Name())
-			return nil
-		}))
+	for _, service := range c.services {
+		c.runnerTasks.Go(func() error {
+			return service.Run(ctx)
+		})
 	}
 
 	c.logger.Info("Waiting for runners to finish")
@@ -224,11 +179,11 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	return nil
 }
 
-func (c *Container) Graph() *dag.DAG[string, ServiceImpl] {
+func (c *Container) Graph() *dag.DAG[string, ServiceDef] {
 	return c.graph
 }
 
-func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl) error {
+func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) error {
 	if err := c.graph.AddVertexIfNotExist(service); err != nil {
 		return err
 	}
@@ -239,7 +194,7 @@ func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl)
 		}
 	}
 	m := service.Make()
-	if _, ok := m.(*Pal); ok {
+	if isNil(m) {
 		return nil
 	}
 	val := reflect.ValueOf(m)
@@ -268,6 +223,6 @@ func (c *Container) addDependencyVertex(service ServiceImpl, parent ServiceImpl)
 	return nil
 }
 
-func serviceHash(service ServiceImpl) string {
+func serviceHash(service ServiceDef) string {
 	return service.Name()
 }
