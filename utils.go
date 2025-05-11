@@ -20,8 +20,7 @@ func isNil(val any) bool {
 }
 
 func tryWrap(f func() error) func() error {
-	return func() error {
-		var err error
+	return func() (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				switch x := r.(type) {
@@ -33,6 +32,6 @@ func tryWrap(f func() error) func() error {
 			}
 		}()
 		err = f()
-		return err
+		return
 	}
 }
