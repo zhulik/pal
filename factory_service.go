@@ -33,10 +33,6 @@ func (c *FactoryService[I, S]) Name() string {
 	return elem[I]().String()
 }
 
-func (c *FactoryService[I, S]) IsRunner() bool {
-	return false
-}
-
 func (c *FactoryService[I, S]) Validate(ctx context.Context) error {
 	return validateService[I, S](ctx)
 }

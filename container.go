@@ -164,27 +164,25 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.cancelMu.Unlock()
 
 	for name, service := range c.services {
-		if !service.IsRunner() {
-			continue
-		}
-
-		runner, err := service.Instance(ctx)
+		instance, err := service.Instance(ctx)
 		if err != nil {
 			return err
 		}
 
-		c.runnerTasks.Go(tryWrap(func() error {
-			c.logger.Info("Running", "service", name)
-			err := runner.(Runner).Run(ctx)
-			if err != nil {
-				c.logger.Warn("Runner exited with error, scheduling shutdown", "service", name, "error", err)
-				FromContext(ctx).Shutdown(err)
-				return err
-			}
+		if runner, ok := instance.(Runner); ok {
+			c.runnerTasks.Go(tryWrap(func() error {
+				c.logger.Info("Running", "service", name)
+				err := runner.Run(ctx)
+				if err != nil {
+					c.logger.Warn("Runner exited with error, scheduling shutdown", "service", name, "error", err)
+					FromContext(ctx).Shutdown(err)
+					return err
+				}
 
-			c.logger.Info("Runner finished successfully", "service", name)
-			return nil
-		}))
+				c.logger.Info("Runner finished successfully", "service", name)
+				return nil
+			}))
+		}
 	}
 
 	c.logger.Info("Waiting for runners to finish")

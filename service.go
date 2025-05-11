@@ -52,11 +52,6 @@ func (s *Service[I, S]) BeforeInit(hook LifecycleHook[S]) *Service[I, S] {
 	return s
 }
 
-func (s *Service[I, S]) IsRunner() bool {
-	_, runner := any(new(S)).(Runner)
-	return runner
-}
-
 func (s *Service[I, S]) Validate(ctx context.Context) error {
 	return validateService[I, S](ctx)
 }

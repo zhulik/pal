@@ -38,11 +38,6 @@ func (c *ConstService[T]) Name() string {
 	return elem[T]().String()
 }
 
-func (c *ConstService[T]) IsRunner() bool {
-	_, runner := any(c.instance).(Runner)
-	return runner
-}
-
 func (c *ConstService[T]) Validate(_ context.Context) error {
 	return nil
 }

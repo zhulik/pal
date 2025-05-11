@@ -21,27 +21,6 @@ func TestService_Name(t *testing.T) {
 	})
 }
 
-// TestService_IsRunner tests the IsRunner method of the service struct
-func TestService_IsRunner(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns true for runner service", func(t *testing.T) {
-		t.Parallel()
-
-		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]()
-
-		assert.True(t, service.IsRunner())
-	})
-
-	t.Run("returns false for non-runner service", func(t *testing.T) {
-		t.Parallel()
-
-		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
-
-		assert.False(t, service.IsRunner())
-	})
-}
-
 // TestService_Make tests the Make method of the service struct
 func TestService_Make(t *testing.T) {
 	t.Parallel()

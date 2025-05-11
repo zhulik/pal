@@ -23,7 +23,6 @@ func TestProvide(t *testing.T) {
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
-		assert.False(t, service.IsRunner())
 	})
 
 	t.Run("detects runner services", func(t *testing.T) {
@@ -38,7 +37,6 @@ func TestProvide(t *testing.T) {
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.RunnerServiceInterface", service.Name())
-		assert.True(t, service.IsRunner())
 	})
 }
 
@@ -53,7 +51,6 @@ func TestProvideFactory(t *testing.T) {
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
-		assert.False(t, service.IsRunner())
 	})
 }
 

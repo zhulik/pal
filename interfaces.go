@@ -59,9 +59,6 @@ type ServiceDef interface {
 	// Name returns a name of the service, this will be used to identify the service in the container.
 	Name() string
 
-	// IsRunner returns true if the service is a runner.
-	IsRunner() bool
-
 	// Validate validates the service factory.
 	Validate(_ context.Context) error
 }
