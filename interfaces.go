@@ -61,6 +61,7 @@ type ServiceDef interface {
 	Instance(ctx context.Context) (any, error)
 
 	// Validate validates the definition.
+	// TODO: make it optional and implement for shipped services
 	Validate(_ context.Context) error
 }
 

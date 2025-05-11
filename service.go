@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"log/slog"
 )
 
 type Service[I any, S any] struct {
@@ -10,27 +11,11 @@ type Service[I any, S any] struct {
 }
 
 func (s *Service[I, S]) Run(ctx context.Context) error {
-	return runService(ctx, s.instance)
-}
+	p := FromContext(ctx)
 
-func runService(ctx context.Context, instance any) error {
-	runner, ok := instance.(Runner)
-	if !ok {
-		return nil
-	}
+	logger := p.logger.With("service", s.Name())
 
-	return tryWrap(func() error {
-		//c.logger.Info("Running", "service", s.Name())
-		err := runner.Run(ctx)
-		if err != nil {
-			//c.logger.Warn("Runner exited with error, scheduling shutdown", "service", s.Name(), "error", err)
-			FromContext(ctx).Shutdown(err)
-			return err
-		}
-
-		//c.logger.Info("Runner finished successfully", "service", name)
-		return nil
-	})()
+	return runService(ctx, s.instance, logger)
 }
 
 func (s *Service[I, S]) Name() string {
@@ -39,11 +24,16 @@ func (s *Service[I, S]) Name() string {
 
 // Init creates a new instance of the Service, calls its Init method if it implements Initer.
 func (s *Service[I, S]) Init(ctx context.Context) error {
-	instance, err := buildInstance[S](ctx, s.beforeInit)
+	p := FromContext(ctx)
+
+	logger := p.logger.With("service", s.Name())
+
+	instance, err := buildInstance[S](ctx, s.beforeInit, logger)
 	if err != nil {
 		return err
 	}
 
+	// it is cast here to make sure it explodes during init
 	s.instance = any(instance).(I)
 
 	return nil
@@ -78,4 +68,24 @@ func (s *Service[I, S]) BeforeInit(hook LifecycleHook[S]) *Service[I, S] {
 
 func (s *Service[I, S]) Validate(ctx context.Context) error {
 	return validateService[I, S](ctx)
+}
+
+func runService(ctx context.Context, instance any, logger *slog.Logger) error {
+	runner, ok := instance.(Runner)
+	if !ok {
+		return nil
+	}
+
+	return tryWrap(func() error {
+		logger.Info("Running")
+		err := runner.Run(ctx)
+		if err != nil {
+			logger.Warn("Runner exited with error, scheduling shutdown", "error", err)
+			FromContext(ctx).Shutdown(err)
+			return err
+		}
+
+		logger.Info("Runner finished successfully")
+		return nil
+	})()
 }

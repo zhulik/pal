@@ -3,6 +3,7 @@ package pal
 import (
 	"context"
 	"fmt"
+	"log/slog"
 )
 
 type FactoryService[I any, S any] struct {
@@ -30,7 +31,11 @@ func (c *FactoryService[I, S]) Make() any {
 }
 
 func (c *FactoryService[I, S]) Instance(ctx context.Context) (any, error) {
-	return buildInstance[S](ctx, c.beforeInit)
+	p := FromContext(ctx)
+
+	logger := p.logger.With("service", c.Name())
+
+	return buildInstance[S](ctx, c.beforeInit, logger)
 }
 
 func (c *FactoryService[I, S]) Name() string {
@@ -58,21 +63,26 @@ func (c *FactoryService[I, S]) BeforeInit(hook LifecycleHook[S]) *FactoryService
 	return c
 }
 
-func buildInstance[S any](ctx context.Context, beforeInit LifecycleHook[S]) (*S, error) {
+func buildInstance[S any](ctx context.Context, beforeInit LifecycleHook[S], logger *slog.Logger) (*S, error) {
+	logger.Debug("Creating an instance")
 	s, err := Inject[S](ctx, FromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 
 	if beforeInit != nil {
+		logger.Debug("Calling BeforeInit hook")
 		err = beforeInit(ctx, s)
 		if err != nil {
+			logger.Warn("BeforeInit returned error", "error", err)
 			return nil, err
 		}
 	}
 
 	if initer, ok := any(s).(Initer); ok {
+		logger.Debug("Calling Init method")
 		if err := initer.Init(ctx); err != nil {
+			logger.Warn("Init returned error", "error", err)
 			return nil, err
 		}
 	}
