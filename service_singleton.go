@@ -31,14 +31,15 @@ func (s *ServiceSingleton[I, S]) Init(ctx context.Context) error {
 }
 
 func (s *ServiceSingleton[I, S]) HealthCheck(ctx context.Context) error {
-	if h, ok := any(s.instance).(HealthChecker); ok {
-		return h.HealthCheck(ctx)
-	}
-	return nil
+	return healthcheckService(ctx, s.instance)
 }
 
 func (s *ServiceSingleton[I, S]) Shutdown(ctx context.Context) error {
-	if h, ok := any(s.instance).(Shutdowner); ok {
+	return shutdownService(ctx, s.instance)
+}
+
+func shutdownService(ctx context.Context, instance any) error {
+	if h, ok := instance.(Shutdowner); ok {
 		return h.Shutdown(ctx)
 	}
 	return nil
@@ -82,4 +83,11 @@ func runService(ctx context.Context, instance any, name string) error {
 		logger.Info("Runner finished successfully")
 		return nil
 	})()
+}
+
+func healthcheckService(ctx context.Context, instance any) error {
+	if h, ok := instance.(HealthChecker); ok {
+		return h.HealthCheck(ctx)
+	}
+	return nil
 }

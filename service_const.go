@@ -17,17 +17,11 @@ func (c *ServiceConst[T]) Init(_ context.Context) error {
 }
 
 func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
-	if h, ok := any(c.instance).(HealthChecker); ok {
-		return h.HealthCheck(ctx)
-	}
-	return nil
+	return healthcheckService(ctx, c.instance)
 }
 
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
-	if h, ok := any(c.instance).(Shutdowner); ok {
-		return h.Shutdown(ctx)
-	}
-	return nil
+	return shutdownService(ctx, c.instance)
 }
 
 func (c *ServiceConst[T]) Make() any {

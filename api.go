@@ -16,6 +16,13 @@ func Provide[I any, S any]() *ServiceSingleton[I, S] {
 	return &ServiceSingleton[I, S]{}
 }
 
+// ProvideFn registers a singleton that is build with a given function.
+func ProvideFn[I any, S any](fn func(ctx context.Context) (*S, error)) *ServiceFnSingleton[I, S] {
+	return &ServiceFnSingleton[I, S]{
+		fn: fn,
+	}
+}
+
 // ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
