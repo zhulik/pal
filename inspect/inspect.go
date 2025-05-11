@@ -24,7 +24,9 @@ const (
 	svgContentType = "image/svg+xml"
 )
 
-type Logger slog.Logger
+type Logger struct {
+	*slog.Logger
+}
 
 type Inspect struct {
 	P *pal.Pal
@@ -38,7 +40,7 @@ type Inspect struct {
 
 func Provide() []pal.ServiceImpl {
 	return []pal.ServiceImpl{
-		pal.ProvideConst[*Logger](slog.With("palComponent", "Inspect")),
+		pal.ProvideConst[*Logger](&Logger{slog.With("palComponent", "Inspect")}),
 		pal.Provide[*Inspect, Inspect](),
 		pal.ProvideFactory[*VM, VM](),
 		pal.ProvideFactory[*Graphviz, Graphviz](),
