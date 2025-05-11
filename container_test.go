@@ -57,37 +57,6 @@ func (m *MockService) Validate(ctx context.Context) error {
 	return args.Error(0)
 }
 
-// MockInstance implements various optional interfaces for testing
-type MockInstance struct {
-	mock.Mock
-}
-
-func (m *MockInstance) Shutdown(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func (m *MockInstance) HealthCheck(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func (m *MockInstance) Run(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
-func newMockInstance(t *testing.T) *MockInstance {
-	t.Helper()
-
-	m := &MockInstance{}
-	t.Cleanup(func() {
-		m.AssertExpectations(t)
-	})
-
-	return m
-}
-
 // TestContainer_New tests the New function for Container
 func TestContainer_New(t *testing.T) {
 	t.Parallel()
@@ -200,7 +169,7 @@ func TestContainer_Invoke(t *testing.T) {
 	t.Run("invokes service successfully", func(t *testing.T) {
 		t.Parallel()
 
-		expectedInstance := newMockInstance(t)
+		expectedInstance := struct{}{}
 
 		service := NewMockService("service1")
 		service.On("Init", t.Context()).Return(nil)
@@ -212,7 +181,7 @@ func TestContainer_Invoke(t *testing.T) {
 		instance, err := c.Invoke(t.Context(), "service1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, expectedInstance, instance)
+		assert.Exactly(t, expectedInstance, instance)
 	})
 
 	t.Run("returns error when service not found", func(t *testing.T) {
