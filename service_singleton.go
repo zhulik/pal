@@ -4,21 +4,21 @@ import (
 	"context"
 )
 
-type Service[I any, S any] struct {
+type ServiceSingleton[I any, S any] struct {
 	beforeInit LifecycleHook[S]
 	instance   I
 }
 
-func (s *Service[I, S]) Run(ctx context.Context) error {
+func (s *ServiceSingleton[I, S]) Run(ctx context.Context) error {
 	return runService(ctx, s.instance, s.Name())
 }
 
-func (s *Service[I, S]) Name() string {
+func (s *ServiceSingleton[I, S]) Name() string {
 	return elem[I]().String()
 }
 
 // Init creates a new instance of the Service, calls its Init method if it implements Initer.
-func (s *Service[I, S]) Init(ctx context.Context) error {
+func (s *ServiceSingleton[I, S]) Init(ctx context.Context) error {
 	instance, err := buildInstance[S](ctx, s.beforeInit, s.Name())
 	if err != nil {
 		return err
@@ -30,34 +30,34 @@ func (s *Service[I, S]) Init(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service[I, S]) HealthCheck(ctx context.Context) error {
+func (s *ServiceSingleton[I, S]) HealthCheck(ctx context.Context) error {
 	if h, ok := any(s.instance).(HealthChecker); ok {
 		return h.HealthCheck(ctx)
 	}
 	return nil
 }
 
-func (s *Service[I, S]) Shutdown(ctx context.Context) error {
+func (s *ServiceSingleton[I, S]) Shutdown(ctx context.Context) error {
 	if h, ok := any(s.instance).(Shutdowner); ok {
 		return h.Shutdown(ctx)
 	}
 	return nil
 }
 
-func (s *Service[I, S]) Make() any {
+func (s *ServiceSingleton[I, S]) Make() any {
 	return new(S)
 }
 
-func (s *Service[I, S]) Instance(_ context.Context) (any, error) {
+func (s *ServiceSingleton[I, S]) Instance(_ context.Context) (any, error) {
 	return s.instance, nil
 }
 
-func (s *Service[I, S]) BeforeInit(hook LifecycleHook[S]) *Service[I, S] {
+func (s *ServiceSingleton[I, S]) BeforeInit(hook LifecycleHook[S]) *ServiceSingleton[I, S] {
 	s.beforeInit = hook
 	return s
 }
 
-func (s *Service[I, S]) Validate(ctx context.Context) error {
+func (s *ServiceSingleton[I, S]) Validate(ctx context.Context) error {
 	return validateService[I, S](ctx)
 }
 

@@ -12,20 +12,20 @@ import (
 // - An interface, in this case S must implement it. Used when I may have multiple implementations like mocks for tests.
 // - A pointer to `S`. For instance,`Provide[*Foo, Foo]()`. Used when mocking is not required.
 // Only one instance of the service will be created and reused.
-func Provide[I any, S any]() *Service[I, S] {
-	return &Service[I, S]{}
+func Provide[I any, S any]() *ServiceSingleton[I, S] {
+	return &ServiceSingleton[I, S]{}
 }
 
 // ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S any]() *FactoryService[I, S] {
-	return &FactoryService[I, S]{}
+func ProvideFactory[I any, S any]() *ServiceFactory[I, S] {
+	return &ServiceFactory[I, S]{}
 }
 
 // ProvideConst registers a const as a service.
-func ProvideConst[I any](value I) *ConstService[I] {
-	return &ConstService[I]{value}
+func ProvideConst[I any](value I) *ServiceConst[I] {
+	return &ServiceConst[I]{value}
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.

@@ -5,39 +5,39 @@ import (
 	"fmt"
 )
 
-type FactoryService[I any, S any] struct {
+type ServiceFactory[I any, S any] struct {
 	beforeInit LifecycleHook[S]
 }
 
-func (c *FactoryService[I, S]) Run(_ context.Context) error {
+func (c *ServiceFactory[I, S]) Run(_ context.Context) error {
 	return nil
 }
 
-func (c *FactoryService[I, S]) Init(_ context.Context) error {
+func (c *ServiceFactory[I, S]) Init(_ context.Context) error {
 	return nil
 }
 
-func (c *FactoryService[I, S]) HealthCheck(_ context.Context) error {
+func (c *ServiceFactory[I, S]) HealthCheck(_ context.Context) error {
 	return nil
 }
 
-func (c *FactoryService[I, S]) Shutdown(_ context.Context) error {
+func (c *ServiceFactory[I, S]) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func (c *FactoryService[I, S]) Make() any {
+func (c *ServiceFactory[I, S]) Make() any {
 	return empty[S]()
 }
 
-func (c *FactoryService[I, S]) Instance(ctx context.Context) (any, error) {
+func (c *ServiceFactory[I, S]) Instance(ctx context.Context) (any, error) {
 	return buildInstance[S](ctx, c.beforeInit, c.Name())
 }
 
-func (c *FactoryService[I, S]) Name() string {
+func (c *ServiceFactory[I, S]) Name() string {
 	return elem[I]().String()
 }
 
-func (c *FactoryService[I, S]) Validate(ctx context.Context) error {
+func (c *ServiceFactory[I, S]) Validate(ctx context.Context) error {
 	return validateService[I, S](ctx)
 }
 
@@ -53,7 +53,7 @@ func validateService[I any, S any](_ context.Context) error {
 	return nil
 }
 
-func (c *FactoryService[I, S]) BeforeInit(hook LifecycleHook[S]) *FactoryService[I, S] {
+func (c *ServiceFactory[I, S]) BeforeInit(hook LifecycleHook[S]) *ServiceFactory[I, S] {
 	c.beforeInit = hook
 	return c
 }
