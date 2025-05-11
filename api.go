@@ -7,13 +7,16 @@ import (
 	"reflect"
 )
 
-// Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
+// Provide registers a singleton service with pal. `I` is the type `S` will be cast to. It's also used to generate
+// service name. Typically, `I` would be one of:
+// - An interface, in this case S must implement it. Used when I may have multiple implementations like mocks for tests.
+// - A pointer to `S`. For instance,`Provide[*Foo, Foo]()`. Used when mocking is not required.
 // Only one instance of the service will be created and reused.
 func Provide[I any, S any]() *Service[I, S] {
 	return &Service[I, S]{}
 }
 
-// ProvideFactory registers a factory service with pal. *I* must be an interface, and *S* must be a struct that implements I.
+// ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
 func ProvideFactory[I any, S any]() *FactoryService[I, S] {
