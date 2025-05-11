@@ -156,7 +156,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
-func (p *Pal) Services() []ServiceDef {
+func (p *Pal) Services() map[string]ServiceDef {
 	return p.container.Services()
 }
 

@@ -392,8 +392,8 @@ func TestContainer_Services(t *testing.T) {
 		result := c.Services()
 
 		assert.Len(t, result, 2)
-		assert.Contains(t, result, service1)
-		assert.Contains(t, result, service2)
+		assert.Contains(t, result, "service1")
+		assert.Contains(t, result, "service2")
 	})
 
 	t.Run("returns empty slice for empty container", func(t *testing.T) {

@@ -90,9 +90,9 @@ func (c *Container) Init(ctx context.Context) error {
 }
 
 func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
-	service, err := c.graph.Vertex(name)
-	if err != nil {
-		return nil, fmt.Errorf("%w: '%s', known services: %s. %w", ErrServiceNotFound, name, c.Services(), err)
+	service, ok := c.services[name]
+	if !ok {
+		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, c.services)
 	}
 
 	instance, err := service.Instance(ctx)
@@ -157,8 +157,8 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	return wg.Wait()
 }
 
-func (c *Container) Services() []ServiceDef {
-	return c.graph.Vertices()
+func (c *Container) Services() map[string]ServiceDef {
+	return c.services
 }
 
 func (c *Container) StartRunners(ctx context.Context) error {
@@ -169,7 +169,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.cancel = cancel
 	c.cancelMu.Unlock()
 
-	for _, service := range c.Services() {
+	for name, service := range c.services {
 		if !service.IsRunner() {
 			continue
 		}
@@ -180,15 +180,15 @@ func (c *Container) StartRunners(ctx context.Context) error {
 		}
 
 		c.runnerTasks.Go(tryWrap(func() error {
-			c.logger.Info("Running", "service", service.Name())
+			c.logger.Info("Running", "service", name)
 			err := runner.(Runner).Run(ctx)
 			if err != nil {
-				c.logger.Warn("Runner exited with error, scheduling shutdown", "service", service.Name(), "error", err)
+				c.logger.Warn("Runner exited with error, scheduling shutdown", "service", name, "error", err)
 				FromContext(ctx).Shutdown(err)
 				return err
 			}
 
-			c.logger.Info("Runner finished successfully", "service", service.Name())
+			c.logger.Info("Runner finished successfully", "service", name)
 			return nil
 		}))
 	}
