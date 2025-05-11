@@ -10,28 +10,19 @@ import (
 // Provide registers a singleton service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // Only one instance of the service will be created and reused.
 func Provide[I any, S any]() *Service[I, S] {
-	_, isRunner := any(new(S)).(Runner)
-
-	return &Service[I, S]{
-		singleton: true,
-		runner:    isRunner,
-	}
+	return &Service[I, S]{}
 }
 
 // ProvideFactory registers a factory service with pal. *I* must be an interface, and *S* must be a struct that implements I.
 // A new factory service instances are created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S any]() *Service[I, S] {
-	return &Service[I, S]{
-		singleton: false,
-	}
+func ProvideFactory[I any, S any]() *FactoryService[I, S] {
+	return &FactoryService[I, S]{}
 }
 
 // ProvideConst registers a const as a service.
 func ProvideConst[I any](value I) *ConstService[I] {
-	return &ConstService[I]{
-		instance: value,
-	}
+	return &ConstService[I]{value}
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
