@@ -19,8 +19,8 @@ func (f *Service[I, S]) Name() string {
 	return elem[I]().String()
 }
 
-// Initialize creates a new instance of the Service, calls its Init method if it implements Initer.
-func (f *Service[I, S]) Initialize(ctx context.Context) error {
+// Init creates a new instance of the Service, calls its Init method if it implements Initer.
+func (f *Service[I, S]) Init(ctx context.Context) error {
 	if !f.singleton {
 		return nil
 	}
@@ -36,6 +36,24 @@ func (f *Service[I, S]) Initialize(ctx context.Context) error {
 
 	f.instance = any(s).(I)
 
+	return nil
+}
+
+func (f *Service[I, S]) HealthCheck(ctx context.Context) error {
+	if !isNil(f.instance) {
+		if h, ok := any(f.instance).(HealthChecker); ok {
+			return h.HealthCheck(ctx)
+		}
+	}
+	return nil
+}
+
+func (f *Service[I, S]) Shutdown(ctx context.Context) error {
+	if !isNil(f.instance) {
+		if h, ok := any(f.instance).(Shutdowner); ok {
+			return h.Shutdown(ctx)
+		}
+	}
 	return nil
 }
 

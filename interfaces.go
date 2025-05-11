@@ -46,11 +46,12 @@ type Runner interface {
 
 // ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
 type ServiceDef interface {
+	Initer
+	HealthChecker
+	Shutdowner
+
 	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
 	Make() any
-
-	// Initialize - when called, singleton services should create its instances.
-	Initialize(ctx context.Context) error
 
 	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
 	Instance(ctx context.Context) (any, error)

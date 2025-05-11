@@ -78,7 +78,7 @@ func (c *Container) Init(ctx context.Context) error {
 		if service.IsSingleton() {
 			c.logger.Info("Initializing", "service", service.Name())
 
-			if err := service.Initialize(ctx); err != nil {
+			if err := service.Init(ctx); err != nil {
 				return err
 			}
 
@@ -117,25 +117,14 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	errs = append(errs, c.runnerTasks.Wait())
 
 	c.graph.InTopologicalOrder(func(service ServiceDef) error { // nolint:errcheck
-		if !service.IsSingleton() {
+		err := service.Shutdown(ctx)
+		if err != nil {
+			c.logger.Warn("Shut down with error", "service", service.Name(), "error", err)
+			errs = append(errs, err)
 			return nil
 		}
 
-		instance, _ := service.Instance(ctx)
-
-		if shutdowner, ok := instance.(Shutdowner); ok {
-			c.logger.Info("Shutting down", "service", service.Name())
-
-			err := shutdowner.Shutdown(ctx)
-			if err != nil {
-				c.logger.Warn("Shut down with error", "service", service.Name(), "error", err)
-				errs = append(errs, err)
-				return nil
-			}
-
-			c.logger.Info("Shut down successfully", "service", service.Name())
-		}
-
+		c.logger.Info("Shut down successfully", "service", service.Name())
 		return nil
 	})
 
@@ -146,29 +135,19 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	var wg errgroup.Group
 
 	c.graph.ForEachVertex(func(service ServiceDef) error { // nolint:errcheck
-		if !service.IsSingleton() {
-			return nil
-		}
-
 		wg.Go(func() error {
-			instance, _ := service.Instance(ctx)
-
 			// Do not check pal again, this leads to recursion
-			if _, ok := instance.(*Pal); ok {
+			if service.Name() == "*pal.Pal" {
 				return nil
 			}
 
-			if healthChecker, ok := instance.(HealthChecker); ok {
-				c.logger.Debug("Health checking", "service", service.Name())
-
-				err := healthChecker.HealthCheck(ctx)
-				if err != nil {
-					c.logger.Warn("Health check failed", "service", service.Name(), "error", err)
-					return err
-				}
-
-				c.logger.Debug("Health check successful", "service", service.Name())
+			err := service.HealthCheck(ctx)
+			if err != nil {
+				c.logger.Warn("Health check failed", "service", service.Name(), "error", err)
+				return err
 			}
+
+			c.logger.Debug("Health check successful", "service", service.Name())
 			return nil
 		})
 
