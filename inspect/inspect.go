@@ -24,7 +24,7 @@ const (
 	svgContentType = "image/svg+xml"
 )
 
-type Logger = slog.Logger
+type Logger slog.Logger
 
 type Inspect struct {
 	P *pal.Pal
@@ -118,7 +118,7 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(422)
-		
+
 		w.Write([]byte(err.Error()))
 		return
 	}
