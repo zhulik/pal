@@ -21,27 +21,6 @@ func TestService_Name(t *testing.T) {
 	})
 }
 
-// TestService_IsSingleton tests the IsSingleton method of the service struct
-func TestService_IsSingleton(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns true for singleton service", func(t *testing.T) {
-		t.Parallel()
-
-		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
-
-		assert.True(t, service.IsSingleton())
-	})
-
-	t.Run("returns false for factory service", func(t *testing.T) {
-		t.Parallel()
-
-		service := pal.ProvideFactory[TestServiceInterface, TestServiceStruct]()
-
-		assert.False(t, service.IsSingleton())
-	})
-}
-
 // TestService_IsRunner tests the IsRunner method of the service struct
 func TestService_IsRunner(t *testing.T) {
 	t.Parallel()

@@ -43,10 +43,6 @@ func (s *Service[I, S]) Make() any {
 	return new(S)
 }
 
-func (s *Service[I, S]) IsSingleton() bool {
-	return true
-}
-
 func (s *Service[I, S]) Instance(_ context.Context) (any, error) {
 	return s.instance, nil
 }

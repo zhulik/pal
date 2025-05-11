@@ -38,10 +38,6 @@ func (c *ConstService[T]) Name() string {
 	return elem[T]().String()
 }
 
-func (c *ConstService[T]) IsSingleton() bool {
-	return true
-}
-
 func (c *ConstService[T]) IsRunner() bool {
 	_, runner := any(c.instance).(Runner)
 	return runner

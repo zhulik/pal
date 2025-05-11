@@ -33,10 +33,6 @@ func (c *FactoryService[I, S]) Name() string {
 	return elem[I]().String()
 }
 
-func (c *FactoryService[I, S]) IsSingleton() bool {
-	return false
-}
-
 func (c *FactoryService[I, S]) IsRunner() bool {
 	return false
 }

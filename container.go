@@ -75,14 +75,8 @@ func (c *Container) Init(ctx context.Context) error {
 	c.logger.Info("Dependency tree built", "tree", adjMap, "order", order)
 
 	return c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
-		if service.IsSingleton() {
-			c.logger.Info("Initializing", "service", service.Name())
-
-			if err := service.Init(ctx); err != nil {
-				return err
-			}
-
-			c.logger.Info("Initialized", "service", service.Name())
+		if err := service.Init(ctx); err != nil {
+			return err
 		}
 
 		return nil
