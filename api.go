@@ -28,14 +28,9 @@ func ProvideFactory[I any, S any]() *Service[I, S] {
 }
 
 // ProvideConst registers a const as a service.
-func ProvideConst[I any](value I) *Service[I, I] {
-	_, isRunner := any(new(I)).(Runner)
-
-	return &Service[I, I]{
-		singleton:  true,
-		runner:     isRunner,
-		beforeInit: nil,
-		instance:   value,
+func ProvideConst[I any](value I) *ConstService[I] {
+	return &ConstService[I]{
+		instance: value,
 	}
 }
 

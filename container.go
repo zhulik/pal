@@ -218,7 +218,7 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 		}
 	}
 	m := service.Make()
-	if _, ok := m.(*Pal); ok {
+	if isNil(m) {
 		return nil
 	}
 	val := reflect.ValueOf(m)
