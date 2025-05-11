@@ -31,7 +31,7 @@ type Pal struct {
 }
 
 // New creates and returns a new instance of Pal with the provided Services
-func New(services ...ServiceImpl) *Pal {
+func New(services ...ServiceDef) *Pal {
 	pal := &Pal{
 		config:       &Config{},
 		stopChan:     make(chan error, 1),
@@ -156,7 +156,7 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
-func (p *Pal) Services() []ServiceImpl {
+func (p *Pal) Services() []ServiceDef {
 	return p.container.Services()
 }
 

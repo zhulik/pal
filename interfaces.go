@@ -44,8 +44,8 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
-// ServiceImpl is a factory for creating a service.
-type ServiceImpl interface {
+// ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
+type ServiceDef interface {
 	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
 	Make() any
 

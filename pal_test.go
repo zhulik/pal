@@ -174,7 +174,7 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.ElementsMatch(t, []pal.ServiceImpl{service, pal.ProvideConst(p)}, services)
+		assert.ElementsMatch(t, []pal.ServiceDef{service, pal.ProvideConst(p)}, services)
 	})
 
 	t.Run("returns a slice with only pal for no services", func(t *testing.T) {
@@ -185,7 +185,7 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.ElementsMatch(t, []pal.ServiceImpl{pal.ProvideConst(p)}, services)
+		assert.ElementsMatch(t, []pal.ServiceDef{pal.ProvideConst(p)}, services)
 	})
 }
 
