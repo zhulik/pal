@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/chzyer/readline"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
 
 type RemoteConsole struct {
-	Logger *Logger
 }
 
 func (r *RemoteConsole) Run(ctx context.Context) error {
@@ -43,23 +43,23 @@ func (r *RemoteConsole) Run(ctx context.Context) error {
 		// TODO: url from ENV or from config
 		resp, err := http.Post(fmt.Sprintf("http://127.0.0.1:%d/pal/eval", inspectPort), "application/text", strings.NewReader(line))
 		if err != nil {
-			r.Logger.Warn("Input sending error", "error", err)
+			log.Printf("Input sending error: %+v", err)
 			continue
 		}
 
 		result, err := io.ReadAll(resp.Body)
 		if err != nil {
-			r.Logger.Warn("Response body reading error", "error", err)
+			log.Printf("Response body reading error: %+v", err)
 			continue
 		}
 
 		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			r.Logger.Warn("Non-200 response:", "body", result)
+			log.Printf("Non-200 response, bod: %s", result)
 		}
 
-		r.Logger.Info(string(result))
+		log.Printf("%s", result)
 	}
 
 	return nil
