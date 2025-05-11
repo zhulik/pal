@@ -9,6 +9,30 @@ type Service[I any, S any] struct {
 	instance   I
 }
 
+func (s *Service[I, S]) Run(ctx context.Context) error {
+	return runService(ctx, s.instance)
+}
+
+func runService(ctx context.Context, instance any) error {
+	runner, ok := instance.(Runner)
+	if !ok {
+		return nil
+	}
+
+	return tryWrap(func() error {
+		//c.logger.Info("Running", "service", s.Name())
+		err := runner.Run(ctx)
+		if err != nil {
+			//c.logger.Warn("Runner exited with error, scheduling shutdown", "service", s.Name(), "error", err)
+			FromContext(ctx).Shutdown(err)
+			return err
+		}
+
+		//c.logger.Info("Runner finished successfully", "service", name)
+		return nil
+	})()
+}
+
 func (s *Service[I, S]) Name() string {
 	return elem[I]().String()
 }

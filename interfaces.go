@@ -49,6 +49,10 @@ type ServiceDef interface {
 	Initer
 	HealthChecker
 	Shutdowner
+	Runner
+
+	// Name returns a name of the service, this will be used to identify the service in the container.
+	Name() string
 
 	// Make only creates a new instance of the service, it doesn't initialize it. Used only to build the dependency DAG.
 	Make() any
@@ -56,10 +60,7 @@ type ServiceDef interface {
 	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
 	Instance(ctx context.Context) (any, error)
 
-	// Name returns a name of the service, this will be used to identify the service in the container.
-	Name() string
-
-	// Validate validates the service factory.
+	// Validate validates the definition.
 	Validate(_ context.Context) error
 }
 

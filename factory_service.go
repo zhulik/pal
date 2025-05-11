@@ -9,6 +9,10 @@ type FactoryService[I any, S any] struct {
 	beforeInit LifecycleHook[S]
 }
 
+func (c *FactoryService[I, S]) Run(_ context.Context) error {
+	return nil
+}
+
 func (c *FactoryService[I, S]) Init(_ context.Context) error {
 	return nil
 }

@@ -28,6 +28,11 @@ func (m *MockService) Make() any {
 	return nil
 }
 
+func (m *MockService) Run(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
 func (m *MockService) Init(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)

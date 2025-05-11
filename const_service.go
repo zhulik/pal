@@ -8,6 +8,10 @@ type ConstService[T any] struct {
 	instance T
 }
 
+func (c *ConstService[T]) Run(ctx context.Context) error {
+	return runService(ctx, c.instance)
+}
+
 func (c *ConstService[T]) Init(_ context.Context) error {
 	return nil
 }
