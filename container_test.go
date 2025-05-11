@@ -357,7 +357,7 @@ func TestContainer_Services(t *testing.T) {
 		assert.Contains(t, result, "service2")
 	})
 
-	t.Run("returns empty slice for empty container", func(t *testing.T) {
+	t.Run("returns empty map for empty container", func(t *testing.T) {
 		t.Parallel()
 
 		c := pal.NewContainer()
