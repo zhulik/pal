@@ -9,11 +9,7 @@ type ConstService[T any] struct {
 }
 
 func (c *ConstService[T]) Run(ctx context.Context) error {
-	p := FromContext(ctx)
-
-	logger := p.logger.With("service", c.Name())
-
-	return runService(ctx, c.instance, logger)
+	return runService(ctx, c.instance, c.Name())
 }
 
 func (c *ConstService[T]) Init(_ context.Context) error {

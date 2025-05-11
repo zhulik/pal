@@ -3,7 +3,6 @@ package pal
 import (
 	"context"
 	"fmt"
-	"log/slog"
 )
 
 type FactoryService[I any, S any] struct {
@@ -31,11 +30,7 @@ func (c *FactoryService[I, S]) Make() any {
 }
 
 func (c *FactoryService[I, S]) Instance(ctx context.Context) (any, error) {
-	p := FromContext(ctx)
-
-	logger := p.logger.With("service", c.Name())
-
-	return buildInstance[S](ctx, c.beforeInit, logger)
+	return buildInstance[S](ctx, c.beforeInit, c.Name())
 }
 
 func (c *FactoryService[I, S]) Name() string {
@@ -63,7 +58,11 @@ func (c *FactoryService[I, S]) BeforeInit(hook LifecycleHook[S]) *FactoryService
 	return c
 }
 
-func buildInstance[S any](ctx context.Context, beforeInit LifecycleHook[S], logger *slog.Logger) (*S, error) {
+func buildInstance[S any](ctx context.Context, beforeInit LifecycleHook[S], name string) (*S, error) {
+	p := FromContext(ctx)
+
+	logger := p.logger.With("service", name)
+
 	logger.Debug("Creating an instance")
 	s, err := Inject[S](ctx, FromContext(ctx))
 	if err != nil {

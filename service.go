@@ -2,7 +2,6 @@ package pal
 
 import (
 	"context"
-	"log/slog"
 )
 
 type Service[I any, S any] struct {
@@ -11,11 +10,7 @@ type Service[I any, S any] struct {
 }
 
 func (s *Service[I, S]) Run(ctx context.Context) error {
-	p := FromContext(ctx)
-
-	logger := p.logger.With("service", s.Name())
-
-	return runService(ctx, s.instance, logger)
+	return runService(ctx, s.instance, s.Name())
 }
 
 func (s *Service[I, S]) Name() string {
@@ -24,11 +19,7 @@ func (s *Service[I, S]) Name() string {
 
 // Init creates a new instance of the Service, calls its Init method if it implements Initer.
 func (s *Service[I, S]) Init(ctx context.Context) error {
-	p := FromContext(ctx)
-
-	logger := p.logger.With("service", s.Name())
-
-	instance, err := buildInstance[S](ctx, s.beforeInit, logger)
+	instance, err := buildInstance[S](ctx, s.beforeInit, s.Name())
 	if err != nil {
 		return err
 	}
@@ -70,7 +61,10 @@ func (s *Service[I, S]) Validate(ctx context.Context) error {
 	return validateService[I, S](ctx)
 }
 
-func runService(ctx context.Context, instance any, logger *slog.Logger) error {
+func runService(ctx context.Context, instance any, name string) error {
+	p := FromContext(ctx)
+	logger := p.logger.With("service", name)
+
 	runner, ok := instance.(Runner)
 	if !ok {
 		return nil
