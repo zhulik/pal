@@ -10,35 +10,44 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [ ".", "inspect" ]
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: ${{ format('{0}/go.mod', matrix.module) }}
           cache: true
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
           version: latest
-          args: --timeout=5m
+          working-directory: ${{ matrix.module }}
+          args: --timeout=2m
 
   test:
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [ ".", "inspect" ]
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: ${{ format('{0}/go.mod', matrix.module) }}
           cache: true
 
       - name: Run tests
-        run: go test -race ./...
+        run: cd ${{ matrix.module }} && go test -race ./...
 
   ci:
     name: CI
