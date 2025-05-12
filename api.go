@@ -17,8 +17,8 @@ func Provide[I any, S any]() *ServiceSingleton[I, S] {
 }
 
 // ProvideFn registers a singleton that is build with a given function.
-func ProvideFn[I any, S any](fn func(ctx context.Context) (*S, error)) *ServiceFnSingleton[I, S] {
-	return &ServiceFnSingleton[I, S]{
+func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
+	return &ServiceFnSingleton[T]{
 		fn: fn,
 	}
 }
@@ -31,27 +31,27 @@ func ProvideFactory[I any, S any]() *ServiceFactory[I, S] {
 }
 
 // ProvideFnFactory registers a factory service that is build with a given function.
-func ProvideFnFactory[I any]() *ServiceFnFactory[I] {
-	return &ServiceFnFactory[I]{}
+func ProvideFnFactory[T any]() *ServiceFnFactory[T] {
+	return &ServiceFnFactory[T]{}
 }
 
 // ProvideConst registers a const as a service.
-func ProvideConst[I any](value I) *ServiceConst[I] {
-	return &ServiceConst[I]{value}
+func ProvideConst[T any](value T) *ServiceConst[T] {
+	return &ServiceConst[T]{value}
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
-func Invoke[I any](ctx context.Context, invoker Invoker) (I, error) {
-	name := elem[I]().String()
+func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
+	name := elem[T]().String()
 
 	a, err := invoker.Invoke(ctx, name)
 	if err != nil {
-		return empty[I](), err
+		return empty[T](), err
 	}
 
-	casted, ok := a.(I)
+	casted, ok := a.(T)
 	if !ok {
-		return empty[I](), fmt.Errorf("%w: %s. %+v does not implement %s", ErrServiceInvalid, name, a, name)
+		return empty[T](), fmt.Errorf("%w: %s. %+v does not implement %s", ErrServiceInvalid, name, a, name)
 	}
 
 	return casted, nil
