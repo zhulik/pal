@@ -24,15 +24,17 @@ func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSinglet
 }
 
 // ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
-// A new factory service instances are created every time the service is invoked.
+// A new factory service instance is created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
 func ProvideFactory[I any, S any]() *ServiceFactory[I, S] {
 	return &ServiceFactory[I, S]{}
 }
 
 // ProvideFnFactory registers a factory service that is build with a given function.
-func ProvideFnFactory[T any]() *ServiceFnFactory[T] {
-	return &ServiceFnFactory[T]{}
+func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFnFactory[T] {
+	return &ServiceFnFactory[T]{
+		fn: fn,
+	}
 }
 
 // ProvideConst registers a const as a service.
