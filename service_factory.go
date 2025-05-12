@@ -6,6 +6,7 @@ import (
 )
 
 type ServiceFactory[I any, S any] struct {
+	P          *Pal
 	beforeInit LifecycleHook[S]
 }
 
@@ -30,7 +31,7 @@ func (c *ServiceFactory[I, S]) Make() any {
 }
 
 func (c *ServiceFactory[I, S]) Instance(ctx context.Context) (any, error) {
-	return buildService[S](ctx, c.beforeInit, c.Name())
+	return buildService[S](ctx, c.beforeInit, c.P, c.P.logger.With("service", c.Name()))
 }
 
 func (c *ServiceFactory[I, S]) Name() string {

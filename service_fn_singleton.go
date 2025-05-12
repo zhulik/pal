@@ -7,6 +7,7 @@ import (
 // ServiceFnSingleton is a singleton service that is created using a function.
 // It is created during initialization and reused for the lifetime of the application.
 type ServiceFnSingleton[T any] struct {
+	P  *Pal
 	fn func(ctx context.Context) (T, error)
 
 	instance T
@@ -14,7 +15,7 @@ type ServiceFnSingleton[T any] struct {
 
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceFnSingleton[T]) Run(ctx context.Context) error {
-	return runService(ctx, c.instance, c.Name())
+	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
 // Init initializes the service by calling the provided function to create the instance.
@@ -31,12 +32,12 @@ func (c *ServiceFnSingleton[T]) Init(ctx context.Context) error {
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance)
+	return healthcheckService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
-	return shutdownService(ctx, c.instance)
+	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
 // Make returns nil for singleton services as they are created during initialization.

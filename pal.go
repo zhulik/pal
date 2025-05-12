@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"reflect"
 	"time"
 )
 
@@ -39,9 +40,33 @@ func New(services ...ServiceDef) *Pal {
 		logger:       slog.With("palComponent", "Pal"),
 	}
 
-	pal.container = NewContainer(append(services, ProvideConst(pal))...)
+	services = append(services, ProvideConst(pal))
+
+	for _, s := range services {
+		setPalField(reflect.ValueOf(s), pal)
+	}
+
+	pal.container = NewContainer(services...)
 
 	return pal
+}
+
+func setPalField(v reflect.Value, pal *Pal) {
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return
+	}
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.CanSet() && field.Type() == reflect.TypeOf(pal) {
+			field.Set(reflect.ValueOf(pal))
+		}
+		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Pointer && !field.IsNil()) {
+			setPalField(field, pal)
+		}
+	}
 }
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
@@ -99,8 +124,6 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		return err
 	}
 
-	p.logger.Info("Pal initialized", "services", p.Services())
-
 	go p.listenToStopSignals(ctx, signals)
 	go func() {
 		p.Shutdown(p.container.StartRunners(ctx))
@@ -127,8 +150,6 @@ func (p *Pal) Init(ctx context.Context) error {
 	defer cancel()
 
 	if err := p.container.Init(initCtx); err != nil {
-		p.logger.Warn("Init failed", "error", err)
-
 		p.Shutdown(err)
 		return err
 	}
@@ -150,7 +171,6 @@ func (p *Pal) Init(ctx context.Context) error {
 		defer cancel()
 
 		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
-		p.logger.Info("Shutdown completed.")
 	}()
 
 	return nil
@@ -162,7 +182,6 @@ func (p *Pal) Services() map[string]ServiceDef {
 
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
-	p.logger.Debug("Invoking", "service", name)
 
 	return p.container.Invoke(ctx, name)
 }

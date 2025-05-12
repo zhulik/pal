@@ -37,7 +37,7 @@ func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFn
 
 // ProvideConst registers a const as a service.
 func ProvideConst[T any](value T) *ServiceConst[T] {
-	return &ServiceConst[T]{value}
+	return &ServiceConst[T]{instance: value}
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.

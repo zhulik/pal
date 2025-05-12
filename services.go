@@ -2,42 +2,36 @@ package pal
 
 import (
 	"context"
+	"log/slog"
 )
 
-func buildService[S any](ctx context.Context, beforeInit LifecycleHook[S], name string) (*S, error) {
-	p := FromContext(ctx)
-
-	logger := p.logger.With("service", name)
-
+func buildService[S any](ctx context.Context, beforeInit LifecycleHook[S], p *Pal, logger *slog.Logger) (*S, error) {
 	logger.Debug("Creating an instance")
-	s, err := Build[S](ctx, FromContext(ctx))
+	s, err := Build[S](ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
 	if beforeInit != nil {
-		logger.Debug("Calling BeforeInit hook")
+		logger.Info("Calling BeforeInit hook")
 		err = beforeInit(ctx, s)
 		if err != nil {
-			logger.Warn("BeforeInit returned error", "error", err)
+			p.logger.Warn("BeforeInit hook failed", "error", err)
 			return nil, err
 		}
 	}
 
 	if initer, ok := any(s).(Initer); ok {
-		logger.Debug("Calling Init method")
+		logger.Info("Calling Init method")
 		if err := initer.Init(ctx); err != nil {
-			logger.Warn("Init returned error", "error", err)
+			logger.Warn("Init failed", "error", err)
 			return nil, err
 		}
 	}
 	return s, nil
 }
 
-func runService(ctx context.Context, instance any, name string) error {
-	p := FromContext(ctx)
-	logger := p.logger.With("service", name)
-
+func runService(ctx context.Context, instance any, logger *slog.Logger) error {
 	runner, ok := instance.(Runner)
 	if !ok {
 		return nil
@@ -57,16 +51,32 @@ func runService(ctx context.Context, instance any, name string) error {
 	})()
 }
 
-func healthcheckService(ctx context.Context, instance any) error {
-	if h, ok := instance.(HealthChecker); ok {
-		return h.HealthCheck(ctx)
+func healthcheckService(ctx context.Context, instance any, logger *slog.Logger) error {
+	h, ok := instance.(HealthChecker)
+	if !ok {
+		return nil
 	}
+
+	err := h.HealthCheck(ctx)
+	if err != nil {
+		logger.Warn("Healthcheck failed", "error", err)
+		return err
+	}
+
 	return nil
 }
 
-func shutdownService(ctx context.Context, instance any) error {
-	if h, ok := instance.(Shutdowner); ok {
-		return h.Shutdown(ctx)
+func shutdownService(ctx context.Context, instance any, logger *slog.Logger) error {
+	h, ok := instance.(Shutdowner)
+	if !ok {
+		return nil
 	}
+
+	err := h.Shutdown(ctx)
+	if err != nil {
+		logger.Warn("Shutdown failed", "error", err)
+		return err
+	}
+
 	return nil
 }
