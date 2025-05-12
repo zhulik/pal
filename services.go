@@ -10,7 +10,7 @@ func buildService[S any](ctx context.Context, beforeInit LifecycleHook[S], name 
 	logger := p.logger.With("service", name)
 
 	logger.Debug("Creating an instance")
-	s, err := Inject[S](ctx, FromContext(ctx))
+	s, err := Build[S](ctx, FromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
