@@ -38,8 +38,8 @@ type Inspect struct {
 	server *http.Server
 }
 
-func Provide() []pal.ServiceImpl {
-	return []pal.ServiceImpl{
+func Provide() []pal.ServiceDef {
+	return []pal.ServiceDef{
 		pal.ProvideConst[*Logger](&Logger{slog.With("palComponent", "Inspect")}),
 		pal.Provide[*Inspect, Inspect](),
 		pal.ProvideFactory[*VM, VM](),
@@ -51,7 +51,7 @@ func (i *Inspect) Shutdown(ctx context.Context) error {
 	return i.server.Shutdown(ctx)
 }
 
-func (i *Inspect) Init(ctx context.Context) error {
+func (i *Inspect) Init(_ context.Context) error {
 	i.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", inspectPort),
 		ReadHeaderTimeout: time.Second,
@@ -121,11 +121,11 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(422)
 
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(err.Error())) //nolint:errcheck
 		return
 	}
 
-	w.Write([]byte(res.String()))
+	w.Write([]byte(res.String())) //nolint:errcheck
 }
 
 func (i *Inspect) httpGraph(w http.ResponseWriter, r *http.Request) {
