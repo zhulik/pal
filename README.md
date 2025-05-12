@@ -83,11 +83,27 @@ a few rules described below.
       Run() will exit immediately of no runners registered.
   - Factory service — a special type of service. Unlike singletons, a new instance of a factory service is created every
     time it is invoked.
+  - Const service — a service that wraps an existing instance. It's useful for registering already created objects as services.
 
   Each service can implement any of optional service interfaces:
   - [Initer](./interfaces.go#L31) — if a service requires initialization such as connecting to a database.
   - [Shutdowner](./interfaces.go#L20) — if a service requires finalization such as closing connection to a database.
   - [HealthChecker](./interfaces.go#L10) — if a service can be inspected by checking its database connection status.
+
+## API Functions
+
+Pal provides several functions for registering services:
+
+- `Provide[I, S]()` - Registers a singleton service where `I` is the interface type and `S` is the implementation type.
+- `ProvideFn[T](fn)` - Registers a singleton service that is created using the provided function.
+- `ProvideFactory[I, S]()` - Registers a factory service where `I` is the interface type and `S` is the implementation type.
+- `ProvideFnFactory[T](fn)` - Registers a factory service that is created using the provided function.
+- `ProvideConst[T](value)` - Registers an existing instance as a service.
+
+Pal also provides functions for retrieving services:
+
+- `Invoke[T](ctx, invoker)` - Retrieves or creates an instance of type `T` from the container.
+- `Inject[S](ctx, invoker)` - Resolves dependencies for a struct of type `S` by injecting services into its fields.
 
 ## Examples:
 

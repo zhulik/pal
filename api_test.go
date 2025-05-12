@@ -54,6 +54,60 @@ func TestProvideFactory(t *testing.T) {
 	})
 }
 
+// TestProvideFn tests the ProvideFn function
+func TestProvideFn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates a singleton service with a function", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFn(func(ctx context.Context) (TestServiceInterface, error) {
+			s := &TestServiceStruct{}
+			s.On("Init", ctx).Return(nil)
+			return s, nil
+		})
+
+		assert.NotNil(t, service)
+		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+	})
+}
+
+// TestProvideFnFactory tests the ProvideFnFactory function
+func TestProvideFnFactory(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates a factory service with a function", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFnFactory[TestServiceInterface](func(_ context.Context) (TestServiceInterface, error) {
+			return &TestServiceStruct{}, nil
+		})
+
+		assert.NotNil(t, service)
+		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+	})
+}
+
+// TestProvideConst tests the ProvideConst function
+func TestProvideConst(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates a const service", func(t *testing.T) {
+		t.Parallel()
+
+		s := &TestServiceStruct{}
+		service := pal.ProvideConst[TestServiceInterface](s)
+
+		assert.NotNil(t, service)
+		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+
+		// Verify that the instance is the same
+		instance, err := service.Instance(context.Background())
+		assert.NoError(t, err)
+		assert.Same(t, s, instance)
+	})
+}
+
 // TestInvoke tests the Invoke function
 func TestInvoke(t *testing.T) {
 	t.Parallel()
