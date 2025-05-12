@@ -67,4 +67,5 @@ type ServiceDef interface {
 
 type Invoker interface {
 	Invoke(ctx context.Context, name string) (any, error)
+	InjectInto(ctx context.Context, target any) error
 }

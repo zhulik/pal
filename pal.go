@@ -167,6 +167,12 @@ func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	return p.container.Invoke(ctx, name)
 }
 
+func (p *Pal) InjectInto(ctx context.Context, target any) error {
+	ctx = context.WithValue(ctx, CtxValue, p)
+
+	return p.container.InjectInto(ctx, target)
+}
+
 func (p *Pal) Container() *Container {
 	return p.container
 }

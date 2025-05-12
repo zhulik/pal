@@ -97,6 +97,31 @@ func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
 	return instance, nil
 }
 
+func (c *Container) InjectInto(ctx context.Context, target any) error {
+	v := reflect.ValueOf(target).Elem()
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := v.Field(i)
+
+		if !field.CanSet() {
+			continue
+		}
+
+		fieldType := t.Field(i).Type
+		dependency, err := c.Invoke(ctx, fieldType.String())
+		if err != nil {
+			if errors.Is(err, ErrServiceNotFound) {
+				continue
+			}
+			return err
+		}
+
+		field.Set(reflect.ValueOf(dependency))
+	}
+	return nil
+}
+
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
 
