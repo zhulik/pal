@@ -7,6 +7,7 @@ import (
 // ServiceFnFactory is a factory service that creates a new instance each time it is invoked.
 // It uses the provided function to create the instance.
 type ServiceFnFactory[T any] struct {
+	P  *Pal
 	fn func(ctx context.Context) (T, error)
 }
 

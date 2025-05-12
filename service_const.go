@@ -7,12 +7,14 @@ import (
 // ServiceConst is a service that wraps a constant value.
 // It is used to register existing instances as services.
 type ServiceConst[T any] struct {
+	P *Pal
+
 	instance T
 }
 
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceConst[T]) Run(ctx context.Context) error {
-	return runService(ctx, c.instance, c.Name())
+	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
 // Init is a no-op for const services as they are already initialized.
@@ -22,12 +24,12 @@ func (c *ServiceConst[T]) Init(_ context.Context) error {
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance)
+	return healthcheckService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
-	return shutdownService(ctx, c.instance)
+	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
 // Make returns nil for const services as they are already created.

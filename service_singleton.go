@@ -5,12 +5,13 @@ import (
 )
 
 type ServiceSingleton[I any, S any] struct {
+	P          *Pal
 	beforeInit LifecycleHook[S]
 	instance   I
 }
 
 func (s *ServiceSingleton[I, S]) Run(ctx context.Context) error {
-	return runService(ctx, s.instance, s.Name())
+	return runService(ctx, s.instance, s.P.logger.With("service", s.Name()))
 }
 
 func (s *ServiceSingleton[I, S]) Name() string {
@@ -19,7 +20,7 @@ func (s *ServiceSingleton[I, S]) Name() string {
 
 // Init creates a new instance of the Service, calls its Init method if it implements Initer.
 func (s *ServiceSingleton[I, S]) Init(ctx context.Context) error {
-	instance, err := buildService[S](ctx, s.beforeInit, s.Name())
+	instance, err := buildService[S](ctx, s.beforeInit, s.P, s.P.logger.With("service", s.Name()))
 	if err != nil {
 		return err
 	}
@@ -31,11 +32,11 @@ func (s *ServiceSingleton[I, S]) Init(ctx context.Context) error {
 }
 
 func (s *ServiceSingleton[I, S]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, s.instance)
+	return healthcheckService(ctx, s.instance, s.P.logger.With("service", s.Name()))
 }
 
 func (s *ServiceSingleton[I, S]) Shutdown(ctx context.Context) error {
-	return shutdownService(ctx, s.instance)
+	return shutdownService(ctx, s.instance, s.P.logger.With("service", s.Name()))
 }
 
 func (s *ServiceSingleton[I, S]) Make() any {

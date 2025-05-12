@@ -74,13 +74,21 @@ func (c *Container) Init(ctx context.Context) error {
 
 	c.logger.Info("Dependency tree built", "tree", adjMap, "order", order)
 
-	return c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
+	err = c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
 		if err := service.Init(ctx); err != nil {
 			return err
 		}
 
 		return nil
 	})
+
+	if err != nil {
+		c.logger.Warn("Failed to initialize container", "error", err)
+		return err
+	}
+
+	c.logger.Info("Container initialized")
+	return nil
 }
 
 func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
@@ -125,6 +133,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
 
+	c.logger.Info("Shutting down runners")
 	// Shutting down runners by cancelling their root context
 	c.cancelMu.RLock()
 	if c.cancel != nil {
@@ -135,23 +144,33 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	// Await for runners to exit and safe possible error.
 	errs = append(errs, c.runnerTasks.Wait())
 
+	if len(errs) > 0 {
+		c.logger.Info("Runners failed to shutdown", "error", errors.Join(errs...))
+	}
+
 	c.graph.InTopologicalOrder(func(service ServiceDef) error { // nolint:errcheck
 		err := service.Shutdown(ctx)
 		if err != nil {
-			c.logger.Warn("Shut down with error", "service", service.Name(), "error", err)
 			errs = append(errs, err)
 			return nil
 		}
-
-		c.logger.Info("Shut down successfully", "service", service.Name())
 		return nil
 	})
 
-	return errors.Join(errs...)
+	err := errors.Join(errs...)
+	if err != nil {
+		c.logger.Warn("Failed to shutdown container", "error", err)
+		return err
+	}
+
+	c.logger.Info("Container initialized")
+	return nil
 }
 
 func (c *Container) HealthCheck(ctx context.Context) error {
 	var wg errgroup.Group
+
+	c.logger.Debug("Healthchecking services")
 
 	c.graph.ForEachVertex(func(service ServiceDef) error { // nolint:errcheck
 		wg.Go(func() error {
@@ -162,18 +181,24 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 
 			err := service.HealthCheck(ctx)
 			if err != nil {
-				c.logger.Warn("Health check failed", "service", service.Name(), "error", err)
 				return err
 			}
 
-			c.logger.Debug("Health check successful", "service", service.Name())
 			return nil
 		})
 
 		return nil
 	})
 
-	return wg.Wait()
+	err := wg.Wait()
+	if err != nil {
+		c.logger.Warn("Healthcheck failed", "error", err)
+		return err
+	}
+
+	c.logger.Debug("Healthcheck successful")
+
+	return nil
 }
 
 func (c *Container) Services() map[string]ServiceDef {
@@ -194,7 +219,6 @@ func (c *Container) StartRunners(ctx context.Context) error {
 		})
 	}
 
-	c.logger.Info("Waiting for runners to finish")
 	err := c.runnerTasks.Wait()
 	if err != nil {
 		c.logger.Warn("Runners finished with error", "error", err)

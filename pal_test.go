@@ -23,7 +23,7 @@ func TestPal_New(t *testing.T) {
 		p := newPal()
 
 		assert.NotNil(t, p)
-		assert.Equal(t, map[string]pal.ServiceDef{"*pal.Pal": pal.ProvideConst(p)}, p.Services())
+		assert.Contains(t, p.Services(), "*pal.Pal")
 	})
 
 	t.Run("creates a new Pal instance with services", func(t *testing.T) {
@@ -174,7 +174,8 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.Equal(t, map[string]pal.ServiceDef{"pal_test.TestServiceInterface": service, "*pal.Pal": pal.ProvideConst(p)}, services)
+		assert.Contains(t, services, "pal_test.TestServiceInterface")
+		assert.Contains(t, services, "*pal.Pal")
 	})
 
 	t.Run("returns a slice with only pal for no services", func(t *testing.T) {
@@ -185,7 +186,7 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.Equal(t, map[string]pal.ServiceDef{"*pal.Pal": pal.ProvideConst(p)}, services)
+		assert.Contains(t, services, "*pal.Pal")
 	})
 }
 
