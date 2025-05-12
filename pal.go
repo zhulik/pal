@@ -113,11 +113,11 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 // Init initializes Pal. Validates config, creates and initializes all singleton services.
 func (p *Pal) Init(ctx context.Context) error {
-	ctx = context.WithValue(ctx, CtxValue, p)
-
 	if p.initialized {
 		return nil
 	}
+
+	ctx = context.WithValue(ctx, CtxValue, p)
 
 	if err := p.validate(ctx); err != nil {
 		return err
