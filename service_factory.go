@@ -30,7 +30,7 @@ func (c *ServiceFactory[I, S]) Make() any {
 }
 
 func (c *ServiceFactory[I, S]) Instance(ctx context.Context) (any, error) {
-	return buildInstance[S](ctx, c.beforeInit, c.Name())
+	return buildService[S](ctx, c.beforeInit, c.Name())
 }
 
 func (c *ServiceFactory[I, S]) Name() string {
@@ -56,34 +56,4 @@ func validateService[I any, S any](_ context.Context) error {
 func (c *ServiceFactory[I, S]) BeforeInit(hook LifecycleHook[S]) *ServiceFactory[I, S] {
 	c.beforeInit = hook
 	return c
-}
-
-func buildInstance[S any](ctx context.Context, beforeInit LifecycleHook[S], name string) (*S, error) {
-	p := FromContext(ctx)
-
-	logger := p.logger.With("service", name)
-
-	logger.Debug("Creating an instance")
-	s, err := Inject[S](ctx, FromContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-
-	if beforeInit != nil {
-		logger.Debug("Calling BeforeInit hook")
-		err = beforeInit(ctx, s)
-		if err != nil {
-			logger.Warn("BeforeInit returned error", "error", err)
-			return nil, err
-		}
-	}
-
-	if initer, ok := any(s).(Initer); ok {
-		logger.Debug("Calling Init method")
-		if err := initer.Init(ctx); err != nil {
-			logger.Warn("Init returned error", "error", err)
-			return nil, err
-		}
-	}
-	return s, nil
 }
