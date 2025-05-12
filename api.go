@@ -59,11 +59,24 @@ func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
 	return casted, nil
 }
 
-// Inject resolves dependencies for a struct of type S using the provided context and Pal instance.
+// Build resolves dependencies for a struct of type S using the provided context and Pal instance.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
-func Inject[S any](ctx context.Context, invoker Invoker) (*S, error) {
-	s := new(S)
+func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
+	s := new(T)
+
+	err := InjectInto[T](ctx, invoker, s)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+// InjectInto populates the fields of a struct of type T with dependencies obtained from the given Invoker.
+// It only sets fields that are exported and match a resolvable dependency, skipping fields when ErrServiceNotFound occurs.
+// Returns an error if dependency invocation fails or other unrecoverable errors occur during injection.
+func InjectInto[T any](ctx context.Context, invoker Invoker, s *T) error {
 	v := reflect.ValueOf(s).Elem()
 	t := v.Type()
 
@@ -80,11 +93,10 @@ func Inject[S any](ctx context.Context, invoker Invoker) (*S, error) {
 			if errors.Is(err, ErrServiceNotFound) {
 				continue
 			}
-			return nil, err
+			return err
 		}
 
 		field.Set(reflect.ValueOf(dependency))
 	}
-
-	return s, nil
+	return nil
 }

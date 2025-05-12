@@ -81,3 +81,13 @@ func newPal(services ...pal.ServiceDef) *pal.Pal {
 		HealthCheckTimeout(time.Second).
 		ShutdownTimeout(time.Second)
 }
+
+// MockInvoker is a mock implementation of the Invoker interface
+type MockInvoker struct {
+	mock.Mock
+}
+
+func (m *MockInvoker) Invoke(ctx context.Context, name string) (any, error) {
+	args := m.Called(ctx, name)
+	return args.Get(0), args.Error(1)
+}
