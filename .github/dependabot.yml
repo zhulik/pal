@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: "weekly"
 
+  - package-ecosystem: "go"
+    directory: "/inspect"
+    schedule:
+      interval: "weekly"
+
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

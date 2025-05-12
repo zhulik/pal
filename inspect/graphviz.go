@@ -2,6 +2,7 @@ package inspect
 
 import (
 	"context"
+
 	"github.com/goccy/go-graphviz"
 )
 

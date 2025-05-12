@@ -3,11 +3,12 @@ package inspect
 import (
 	"context"
 	"fmt"
-	"github.com/chzyer/readline"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/chzyer/readline"
 )
 
 type RemoteConsole struct {
@@ -61,6 +62,4 @@ func (r *RemoteConsole) Run(ctx context.Context) error {
 
 		log.Printf("%s", result)
 	}
-
-	return nil
 }

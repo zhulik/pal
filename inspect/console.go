@@ -3,6 +3,7 @@ package inspect
 import (
 	"context"
 	"fmt"
+
 	"github.com/chzyer/readline"
 )
 
@@ -50,6 +51,4 @@ func (c *Console) Run(ctx context.Context) error {
 
 		fmt.Println(result.String())
 	}
-
-	return nil
 }

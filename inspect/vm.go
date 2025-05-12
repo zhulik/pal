@@ -2,6 +2,7 @@ package inspect
 
 import (
 	"context"
+
 	"github.com/dop251/goja"
 	"github.com/zhulik/pal"
 )
@@ -37,8 +38,8 @@ func (vm *VM) Init(ctx context.Context) error {
 	return nil
 }
 
-func (v *VM) Shutdown(ctx context.Context) error {
-	v.cancel()
-	v.Interrupt("shutdown")
+func (vm *VM) Shutdown(_ context.Context) error {
+	vm.cancel()
+	vm.Interrupt("shutdown")
 	return nil
 }
