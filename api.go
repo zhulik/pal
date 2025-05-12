@@ -30,6 +30,11 @@ func ProvideFactory[I any, S any]() *ServiceFactory[I, S] {
 	return &ServiceFactory[I, S]{}
 }
 
+// ProvideFnFactory registers a factory service that is build with a given function.
+func ProvideFnFactory[I any]() *ServiceFnFactory[I] {
+	return &ServiceFnFactory[I]{}
+}
+
 // ProvideConst registers a const as a service.
 func ProvideConst[I any](value I) *ServiceConst[I] {
 	return &ServiceConst[I]{value}

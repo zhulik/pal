@@ -13,8 +13,5 @@ func (g *Graphviz) Init(ctx context.Context) error {
 	var err error
 
 	g.Graphviz, err = graphviz.New(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
