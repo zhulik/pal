@@ -87,6 +87,11 @@ type MockInvoker struct {
 	mock.Mock
 }
 
+func (m *MockInvoker) InjectInto(ctx context.Context, target any) error {
+	args := m.Called(ctx, target)
+	return args.Error(0)
+}
+
 func (m *MockInvoker) Invoke(ctx context.Context, name string) (any, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0), args.Error(1)

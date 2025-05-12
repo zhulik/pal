@@ -313,12 +313,12 @@ func TestInjectInto(t *testing.T) {
 	t.Run("returns error when service invocation fails", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a mock invoker that returns an error
-		mockInvoker := &MockInvoker{}
-		mockInvoker.On("Invoke", mock.Anything, "pal_test.TestServiceInterface").Return(nil, errTest)
-
 		// Create a struct instance to inject dependencies into
 		instance := &DependentStruct{}
+
+		// Create a mock invoker that returns an error
+		mockInvoker := &MockInvoker{}
+		mockInvoker.On("InjectInto", mock.Anything, instance).Return(errTest)
 
 		// Inject dependencies
 		err := pal.InjectInto(t.Context(), mockInvoker, instance)

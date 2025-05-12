@@ -2,9 +2,7 @@ package pal
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"reflect"
 )
 
 // Provide registers a singleton service with pal. `I` is the type `S` will be cast to. It's also used to generate
@@ -77,26 +75,5 @@ func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
 // It only sets fields that are exported and match a resolvable dependency, skipping fields when ErrServiceNotFound occurs.
 // Returns an error if dependency invocation fails or other unrecoverable errors occur during injection.
 func InjectInto[T any](ctx context.Context, invoker Invoker, s *T) error {
-	v := reflect.ValueOf(s).Elem()
-	t := v.Type()
-
-	for i := 0; i < t.NumField(); i++ {
-		field := v.Field(i)
-
-		if !field.CanSet() {
-			continue
-		}
-
-		fieldType := t.Field(i).Type
-		dependency, err := invoker.Invoke(ctx, fieldType.String())
-		if err != nil {
-			if errors.Is(err, ErrServiceNotFound) {
-				continue
-			}
-			return err
-		}
-
-		field.Set(reflect.ValueOf(dependency))
-	}
-	return nil
+	return invoker.InjectInto(ctx, s)
 }
