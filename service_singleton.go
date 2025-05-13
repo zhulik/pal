@@ -6,7 +6,7 @@ import (
 
 type ServiceSingleton[I any, S any] struct {
 	P          *Pal
-	beforeInit LifecycleHook[S]
+	beforeInit LifecycleHook[*S]
 	instance   I
 }
 
@@ -47,7 +47,7 @@ func (s *ServiceSingleton[I, S]) Instance(_ context.Context) (any, error) {
 	return s.instance, nil
 }
 
-func (s *ServiceSingleton[I, S]) BeforeInit(hook LifecycleHook[S]) *ServiceSingleton[I, S] {
+func (s *ServiceSingleton[I, S]) BeforeInit(hook LifecycleHook[*S]) *ServiceSingleton[I, S] {
 	s.beforeInit = hook
 	return s
 }

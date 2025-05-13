@@ -7,7 +7,7 @@ import (
 
 type ServiceFactory[I any, S any] struct {
 	P          *Pal
-	beforeInit LifecycleHook[S]
+	beforeInit LifecycleHook[*S]
 }
 
 func (c *ServiceFactory[I, S]) Run(_ context.Context) error {
@@ -54,7 +54,7 @@ func validateService[I any, S any](_ context.Context) error {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) BeforeInit(hook LifecycleHook[S]) *ServiceFactory[I, S] {
+func (c *ServiceFactory[I, S]) BeforeInit(hook LifecycleHook[*S]) *ServiceFactory[I, S] {
 	c.beforeInit = hook
 	return c
 }
