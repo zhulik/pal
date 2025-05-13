@@ -38,9 +38,7 @@ func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFn
 // ProvideRunner turns given function into a runner. It will ran in background, and it's context will be cancelled
 // on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
-	return &ServiceRunner{
-		fn: fn,
-	}
+	return &ServiceRunner{fn}
 }
 
 // ProvideConst registers a const as a service.
