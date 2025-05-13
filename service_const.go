@@ -52,8 +52,9 @@ func (c *ServiceConst[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
 }
 
-func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) {
+func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.beforeShutdown = hook
+	return c
 }
 
 // Name returns the name of the service, which is the type name of T.

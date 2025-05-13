@@ -60,8 +60,9 @@ func (c *ServiceFnSingleton[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
 }
 
-func (c *ServiceFnSingleton[T]) BeforeShutdown(hook LifecycleHook[T]) {
+func (c *ServiceFnSingleton[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
 	c.beforeShutdown = hook
+	return c
 }
 
 // Name returns the name of the service, which is the type name of T.
