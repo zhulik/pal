@@ -29,11 +29,10 @@ type Logger struct {
 }
 
 type Inspect struct {
-	P *pal.Pal
-
+	P      *pal.Pal
 	Logger *Logger
 	VM     *VM
-	GV     *Graphviz
+	GV     *graphviz.Graphviz
 
 	server *http.Server
 }
@@ -43,11 +42,19 @@ func Provide() []pal.ServiceDef {
 		pal.ProvideConst[*Logger](&Logger{slog.With("palComponent", "Inspect")}),
 		pal.Provide[*Inspect, Inspect](),
 		pal.ProvideFactory[*VM, VM](),
-		pal.ProvideFactory[*Graphviz, Graphviz](),
+
+		pal.ProvideFn(graphviz.New).
+			BeforeShutdown(func(_ context.Context, g *graphviz.Graphviz) error {
+				return g.Close()
+			}),
 	}
 }
 
 func (i *Inspect) Shutdown(ctx context.Context) error {
+	err := i.VM.Shutdown(ctx)
+	if err != nil {
+		return nil
+	}
 	return i.server.Shutdown(ctx)
 }
 
