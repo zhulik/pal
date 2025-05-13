@@ -257,14 +257,10 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		if field.Type.Kind() == reflect.Interface {
-			dependencyName := field.Type.String()
-			if childService, ok := c.services[dependencyName]; ok {
-				if err := c.addDependencyVertex(childService, service); err != nil {
-					return err
-				}
+		dependencyName := typ.Field(i).Type.String()
+		if childService, ok := c.services[dependencyName]; ok {
+			if err := c.addDependencyVertex(childService, service); err != nil {
+				return err
 			}
 		}
 	}
