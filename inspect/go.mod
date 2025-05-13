@@ -7,7 +7,7 @@ require (
 	github.com/dominikbraun/graph v0.23.0
 	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
 	github.com/goccy/go-graphviz v0.2.9
-	github.com/zhulik/pal v0.5.1
+	github.com/zhulik/pal v0.5.5
 )
 
 require (
