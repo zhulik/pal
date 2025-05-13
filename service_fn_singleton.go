@@ -10,6 +10,8 @@ type ServiceFnSingleton[T any] struct {
 	P  *Pal
 	fn func(ctx context.Context) (T, error)
 
+	beforeShutdown LifecycleHook[T]
+
 	instance T
 }
 
@@ -37,6 +39,14 @@ func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
+	if c.beforeShutdown != nil {
+		c.P.logger.Info("Calling BeforeShutdown hook")
+		err := c.beforeShutdown(ctx, c.instance)
+		if err != nil {
+			c.P.logger.Info("BeforeShutdown failed", "error", err)
+			return err
+		}
+	}
 	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
@@ -48,6 +58,10 @@ func (c *ServiceFnSingleton[T]) Make() any {
 // Instance returns the singleton instance of the service.
 func (c *ServiceFnSingleton[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
+}
+
+func (c *ServiceFnSingleton[T]) BeforeShutdown(hook LifecycleHook[T]) {
+	c.beforeShutdown = hook
 }
 
 // Name returns the name of the service, which is the type name of T.
