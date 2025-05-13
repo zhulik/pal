@@ -5,7 +5,7 @@ import (
 	"log/slog"
 )
 
-func buildService[S any](ctx context.Context, beforeInit LifecycleHook[S], p *Pal, logger *slog.Logger) (*S, error) {
+func buildService[S any](ctx context.Context, beforeInit LifecycleHook[*S], p *Pal, logger *slog.Logger) (*S, error) {
 	logger.Debug("Creating an instance")
 	s, err := Build[S](ctx, p)
 	if err != nil {
