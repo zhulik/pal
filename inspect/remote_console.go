@@ -11,10 +11,9 @@ import (
 	"github.com/chzyer/readline"
 )
 
-type RemoteConsole struct {
-}
-
-func (r *RemoteConsole) Run(ctx context.Context) error {
+// RemoteConsole is a service that provides a remote console to a app that runs pal and inspect.
+// Can be launched with pal.ProvideRunner.
+func RemoteConsole(ctx context.Context) error {
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          "remote-js> ",
 		HistoryFile:     "/tmp/pal-RemoteConsole.tmp",
