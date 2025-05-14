@@ -12,7 +12,7 @@ import (
 
 func main() {
 	services := append(inspect.Provide(),
-		pal.Provide[*inspect.RemoteConsole, inspect.RemoteConsole](),
+		pal.ProvideRunner(inspect.RemoteConsole),
 	)
 	p := pal.New(services...).
 		InitTimeout(time.Second).

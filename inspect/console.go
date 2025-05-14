@@ -8,8 +8,7 @@ import (
 )
 
 type Console struct {
-	Logger *Logger
-	VM     *VM
+	VM *VM
 }
 
 func (c *Console) Shutdown(ctx context.Context) error {

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -24,22 +23,16 @@ const (
 	svgContentType = "image/svg+xml"
 )
 
-type Logger struct {
-	*slog.Logger
-}
-
 type Inspect struct {
-	P      *pal.Pal
-	Logger *Logger
-	VM     *VM
-	GV     *graphviz.Graphviz
+	P  *pal.Pal
+	VM *VM
+	GV *graphviz.Graphviz
 
 	server *http.Server
 }
 
 func Provide() []pal.ServiceDef {
 	return []pal.ServiceDef{
-		pal.ProvideConst[*Logger](&Logger{slog.With("palComponent", "Inspect")}),
 		pal.Provide[*Inspect, Inspect](),
 		pal.ProvideFactory[*VM, VM](),
 
@@ -83,7 +76,7 @@ func (i *Inspect) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	i.Logger.Info("Starting Inspect HTTP server", "address", i.server.Addr)
+	i.P.Logger().Info("Starting Inspect HTTP server", "address", i.server.Addr)
 
 	go func() {
 		<-ctx.Done()
@@ -104,7 +97,7 @@ func (i *Inspect) httpHealth(w http.ResponseWriter, r *http.Request) {
 	err := i.P.HealthCheck(r.Context())
 
 	if err != nil {
-		i.Logger.Warn("Health check failed", "err", err)
+		i.P.Logger().Warn("Health check failed", "err", err)
 		w.WriteHeader(500)
 	}
 }
