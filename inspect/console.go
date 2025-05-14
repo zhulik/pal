@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/zhulik/pal"
-
 	"github.com/chzyer/readline"
 )
 
 type Console struct {
-	P  *pal.Pal
 	VM *VM
 }
 
