@@ -212,6 +212,12 @@ func (p *Pal) Container() *Container {
 	return p.container
 }
 
+// Logger returns the logger instance used by Pal.
+// This can be useful for advanced use cases where direct access to the logger is needed.
+func (p *Pal) Logger() *slog.Logger {
+	return p.logger
+}
+
 func (p *Pal) validate(ctx context.Context) error {
 	return errors.Join(p.config.Validate(ctx), p.container.Validate(ctx))
 }
