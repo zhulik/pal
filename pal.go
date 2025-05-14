@@ -10,12 +10,18 @@ import (
 	"time"
 )
 
+// ContextKey is a type used for context value keys to avoid collisions.
 type ContextKey int
 
 const (
+	// CtxValue is the key used to store and retrieve the Pal instance from a context.
+	// This allows services to access the Pal instance from a context passed to them.
 	CtxValue ContextKey = iota
 )
 
+// Pal is the main struct that manages the lifecycle of services in the application.
+// It handles service initialization, dependency injection, health checking, and graceful shutdown.
+// Pal implements the Invoker interface, allowing services to be retrieved from it.
 type Pal struct {
 	config    *Config
 	container *Container
@@ -176,22 +182,32 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
+// Services returns a map of all registered services in the container, keyed by their names.
+// This can be useful for debugging or introspection purposes.
 func (p *Pal) Services() map[string]ServiceDef {
 	return p.container.Services()
 }
 
+// Invoke retrieves a service by name from the container.
+// It implements the Invoker interface.
+// The context is enriched with the Pal instance before being passed to the container.
 func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
 	return p.container.Invoke(ctx, name)
 }
 
+// InjectInto injects services into the fields of the target struct.
+// It implements the Invoker interface.
+// The context is enriched with the Pal instance before being passed to the container.
 func (p *Pal) InjectInto(ctx context.Context, target any) error {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
 	return p.container.InjectInto(ctx, target)
 }
 
+// Container returns the underlying Container instance.
+// This can be useful for advanced use cases where direct access to the container is needed.
 func (p *Pal) Container() *Container {
 	return p.container
 }

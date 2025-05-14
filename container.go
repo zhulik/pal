@@ -163,7 +163,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 		return err
 	}
 
-	c.logger.Info("Container initialized")
+	c.logger.Info("Container shut down successfully")
 	return nil
 }
 
@@ -201,10 +201,15 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
+// Services returns a map of all registered services in the container, keyed by their names.
+// This can be useful for debugging or introspection purposes.
 func (c *Container) Services() map[string]ServiceDef {
 	return c.services
 }
 
+// StartRunners starts all services that implement the Runner interface in background goroutines.
+// It creates a cancellable context that will be canceled during shutdown.
+// Returns an error if any runner fails, though runners continue to execute independently.
 func (c *Container) StartRunners(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -228,10 +233,15 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	return nil
 }
 
+// Graph returns the dependency graph of services.
+// This can be useful for visualization or analysis of the service dependencies.
 func (c *Container) Graph() *dag.DAG[string, ServiceDef] {
 	return c.graph
 }
 
+// addDependencyVertex adds a service to the dependency graph and recursively adds its dependencies.
+// If parent is not nil, it also adds an edge from parent to service in the graph.
+// This method is used during container initialization to build the complete dependency graph.
 func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) error {
 	if err := c.graph.AddVertexIfNotExist(service); err != nil {
 		return err
@@ -268,6 +278,8 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 	return nil
 }
 
+// serviceHash returns a unique identifier for a service, which is its name.
+// This is used as the vertex identifier in the dependency graph.
 func serviceHash(service ServiceDef) string {
 	return service.Name()
 }
