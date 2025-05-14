@@ -69,8 +69,3 @@ func (c *ServiceFnSingleton[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceFn
 func (c *ServiceFnSingleton[T]) Name() string {
 	return elem[T]().String()
 }
-
-// Validate performs validation of the service configuration.
-func (c *ServiceFnSingleton[T]) Validate(_ context.Context) error {
-	return nil
-}

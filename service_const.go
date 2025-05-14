@@ -61,8 +61,3 @@ func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceConst[T]
 func (c *ServiceConst[T]) Name() string {
 	return elem[T]().String()
 }
-
-// Validate performs validation of the service configuration.
-func (c *ServiceConst[T]) Validate(_ context.Context) error {
-	return nil
-}

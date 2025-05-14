@@ -40,10 +40,6 @@ func (c *ServiceRunner) Name() string {
 	return fmt.Sprintf("function-runner-%s", randomID())
 }
 
-func (c *ServiceRunner) Validate(_ context.Context) error {
-	return nil
-}
-
 func randomID() string {
 	b := make([]byte, 8)
 	for i := range b {

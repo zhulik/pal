@@ -45,8 +45,3 @@ func (c *ServiceFnFactory[T]) Instance(ctx context.Context) (any, error) {
 func (c *ServiceFnFactory[T]) Name() string {
 	return elem[T]().String()
 }
-
-// Validate performs validation of the service configuration.
-func (c *ServiceFnFactory[T]) Validate(_ context.Context) error {
-	return nil
-}
