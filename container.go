@@ -46,7 +46,10 @@ func (c *Container) Validate(ctx context.Context) error {
 	var errs []error
 
 	for _, service := range c.services {
-		errs = append(errs, service.Validate(ctx))
+		validator, ok := service.(Validator)
+		if ok {
+			errs = append(errs, validator.Validate(ctx))
+		}
 	}
 
 	return errors.Join(errs...)
