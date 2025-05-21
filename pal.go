@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"syscall"
 	"time"
 )
 
@@ -131,9 +132,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	}
 
 	go p.listenToStopSignals(ctx, signals)
-	go func() {
-		p.Shutdown(p.container.StartRunners(ctx))
-	}()
+	go p.Shutdown(p.container.StartRunners(ctx))
 
 	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
 
@@ -226,12 +225,31 @@ func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, signals...)
 
-	select {
-	case <-ctx.Done():
-		p.Shutdown(ctx.Err())
-	case sig := <-sigChan:
-		p.logger.Warn("Received signal", "signal", sig)
+	shuttingDown := false
 
-		p.Shutdown()
+	for {
+		select {
+		case <-ctx.Done():
+			p.Shutdown()
+		case sig := <-sigChan:
+			if shuttingDown {
+				if sig == syscall.SIGINT {
+					p.logger.Error("Signal received again, exiting immediately", "signal", sig)
+					os.Exit(1)
+				}
+				p.logger.Warn("Received signal, but the app is already shutting down, ignoring.", "signal", sig)
+				continue
+			}
+
+			p.logger.Warn("Received signal, shutting down.", "signal", sig)
+			if sig == syscall.SIGINT {
+				p.logger.Warn("Received signal, shutting down. Press ^C again to exit immediately", "signal", sig)
+			} else {
+				p.logger.Warn("Received signal, shutting down.", "signal", sig)
+			}
+			shuttingDown = true
+
+			p.Shutdown()
+		}
 	}
 }
