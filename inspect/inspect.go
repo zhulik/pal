@@ -97,7 +97,7 @@ func (i *Inspect) httpHealth(w http.ResponseWriter, r *http.Request) {
 	err := i.P.HealthCheck(r.Context())
 
 	if err != nil {
-		i.P.Logger().Warn("Health check failed", "err", err)
+		i.P.Logger().Error("Health check failed", "err", err)
 		w.WriteHeader(500)
 	}
 }
