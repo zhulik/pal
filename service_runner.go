@@ -12,6 +12,10 @@ type ServiceRunner struct {
 	fn func(ctx context.Context) error
 }
 
+func (c *ServiceRunner) Dependencies() []ServiceDef {
+	return nil
+}
+
 func (c *ServiceRunner) Run(ctx context.Context) error {
 	return c.fn(ctx)
 }

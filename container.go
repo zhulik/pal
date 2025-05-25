@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"reflect"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/dominikbraun/graph"
@@ -29,6 +30,7 @@ type Container struct {
 
 // NewContainer creates a new Container instance
 func NewContainer(services ...ServiceDef) *Container {
+	services = flattenServices(services)
 	index := make(map[string]ServiceDef)
 
 	for _, service := range services {
@@ -40,6 +42,29 @@ func NewContainer(services ...ServiceDef) *Container {
 		graph:    dag.New(serviceHash),
 		logger:   slog.With("palComponent", "Container"),
 	}
+}
+
+func flattenServices(services []ServiceDef) []ServiceDef {
+	seen := make(map[ServiceDef]bool)
+	var result []ServiceDef
+
+	var process func([]ServiceDef)
+	process = func(svcs []ServiceDef) {
+		for _, svc := range svcs {
+			if _, ok := seen[svc]; !ok {
+				seen[svc] = true
+
+				if !strings.HasPrefix(svc.Name(), "$") {
+					result = append(result, svc)
+				}
+
+				process(svc.Dependencies())
+			}
+		}
+	}
+
+	process(services)
+	return result
 }
 
 func (c *Container) Validate(ctx context.Context) error {

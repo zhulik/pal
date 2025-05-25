@@ -10,6 +10,10 @@ type ServiceFactory[I any, S any] struct {
 	beforeInit LifecycleHook[*S]
 }
 
+func (c *ServiceFactory[I, S]) Dependencies() []ServiceDef {
+	return nil
+}
+
 func (c *ServiceFactory[I, S]) Run(_ context.Context) error {
 	return nil
 }

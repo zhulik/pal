@@ -18,6 +18,10 @@ type MockService struct {
 	name string
 }
 
+func (m *MockService) Dependencies() []pal.ServiceDef {
+	return nil
+}
+
 func NewMockService(name string) *MockService {
 	return &MockService{
 		name: name,

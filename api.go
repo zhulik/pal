@@ -46,6 +46,23 @@ func ProvideConst[T any](value T) *ServiceConst[T] {
 	return &ServiceConst[T]{instance: value}
 }
 
+// ProvideList registers a list of given services.
+func ProvideList[T any](services ...ServiceDef) *ServiceList {
+	return &ServiceList{services}
+}
+
+// ProvidePal registers all services for the given pal instance
+func ProvidePal(pal *Pal) *ServiceList {
+	services := make([]ServiceDef, 0, len(pal.Services()))
+	for _, v := range pal.Services() {
+		if v.Name() != "*pal.Pal" {
+			services = append(services, v)
+		}
+	}
+
+	return &ServiceList{services}
+}
+
 // Invoke retrieves or creates an instance of type I from the given Pal container.
 func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
 	name := elem[T]().String()

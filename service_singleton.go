@@ -14,6 +14,10 @@ type ServiceSingleton[I any, S any] struct {
 	instance   I
 }
 
+func (s *ServiceSingleton[I, S]) Dependencies() []ServiceDef {
+	return nil
+}
+
 // Run implements the Runner interface.
 // It delegates to the underlying service instance if it implements the Runner interface.
 func (s *ServiceSingleton[I, S]) Run(ctx context.Context) error {

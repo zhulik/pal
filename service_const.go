@@ -14,6 +14,10 @@ type ServiceConst[T any] struct {
 	instance T
 }
 
+func (c *ServiceConst[T]) Dependencies() []ServiceDef {
+	return nil
+}
+
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceConst[T]) Run(ctx context.Context) error {
 	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))

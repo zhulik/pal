@@ -101,6 +101,9 @@ type ServiceDef interface {
 	// For singletons, this returns the cached instance after initialization.
 	// For factories, this creates and returns a new instance each time.
 	Instance(ctx context.Context) (any, error)
+
+	// Dependencies allows services to provide their own dependencies.
+	Dependencies() []ServiceDef
 }
 
 // Invoker is an interface for retrieving services from a container and injecting them into structs.

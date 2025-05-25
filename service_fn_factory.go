@@ -11,6 +11,10 @@ type ServiceFnFactory[T any] struct {
 	fn func(ctx context.Context) (T, error)
 }
 
+func (c *ServiceFnFactory[T]) Dependencies() []ServiceDef {
+	return nil
+}
+
 // Run is a no-op for factory services as they don't run in the background.
 func (c *ServiceFnFactory[T]) Run(_ context.Context) error {
 	return nil

@@ -14,7 +14,7 @@ import (
 )
 
 // TestPal_New tests the New function
-func TestPal_New(t *testing.T) {
+func Test_New(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a new Pal instance with no services", func(t *testing.T) {
@@ -39,12 +39,15 @@ func TestPal_New(t *testing.T) {
 				}),
 		)
 
+		p = newPal(pal.ProvidePal(p))
+
 		assert.NoError(t, p.Init(t.Context()))
+		assert.Contains(t, p.Services(), "pal_test.TestServiceInterface")
 	})
 }
 
 // TestPal_FromContext tests the FromContext function
-func TestPal_FromContext(t *testing.T) {
+func Test_FromContext(t *testing.T) {
 	t.Parallel()
 
 	t.Run("retrieves Pal from context", func(t *testing.T) {
