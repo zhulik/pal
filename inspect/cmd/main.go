@@ -11,10 +11,10 @@ import (
 )
 
 func main() {
-	services := append(inspect.Provide(),
-		pal.ProvideRunner(inspect.RemoteConsole),
-	)
-	p := pal.New(services...).
+	p := pal.New(
+		inspect.ProvideBase(),
+		inspect.ProvideRemoteConsole(),
+	).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
 		ShutdownTimeout(time.Second)

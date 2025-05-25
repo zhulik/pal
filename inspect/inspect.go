@@ -31,8 +31,8 @@ type Inspect struct {
 	server *http.Server
 }
 
-func Provide() []pal.ServiceDef {
-	return []pal.ServiceDef{
+func ProvideBase() pal.ServiceDef {
+	return pal.ProvideList(
 		pal.Provide[*Inspect, Inspect](),
 		pal.ProvideFactory[*VM, VM](),
 
@@ -40,7 +40,15 @@ func Provide() []pal.ServiceDef {
 			BeforeShutdown(func(_ context.Context, g *graphviz.Graphviz) error {
 				return g.Close()
 			}),
-	}
+	)
+}
+
+func ProvideRemoteConsole() pal.ServiceDef {
+	return pal.ProvideRunner(RemoteConsole)
+}
+
+func ProvideConsole() pal.ServiceDef {
+	return pal.Provide[*Console, Console]()
 }
 
 func (i *Inspect) Shutdown(ctx context.Context) error {
