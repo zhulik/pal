@@ -14,7 +14,7 @@ tasks:
   test:
     desc: Run tests
     cmds:
-      - go test -race ./... -test.timeout=2s
+      - go test -race ./... -test.timeout=3s -count=1
 
   cover:
     desc: Run tests with cover report
