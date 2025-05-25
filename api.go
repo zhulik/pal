@@ -47,7 +47,7 @@ func ProvideConst[T any](value T) *ServiceConst[T] {
 }
 
 // ProvideList registers a list of given services.
-func ProvideList[T any](services ...ServiceDef) *ServiceList {
+func ProvideList(services ...ServiceDef) *ServiceList {
 	return &ServiceList{services}
 }
 
@@ -60,7 +60,7 @@ func ProvidePal(pal *Pal) *ServiceList {
 		}
 	}
 
-	return &ServiceList{services}
+	return ProvideList(services...)
 }
 
 // Invoke retrieves or creates an instance of type I from the given Pal container.
