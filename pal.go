@@ -117,7 +117,7 @@ func (p *Pal) Shutdown(errs ...error) {
 	case p.stopChan <- err:
 	default:
 		if err != nil {
-			p.logger.Warn("Shutdown already scheduled", "error", err)
+			p.logger.Error("Shutdown already scheduled", "error", err)
 		}
 	}
 }

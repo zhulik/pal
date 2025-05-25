@@ -32,10 +32,10 @@ func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
 	if c.beforeShutdown != nil {
-		c.P.logger.Info("Calling BeforeShutdown hook")
+		c.P.logger.Debug("Calling BeforeShutdown hook")
 		err := c.beforeShutdown(ctx, c.instance)
 		if err != nil {
-			c.P.logger.Info("BeforeShutdown failed", "error", err)
+			c.P.logger.Error("BeforeShutdown failed", "error", err)
 			return err
 		}
 	}

@@ -56,7 +56,7 @@ func (c *Container) Validate(ctx context.Context) error {
 }
 
 func (c *Container) Init(ctx context.Context) error {
-	c.logger.Info("Building dependency tree...")
+	c.logger.Debug("Building dependency tree...")
 
 	for _, service := range c.services {
 		if err := c.addDependencyVertex(service, nil); err != nil {
@@ -75,7 +75,7 @@ func (c *Container) Init(ctx context.Context) error {
 	}
 	slices.Reverse(order)
 
-	c.logger.Info("Dependency tree built", "tree", adjMap, "order", order)
+	c.logger.Debug("Dependency tree built", "tree", adjMap, "order", order)
 
 	err = c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
 		if err := service.Init(ctx); err != nil {
@@ -86,7 +86,7 @@ func (c *Container) Init(ctx context.Context) error {
 	})
 
 	if err != nil {
-		c.logger.Warn("Failed to initialize container", "error", err)
+		c.logger.Error("Failed to initialize container", "error", err)
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	errs = append(errs, c.runnerTasks.Wait())
 
 	if len(errs) > 0 {
-		c.logger.Info("Runners failed to shutdown", "error", errors.Join(errs...))
+		c.logger.Error("Runners failed to shutdown", "error", errors.Join(errs...))
 	}
 
 	c.graph.InTopologicalOrder(func(service ServiceDef) error { // nolint:errcheck
@@ -162,7 +162,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 
 	err := errors.Join(errs...)
 	if err != nil {
-		c.logger.Warn("Failed to shutdown container", "error", err)
+		c.logger.Error("Failed to shutdown container", "error", err)
 		return err
 	}
 
@@ -195,7 +195,7 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 
 	err := wg.Wait()
 	if err != nil {
-		c.logger.Warn("Healthcheck failed", "error", err)
+		c.logger.Error("Healthcheck failed", "error", err)
 		return err
 	}
 
@@ -229,7 +229,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 
 	err := c.runnerTasks.Wait()
 	if err != nil {
-		c.logger.Warn("Runners finished with error", "error", err)
+		c.logger.Error("Runners finished with error", "error", err)
 		return nil
 	}
 	c.logger.Info("All runners finished successfully")
