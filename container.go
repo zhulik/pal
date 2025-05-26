@@ -172,11 +172,12 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	}
 	c.cancelMu.RUnlock()
 
-	// Await for runners to exit and safe possible error.
 	errs = append(errs, c.runnerTasks.Wait())
+	// Await for runners to exit and safe possible error.
+	err := errors.Join(errs...)
 
-	if len(errs) > 0 {
-		c.logger.Error("Runners failed to shutdown", "error", errors.Join(errs...))
+	if err != nil {
+		c.logger.Error("Runners failed to shutdown", "error", err)
 	}
 
 	c.graph.InTopologicalOrder(func(service ServiceDef) error { // nolint:errcheck
@@ -188,7 +189,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 		return nil
 	})
 
-	err := errors.Join(errs...)
+	err = errors.Join(errs...)
 	if err != nil {
 		c.logger.Error("Failed to shutdown container", "error", err)
 		return err
@@ -250,7 +251,9 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.cancelMu.Unlock()
 
 	for _, service := range c.services {
-		c.runnerTasks.Go(ctx, true, func(ctx context.Context) error {
+		runCfg := runConfigOrDefault(service.RunConfig())
+
+		c.runnerTasks.Go(ctx, runCfg.Wait, func(ctx context.Context) error {
 			return service.Run(ctx)
 		})
 	}

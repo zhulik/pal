@@ -36,6 +36,10 @@ func (c *ServiceFnSingleton[T]) Init(ctx context.Context) error {
 	return nil
 }
 
+func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
+	return nil
+}
+
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
 	return healthcheckService(ctx, c.instance, c.P.logger.With("service", c.Name()))

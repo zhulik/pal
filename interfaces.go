@@ -70,6 +70,11 @@ type Runner interface {
 	Run(ctx context.Context) error
 }
 
+// RunConfiger is an optional interface that can be implemented by a runner to tell Pal how to handle it.
+type RunConfiger interface {
+	RunConfig() *RunConfig
+}
+
 // Validator is an optional interfaces, a ServiceDef can implement it to validate the service definition during PAL
 // initialization.
 type Validator interface {
@@ -87,6 +92,7 @@ type ServiceDef interface {
 	HealthChecker
 	Shutdowner
 	Runner
+	RunConfiger
 
 	// Name returns a name of the service, this will be used to identify the service in the container.
 	// The name is typically derived from the interface type the service implements.

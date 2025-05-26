@@ -51,6 +51,15 @@ func runService(ctx context.Context, instance any, logger *slog.Logger) error {
 	})()
 }
 
+func runConfig(instance any) *RunConfig {
+	configer, ok := instance.(RunConfiger)
+	if ok {
+		return configer.RunConfig()
+	}
+
+	return nil
+}
+
 func healthcheckService(ctx context.Context, instance any, logger *slog.Logger) error {
 	h, ok := instance.(HealthChecker)
 	if !ok {

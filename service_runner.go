@@ -44,6 +44,10 @@ func (c *ServiceRunner) Name() string {
 	return fmt.Sprintf("function-runner-%s", randomID())
 }
 
+func (c *ServiceRunner) RunConfig() *RunConfig {
+	return nil
+}
+
 func randomID() string {
 	b := make([]byte, 8)
 	for i := range b {

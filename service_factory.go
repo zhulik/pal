@@ -38,6 +38,10 @@ func (c *ServiceFactory[I, S]) Instance(ctx context.Context) (any, error) {
 	return buildService[S](ctx, c.beforeInit, c.P, c.P.logger.With("service", c.Name()))
 }
 
+func (c *ServiceFactory[I, S]) RunConfig() *RunConfig {
+	return nil
+}
+
 func (c *ServiceFactory[I, S]) Name() string {
 	return elem[I]().String()
 }

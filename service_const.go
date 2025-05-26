@@ -14,6 +14,10 @@ type ServiceConst[T any] struct {
 	instance T
 }
 
+func (c *ServiceConst[T]) RunConfig() *RunConfig {
+	return runConfig(c.instance)
+}
+
 func (c *ServiceConst[T]) Dependencies() []ServiceDef {
 	return nil
 }

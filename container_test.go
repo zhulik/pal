@@ -28,6 +28,11 @@ func NewMockService(name string) *MockService {
 	}
 }
 
+func (m *MockService) RunConfig() *pal.RunConfig {
+	args := m.Called()
+	return args.Get(0).(*pal.RunConfig)
+}
+
 func (m *MockService) Make() any {
 	return nil
 }

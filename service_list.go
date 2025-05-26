@@ -40,3 +40,7 @@ func (s *ServiceList) Instance(_ context.Context) (any, error) {
 func (s *ServiceList) Name() string {
 	return "$ServiceList"
 }
+
+func (s *ServiceList) RunConfig() *RunConfig {
+	return nil
+}

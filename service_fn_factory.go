@@ -35,6 +35,10 @@ func (c *ServiceFnFactory[T]) Shutdown(_ context.Context) error {
 	return nil
 }
 
+func (c *ServiceFnFactory[T]) RunConfig() *RunConfig {
+	return nil
+}
+
 // Make is a no-op for factory services as they are created on demand.
 func (c *ServiceFnFactory[T]) Make() any {
 	return nil

@@ -24,6 +24,10 @@ func (s *ServiceSingleton[I, S]) Run(ctx context.Context) error {
 	return runService(ctx, s.instance, s.P.logger.With("service", s.Name()))
 }
 
+func (s *ServiceSingleton[I, S]) RunConfig() *RunConfig {
+	return runConfig(s.instance)
+}
+
 // Name returns the name of the service, which is derived from the interface type I.
 func (s *ServiceSingleton[I, S]) Name() string {
 	return elem[I]().String()
