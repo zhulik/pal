@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/zhulik/pal/pkg/pid"
+
 	"github.com/dominikbraun/graph"
 	"golang.org/x/sync/errgroup"
 
@@ -22,7 +24,7 @@ type Container struct {
 	graph    *dag.DAG[string, ServiceDef]
 	logger   *slog.Logger
 
-	runnerTasks errgroup.Group
+	runnerTasks *pid.RunGroup
 
 	cancelMu sync.RWMutex
 	cancel   context.CancelFunc
@@ -38,9 +40,10 @@ func NewContainer(services ...ServiceDef) *Container {
 	}
 
 	return &Container{
-		services: index,
-		graph:    dag.New(serviceHash),
-		logger:   slog.With("palComponent", "Container"),
+		services:    index,
+		graph:       dag.New(serviceHash),
+		logger:      slog.With("palComponent", "Container"),
+		runnerTasks: pid.NewRunGroup(),
 	}
 }
 
@@ -247,7 +250,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.cancelMu.Unlock()
 
 	for _, service := range c.services {
-		c.runnerTasks.Go(func() error {
+		c.runnerTasks.Go(ctx, true, func(ctx context.Context) error {
 			return service.Run(ctx)
 		})
 	}
