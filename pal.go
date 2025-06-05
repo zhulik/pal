@@ -217,6 +217,11 @@ func (p *Pal) Logger() *slog.Logger {
 	return p.logger
 }
 
+// Config returns a copy of pal's config.
+func (p *Pal) Config() Config {
+	return *p.config
+}
+
 func (p *Pal) validate(ctx context.Context) error {
 	return errors.Join(p.config.Validate(ctx), p.container.Validate(ctx))
 }
