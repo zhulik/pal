@@ -59,19 +59,33 @@ func New(services ...ServiceDef) *Pal {
 }
 
 func setPalField(v reflect.Value, pal *Pal) {
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
 	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
+
 	if v.Kind() != reflect.Struct {
 		return
 	}
+
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		if field.CanSet() && field.Type() == reflect.TypeOf(pal) {
 			field.Set(reflect.ValueOf(pal))
 		}
+
 		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Pointer && !field.IsNil()) {
 			setPalField(field, pal)
+		}
+
+		if field.Kind() == reflect.Array || field.Kind() == reflect.Slice {
+			for i := 0; i < field.Len(); i++ {
+				item := field.Index(i)
+				setPalField(item, pal)
+			}
 		}
 	}
 }

@@ -6,11 +6,11 @@ import (
 
 // ServiceList is a proxy service to a list of services.
 type ServiceList struct {
-	services []ServiceDef
+	Services []ServiceDef
 }
 
 func (s *ServiceList) Dependencies() []ServiceDef {
-	return s.services
+	return s.Services
 }
 
 func (s *ServiceList) Run(_ context.Context) error {

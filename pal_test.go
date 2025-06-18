@@ -44,6 +44,26 @@ func Test_New(t *testing.T) {
 		assert.NoError(t, p.Init(t.Context()))
 		assert.Contains(t, p.Services(), "pal_test.TestServiceInterface")
 	})
+
+	t.Run("correctly initializes service lists", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal(
+			pal.ProvideList(
+				pal.ProvideList(
+					pal.Provide[TestServiceInterface, TestServiceStruct]().
+						BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+							eventuallyAssertExpectations(t, service)
+							service.On("Init", ctx).Return(nil)
+
+							return nil
+						}),
+				),
+			),
+		)
+
+		require.NoError(t, p.Init(t.Context()))
+	})
 }
 
 // TestPal_FromContext tests the FromContext function

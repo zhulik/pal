@@ -29,12 +29,13 @@ func TestProvide(t *testing.T) {
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Run", ctx).Return(nil)
+		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().
+			BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Run", ctx).Return(nil)
 
-			return nil
-		})
+				return nil
+			})
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.RunnerServiceInterface", service.Name())
@@ -117,12 +118,13 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
+			pal.Provide[TestServiceInterface, TestServiceStruct]().
+				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+					eventuallyAssertExpectations(t, service)
+					service.On("Init", ctx).Return(nil)
 
-				return nil
-			}),
+					return nil
+				}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
@@ -154,12 +156,13 @@ func TestBuild(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
+			pal.Provide[TestServiceInterface, TestServiceStruct]().
+				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+					eventuallyAssertExpectations(t, service)
+					service.On("Init", ctx).Return(nil)
 
-				return nil
-			}),
+					return nil
+				}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
@@ -234,12 +237,13 @@ func TestInjectInto(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
+			pal.Provide[TestServiceInterface, TestServiceStruct]().
+				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+					eventuallyAssertExpectations(t, service)
+					service.On("Init", ctx).Return(nil)
 
-				return nil
-			}),
+					return nil
+				}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
