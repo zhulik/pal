@@ -14,7 +14,7 @@ func Provide[I any, S any]() *ServiceSingleton[I, S] {
 	return &ServiceSingleton[I, S]{}
 }
 
-// ProvideFn registers a singleton that is build with a given function.
+// ProvideFn registers a singleton built with a given function.
 func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
 	return &ServiceFnSingleton[T]{
 		fn: fn,
@@ -36,7 +36,7 @@ func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFn
 }
 
 // ProvideRunner turns the given function into a runner. It will run in the background, and the passed context will
-// be cancelled on app shutdown.
+// be canceled on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
 	return &ServiceRunner{fn}
 }
