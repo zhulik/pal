@@ -14,6 +14,15 @@ func Provide[I any, S any]() *ServiceSingleton[I, S] {
 	return &ServiceSingleton[I, S]{}
 }
 
+// ProvideConst registers a const as a service. `I` is used to generating service name.
+// Typically, `I` would be one of:
+// - An interface, in this case passed value must implement it. Used when I may have multiple implementations like mocks for tests.
+// - A pointer to an instance of `T`. For instance,`ProvideConst[*Foo](&Foo{})`. Used when mocking is not required.
+// If the passed value implements Initer, Init() will be called.
+func ProvideConst[T any](value T) *ServiceConst[T] {
+	return &ServiceConst[T]{instance: value}
+}
+
 // ProvideFn registers a singleton built with a given function.
 func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
 	return &ServiceFnSingleton[T]{
@@ -39,11 +48,6 @@ func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFn
 // be canceled on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
 	return &ServiceRunner{fn}
-}
-
-// ProvideConst registers a const as a service.
-func ProvideConst[T any](value T) *ServiceConst[T] {
-	return &ServiceConst[T]{instance: value}
 }
 
 // ProvideList registers a list of given services.
