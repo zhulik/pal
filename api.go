@@ -5,21 +5,12 @@ import (
 	"fmt"
 )
 
-// Provide registers a singleton service with pal. `I` is the type `S` will be cast to. It's also used to generate
-// service name. Typically, `I` would be one of:
-// - An interface, in this case S must implement it. Used when I may have multiple implementations like mocks for tests.
-// - A pointer to `S`. For instance,`Provide[*Foo, Foo]()`. Used when mocking is not required.
-// Only one instance of the service will be created and reused.
-func Provide[I any, S any]() *ServiceSingleton[I, S] {
-	return &ServiceSingleton[I, S]{}
-}
-
-// ProvideConst registers a const as a service. `I` is used to generating service name.
+// Provide registers a const as a service. `I` is used to generating service name.
 // Typically, `I` would be one of:
 // - An interface, in this case passed value must implement it. Used when I may have multiple implementations like mocks for tests.
-// - A pointer to an instance of `T`. For instance,`ProvideConst[*Foo](&Foo{})`. Used when mocking is not required.
+// - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
 // If the passed value implements Initer, Init() will be called.
-func ProvideConst[T any](value T) *ServiceConst[T] {
+func Provide[T any](value T) *ServiceConst[T] {
 	return &ServiceConst[T]{instance: value}
 }
 

@@ -47,7 +47,7 @@ func New(services ...ServiceDef) *Pal {
 		logger:       slog.With("palComponent", "Pal"),
 	}
 
-	services = append(services, ProvideConst(pal))
+	services = append(services, Provide(pal))
 
 	for _, s := range services {
 		setPalField(reflect.ValueOf(s), pal)

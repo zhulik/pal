@@ -20,7 +20,7 @@ func TestProvide(t *testing.T) {
 	t.Run("creates a singleton service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
+		service := pal.Provide[TestServiceInterface](&TestServiceStruct{})
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
@@ -29,10 +29,10 @@ func TestProvide(t *testing.T) {
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().
-			BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
+		service := pal.Provide[RunnerServiceInterface](&RunnerServiceStruct{}).
+			BeforeInit(func(ctx context.Context, service RunnerServiceInterface) error {
 				eventuallyAssertExpectations(t, service)
-				service.On("Run", ctx).Return(nil)
+				service.(*RunnerServiceStruct).On("Run", ctx).Return(nil)
 
 				return nil
 			})
@@ -98,7 +98,7 @@ func TestProvideConst(t *testing.T) {
 		t.Parallel()
 
 		s := &TestServiceStruct{}
-		service := pal.ProvideConst[TestServiceInterface](s)
+		service := pal.Provide[TestServiceInterface](s)
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
@@ -118,10 +118,10 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().
-				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			pal.Provide[TestServiceInterface](&TestServiceStruct{}).
+				BeforeInit(func(ctx context.Context, service TestServiceInterface) error {
 					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
+					service.(*TestServiceStruct).On("Init", ctx).Return(nil)
 
 					return nil
 				}),
@@ -156,10 +156,10 @@ func TestBuild(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().
-				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			pal.Provide[TestServiceInterface](&TestServiceStruct{}).
+				BeforeInit(func(ctx context.Context, service TestServiceInterface) error {
 					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
+					service.(*TestServiceStruct).On("Init", ctx).Return(nil)
 
 					return nil
 				}),
@@ -216,7 +216,7 @@ func TestBuild(t *testing.T) {
 		}
 
 		// Create a Pal instance with our test service
-		p := newPal(pal.Provide[TestServiceInterface, TestServiceStruct]())
+		p := newPal(pal.Provide[TestServiceInterface](&TestServiceStruct{}))
 
 		// No need to initialize Pal for this test
 
@@ -237,10 +237,10 @@ func TestInjectInto(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().
-				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			pal.Provide[TestServiceInterface](&TestServiceStruct{}).
+				BeforeInit(func(ctx context.Context, service TestServiceInterface) error {
 					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
+					service.(*TestServiceStruct).On("Init", ctx).Return(nil)
 
 					return nil
 				}),
@@ -302,7 +302,7 @@ func TestInjectInto(t *testing.T) {
 		}
 
 		// Create a Pal instance with our test service
-		p := newPal(pal.Provide[TestServiceInterface, TestServiceStruct]())
+		p := newPal(pal.Provide[TestServiceInterface](&TestServiceStruct{}))
 
 		// Create a struct instance to inject dependencies into
 		instance := &StructWithUnexportedField{}

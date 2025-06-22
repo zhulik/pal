@@ -1,0 +1,149 @@
+package pal_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zhulik/pal"
+)
+
+// TestService_Name tests the Name method of the service struct
+func TestService_Name(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns correct name for interface type", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.Provide[TestServiceInterface](&TestServiceStruct{})
+
+		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+	})
+}
+
+// TestService_Instance tests the Instance method of the service struct
+func TestService_Instance(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns instance for singleton service", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.Provide[RunnerServiceInterface](&RunnerServiceStruct{}).
+			BeforeInit(func(ctx context.Context, service RunnerServiceInterface) error {
+				eventuallyAssertExpectations(t, service)
+
+				service.(*RunnerServiceStruct).On("Init", ctx).Return(nil)
+
+				return nil
+			})
+
+		p := newPal(service)
+
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		instance1, err := service.Instance(ctx)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, instance1)
+
+		instance2, err := service.Instance(ctx)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, instance1)
+		assert.Same(t, instance1, instance2)
+	})
+
+	t.Run("returns new instance for factory service", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFactory[TestServiceInterface, TestServiceStruct]().
+			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
+
+				return nil
+			})
+		p := newPal(service)
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
+		// First call to Instance should create a new instance
+		instance, err := service.Instance(ctx)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+
+		// Second call should create another new instance
+		instance2, err := service.Instance(ctx)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, instance2)
+		assert.NotSame(t, instance, instance2)
+	})
+}
+
+// TestService_BeforeInit tests the BeforeInit hook functionality
+func TestService_BeforeInit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("hook is called when set", func(t *testing.T) {
+		t.Parallel()
+
+		hook := func(ctx context.Context, service TestServiceInterface) error {
+			eventuallyAssertExpectations(t, service)
+			service.(*TestServiceStruct).On("Init", ctx).Return(nil)
+
+			return nil
+		}
+
+		service := pal.Provide[TestServiceInterface](&TestServiceStruct{}).BeforeInit(hook)
+		p := newPal(service)
+
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		instance, err := service.Instance(ctx)
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+	})
+
+	t.Run("no error when hook is not set", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.Provide[TestServiceInterface](&TestServiceStruct{}).BeforeInit(func(ctx context.Context, service TestServiceInterface) error {
+			eventuallyAssertExpectations(t, service)
+			service.(*TestServiceStruct).On("Init", ctx).Return(nil)
+
+			return nil
+		})
+		p := newPal(service)
+
+		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		instance, err := service.Instance(ctx)
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+	})
+
+	t.Run("propagates error from hook", func(t *testing.T) {
+		t.Parallel()
+
+		hook := func(_ context.Context, _ TestServiceInterface) error {
+			return errTest
+		}
+
+		service := pal.Provide[TestServiceInterface](&TestServiceStruct{}).BeforeInit(hook)
+		p := newPal(service)
+
+		// The error should be propagated from the hook through Initialize to Init
+		err := p.Init(t.Context())
+		assert.ErrorIs(t, err, errTest)
+	})
+}
