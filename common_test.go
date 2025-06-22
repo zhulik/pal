@@ -43,11 +43,6 @@ func (t *TestServiceStruct) DoSomething() string {
 	return args.String(0)
 }
 
-// RunnerServiceInterface extends TestServiceInterface and core.Runner for testing runner services
-type RunnerServiceInterface interface {
-	DoSomething() string
-}
-
 // RunnerServiceStruct implements RunnerServiceInterface
 type RunnerServiceStruct struct {
 	mock.Mock
@@ -65,7 +60,7 @@ func (r *RunnerServiceStruct) DoSomething() string {
 
 // DependentStruct is a struct with a dependency on TestServiceInterface
 type DependentStruct struct {
-	Dependency TestServiceInterface
+	Dependency *TestServiceStruct
 }
 
 func eventuallyAssertExpectations(t *testing.T, instance any) {
