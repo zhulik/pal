@@ -48,6 +48,11 @@ func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
 		return nil, err
 	}
 
+	err = c.P.InjectInto(ctx, instance)
+	if err != nil {
+		return nil, err
+	}
+
 	if c.beforeInit != nil {
 		logger.Debug("Calling BeforeInit hook")
 		err := c.beforeInit(ctx, instance.(T))

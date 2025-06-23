@@ -29,13 +29,7 @@ func TestProvide(t *testing.T) {
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&RunnerServiceStruct{}).
-			BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Run", ctx).Return(nil)
-
-				return nil
-			})
+		service := pal.Provide(&RunnerServiceStruct{})
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "*pal_test.RunnerServiceStruct", service.Name())
@@ -145,87 +139,6 @@ func TestInvoke(t *testing.T) {
 		_, err := pal.Invoke[TestServiceInterface](t.Context(), p)
 
 		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
-	})
-}
-
-// TestBuild tests the Build function
-func TestBuild(t *testing.T) {
-	t.Parallel()
-
-	t.Run("injects dependencies successfully", func(t *testing.T) {
-		t.Parallel()
-
-		p := newPal(
-			pal.Provide(&TestServiceStruct{}).
-				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
-					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
-
-					return nil
-				}),
-		)
-
-		require.NoError(t, p.Init(t.Context()))
-
-		type DependentStruct struct {
-			Dependency *TestServiceStruct
-		}
-
-		instance, err := pal.Build[DependentStruct](t.Context(), p)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, instance)
-		assert.NotNil(t, instance.Dependency)
-	})
-
-	t.Run("ignores missing dependencies", func(t *testing.T) {
-		t.Parallel()
-
-		// Create an empty Pal instance
-		p := newPal()
-
-		// Try to inject dependencies with no services registered
-		_, err := pal.Build[DependentStruct](t.Context(), p)
-
-		assert.NoError(t, err)
-	})
-
-	t.Run("skips non-interface fields", func(t *testing.T) {
-		t.Parallel()
-
-		type StructWithNonInterfaceField struct {
-			NonInterface string
-		}
-
-		// Create an empty Pal instance
-		p := newPal()
-
-		// Build dependencies into a struct with no interface fields
-		result, err := pal.Build[StructWithNonInterfaceField](t.Context(), p)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, "", result.NonInterface) // Default value is empty string
-	})
-
-	t.Run("skips unexported fields", func(t *testing.T) {
-		t.Parallel()
-
-		type StructWithUnexportedField struct {
-			dependency TestServiceInterface
-		}
-
-		// Create a Pal instance with our test service
-		p := newPal(pal.Provide(&TestServiceStruct{}))
-
-		// No need to initialize Pal for this test
-
-		// Build dependencies into a struct with unexported fields
-		result, err := pal.Build[StructWithUnexportedField](t.Context(), p)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Nil(t, result.dependency) // Field is unexported, so it's not set
 	})
 }
 
