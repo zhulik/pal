@@ -47,7 +47,7 @@ func New(services ...ServiceDef) *Pal {
 		logger:       slog.With("palComponent", "Pal"),
 	}
 
-	services = append(services, ProvideConst(pal))
+	services = append(services, Provide(pal))
 
 	for _, s := range services {
 		setPalField(reflect.ValueOf(s), pal)
@@ -161,7 +161,7 @@ func (p *Pal) Init(ctx context.Context) error {
 
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	if err := p.validate(ctx); err != nil {
+	if err := p.config.Validate(ctx); err != nil {
 		return err
 	}
 
@@ -234,10 +234,6 @@ func (p *Pal) Logger() *slog.Logger {
 // Config returns a copy of pal's config.
 func (p *Pal) Config() Config {
 	return *p.config
-}
-
-func (p *Pal) validate(ctx context.Context) error {
-	return errors.Join(p.config.Validate(ctx), p.container.Validate(ctx))
 }
 
 func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {

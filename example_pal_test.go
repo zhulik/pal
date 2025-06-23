@@ -55,7 +55,7 @@ func (s *ExampleServiceImpl) Foo() string {
 // This example demonstrates how to use Pal with a runner service.
 func Example_pal_runner() {
 	p := pal.New(
-		pal.Provide[ExampleService, ExampleServiceImpl](),
+		pal.Provide[ExampleService](&ExampleServiceImpl{}),
 	).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).

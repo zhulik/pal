@@ -3,66 +3,100 @@ package pal
 import (
 	"context"
 	"fmt"
+	"reflect"
 )
 
-type ServiceFactory[I any, S any] struct {
-	P          *Pal
-	beforeInit LifecycleHook[*S]
+// ServiceFactory is a service that wraps a constant value which will copied and initialized on every invocation unlike
+// ServiceConst, which is initialized only once and always return the same instance when invoked.
+type ServiceFactory[T any] struct {
+	P                 *Pal
+	referenceInstance T
+	beforeInit        LifecycleHook[T]
 }
 
-func (c *ServiceFactory[I, S]) Dependencies() []ServiceDef {
+func (c *ServiceFactory[T]) Dependencies() []ServiceDef {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) Run(_ context.Context) error {
+func (c *ServiceFactory[T]) Run(_ context.Context) error {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) Init(_ context.Context) error {
+func (c *ServiceFactory[T]) Init(_ context.Context) error {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) HealthCheck(_ context.Context) error {
+func (c *ServiceFactory[T]) HealthCheck(_ context.Context) error {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) Shutdown(_ context.Context) error {
+func (c *ServiceFactory[T]) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) Make() any {
-	return empty[S]()
+func (c *ServiceFactory[T]) Make() any {
+	return c.referenceInstance
 }
 
-func (c *ServiceFactory[I, S]) Instance(ctx context.Context) (any, error) {
-	return buildService[S](ctx, c.beforeInit, c.P, c.P.logger.With("service", c.Name()))
-}
+func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
+	logger := c.P.logger.With("service", c.Name())
 
-func (c *ServiceFactory[I, S]) RunConfig() *RunConfig {
-	return nil
-}
+	logger.Debug("Creating an instance")
 
-func (c *ServiceFactory[I, S]) Name() string {
-	return elem[I]().String()
-}
-
-func (c *ServiceFactory[I, S]) Validate(ctx context.Context) error {
-	return validateService[I, S](ctx)
-}
-
-func validateService[I any, S any](_ context.Context) error {
-	iType := elem[I]()
-
-	sType := elem[S]()
-
-	if _, ok := any(new(S)).(I); !ok {
-		return fmt.Errorf("%w: type %v does not implement interface %v", ErrServiceInvalid, sType, iType)
+	instance, err := c.copyInstance()
+	if err != nil {
+		return nil, err
 	}
 
+	if c.beforeInit != nil {
+		logger.Debug("Calling BeforeInit hook")
+		err := c.beforeInit(ctx, instance.(T))
+		if err != nil {
+			c.P.logger.Error("BeforeInit hook failed", "error", err)
+			return nil, err
+		}
+	}
+
+	if initer, ok := instance.(Initer); ok {
+		logger.Debug("Calling Init method")
+		if err := initer.Init(ctx); err != nil {
+			logger.Error("Init failed", "error", err)
+			return nil, err
+		}
+	}
+	return instance, nil
+}
+
+func (c *ServiceFactory[T]) copyInstance() (any, error) {
+	refValue := reflect.ValueOf(c.referenceInstance)
+	if !refValue.IsValid() {
+		return nil, fmt.Errorf("invalid reference instance")
+	}
+
+	var newInstance reflect.Value
+	if refValue.Kind() == reflect.Ptr {
+		elemType := refValue.Elem().Type()
+		newPtr := reflect.New(elemType)
+		newPtr.Elem().Set(refValue.Elem())
+		newInstance = newPtr
+	} else {
+		newInstance = reflect.New(refValue.Type()).Elem()
+		newInstance.Set(refValue)
+	}
+
+	instance := newInstance.Interface()
+	return instance, nil
+}
+
+func (c *ServiceFactory[T]) RunConfig() *RunConfig {
 	return nil
 }
 
-func (c *ServiceFactory[I, S]) BeforeInit(hook LifecycleHook[*S]) *ServiceFactory[I, S] {
+func (c *ServiceFactory[T]) Name() string {
+	return elem[T]().String()
+}
+
+func (c *ServiceFactory[T]) BeforeInit(hook LifecycleHook[T]) *ServiceFactory[T] {
 	c.beforeInit = hook
 	return c
 }

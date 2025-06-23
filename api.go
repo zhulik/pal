@@ -5,16 +5,16 @@ import (
 	"fmt"
 )
 
-// Provide registers a singleton service with pal. `I` is the type `S` will be cast to. It's also used to generate
-// service name. Typically, `I` would be one of:
-// - An interface, in this case S must implement it. Used when I may have multiple implementations like mocks for tests.
-// - A pointer to `S`. For instance,`Provide[*Foo, Foo]()`. Used when mocking is not required.
-// Only one instance of the service will be created and reused.
-func Provide[I any, S any]() *ServiceSingleton[I, S] {
-	return &ServiceSingleton[I, S]{}
+// Provide registers a const as a service. `T` is used to generating service name.
+// Typically, `T` would be one of:
+// - An interface, in this case passed value must implement it. Used when T may have multiple implementations like mocks for tests.
+// - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
+// If the passed value implements Initer, Init() will be called.
+func Provide[T any](value T) *ServiceConst[T] {
+	return &ServiceConst[T]{instance: value}
 }
 
-// ProvideFn registers a singleton that is build with a given function.
+// ProvideFn registers a singleton built with a given function.
 func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
 	return &ServiceFnSingleton[T]{
 		fn: fn,
@@ -24,8 +24,10 @@ func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSinglet
 // ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
 // A new factory service instance is created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S any]() *ServiceFactory[I, S] {
-	return &ServiceFactory[I, S]{}
+func ProvideFactory[T any](value T) *ServiceFactory[T] {
+	return &ServiceFactory[T]{
+		referenceInstance: value,
+	}
 }
 
 // ProvideFnFactory registers a factory service that is build with a given function.
@@ -36,14 +38,9 @@ func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFn
 }
 
 // ProvideRunner turns the given function into a runner. It will run in the background, and the passed context will
-// be cancelled on app shutdown.
+// be canceled on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
 	return &ServiceRunner{fn}
-}
-
-// ProvideConst registers a const as a service.
-func ProvideConst[T any](value T) *ServiceConst[T] {
-	return &ServiceConst[T]{instance: value}
 }
 
 // ProvideList registers a list of given services.
@@ -63,7 +60,7 @@ func ProvidePal(pal *Pal) *ServiceList {
 	return ProvideList(services...)
 }
 
-// Invoke retrieves or creates an instance of type I from the given Pal container.
+// Invoke retrieves or creates an instance of type T from the given Pal container.
 func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
 	name := elem[T]().String()
 

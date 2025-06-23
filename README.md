@@ -96,16 +96,15 @@ a few rules described below.
 
 Pal provides several functions for registering services:
 
-- `Provide[I, S]()` - Registers a singleton service where `I` is the interface type and `S` is the implementation type.
-- `ProvideFn[T](fn)` - Registers a singleton service that is created using the provided function.
-- `ProvideFactory[I, S]()` - Registers a factory service where `I` is the interface type and `S` is the implementation type.
-- `ProvideFnFactory[T](fn)` - Registers a factory service that is created using the provided function.
-- `ProvideConst[T](value)` - Registers an existing instance as a service.
+- `Provide[T any](value T)` - Registers an instance of service.
+- `ProvideFactory[T](value T)` - Registers a factory service. value must be of type `T`. Every time it's invoked, a value is copied and initialized.
+- `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
+- `ProvideFnFactory[T](fn func(ctx context.Context) (T, error)))` - Registers a factory service created using the provided function.
 
 Pal also provides functions for retrieving services:
 
 - `Invoke[T](ctx, invoker)` - Retrieves or creates an instance of type `T` from the container.
-- `Build[S](ctx, invoker)` - Creates an instance of S, resolves it's dependencies and injects them into its fields.
+- `Build[S](ctx, invoker)` - Creates an instance of S, resolves it's dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
 
 ## Examples:

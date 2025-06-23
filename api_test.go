@@ -20,16 +20,16 @@ func TestProvide(t *testing.T) {
 	t.Run("creates a singleton service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[TestServiceInterface, TestServiceStruct]()
+		service := pal.Provide(&TestServiceStruct{})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+		assert.Equal(t, "*pal_test.TestServiceStruct", service.Name())
 	})
 
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide[RunnerServiceInterface, RunnerServiceStruct]().
+		service := pal.Provide(&RunnerServiceStruct{}).
 			BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Run", ctx).Return(nil)
@@ -38,7 +38,7 @@ func TestProvide(t *testing.T) {
 			})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.RunnerServiceInterface", service.Name())
+		assert.Equal(t, "*pal_test.RunnerServiceStruct", service.Name())
 	})
 }
 
@@ -49,7 +49,7 @@ func TestProvideFactory(t *testing.T) {
 	t.Run("creates a factory service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory[TestServiceInterface, TestServiceStruct]()
+		service := pal.ProvideFactory[TestServiceInterface](&TestServiceStruct{})
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
@@ -98,10 +98,10 @@ func TestProvideConst(t *testing.T) {
 		t.Parallel()
 
 		s := &TestServiceStruct{}
-		service := pal.ProvideConst[TestServiceInterface](s)
+		service := pal.Provide(s)
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+		assert.Equal(t, "*pal_test.TestServiceStruct", service.Name())
 
 		// Verify that the instance is the same
 		instance, err := service.Instance(context.Background())
@@ -118,7 +118,7 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().
+			pal.Provide(&TestServiceStruct{}).
 				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
@@ -129,7 +129,7 @@ func TestInvoke(t *testing.T) {
 
 		require.NoError(t, p.Init(t.Context()))
 
-		instance, err := pal.Invoke[TestServiceInterface](t.Context(), p)
+		instance, err := pal.Invoke[*TestServiceStruct](t.Context(), p)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
@@ -156,7 +156,7 @@ func TestBuild(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().
+			pal.Provide(&TestServiceStruct{}).
 				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
@@ -168,7 +168,7 @@ func TestBuild(t *testing.T) {
 		require.NoError(t, p.Init(t.Context()))
 
 		type DependentStruct struct {
-			Dependency TestServiceInterface
+			Dependency *TestServiceStruct
 		}
 
 		instance, err := pal.Build[DependentStruct](t.Context(), p)
@@ -216,7 +216,7 @@ func TestBuild(t *testing.T) {
 		}
 
 		// Create a Pal instance with our test service
-		p := newPal(pal.Provide[TestServiceInterface, TestServiceStruct]())
+		p := newPal(pal.Provide(&TestServiceStruct{}))
 
 		// No need to initialize Pal for this test
 
@@ -237,7 +237,7 @@ func TestInjectInto(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide[TestServiceInterface, TestServiceStruct]().
+			pal.Provide(&TestServiceStruct{}).
 				BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
@@ -298,11 +298,11 @@ func TestInjectInto(t *testing.T) {
 		t.Parallel()
 
 		type StructWithUnexportedField struct {
-			dependency TestServiceInterface
+			dependency *TestServiceStruct
 		}
 
 		// Create a Pal instance with our test service
-		p := newPal(pal.Provide[TestServiceInterface, TestServiceStruct]())
+		p := newPal(pal.Provide(&TestServiceStruct{}))
 
 		// Create a struct instance to inject dependencies into
 		instance := &StructWithUnexportedField{}

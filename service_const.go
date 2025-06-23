@@ -9,6 +9,7 @@ import (
 type ServiceConst[T any] struct {
 	P *Pal
 
+	beforeInit     LifecycleHook[T]
 	beforeShutdown LifecycleHook[T]
 
 	instance T
@@ -28,7 +29,26 @@ func (c *ServiceConst[T]) Run(ctx context.Context) error {
 }
 
 // Init is a no-op for const services as they are already initialized.
-func (c *ServiceConst[T]) Init(_ context.Context) error {
+// It injects dependencies to the stored instance and calls its Init method if it implements Initer.
+func (c *ServiceConst[T]) Init(ctx context.Context) error {
+	logger := c.P.logger.With("service", c.Name())
+
+	if c.beforeInit != nil {
+		logger.Debug("Calling BeforeInit hook")
+		err := c.beforeInit(ctx, c.instance)
+		if err != nil {
+			logger.Error("BeforeInit hook failed", "error", err)
+			return err
+		}
+	}
+
+	if initer, ok := any(c.instance).(Initer); ok && any(c.instance) != any(c.P) {
+		logger.Debug("Calling Init method")
+		if err := initer.Init(ctx); err != nil {
+			logger.Error("Init failed", "error", err)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -58,6 +78,13 @@ func (c *ServiceConst[T]) Make() any {
 // Instance returns the constant instance of the service.
 func (c *ServiceConst[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
+}
+
+// BeforeInit registers a hook function that will be called before the service is initialized.
+// This can be used to customize the service instance before its Init method is called.
+func (c *ServiceConst[T]) BeforeInit(hook LifecycleHook[T]) *ServiceConst[T] {
+	c.beforeInit = hook
+	return c
 }
 
 func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceConst[T] {

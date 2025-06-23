@@ -25,7 +25,7 @@ func (s *SimpleServiceImpl) GetMessage() string {
 func Example_container() {
 	// Create a Pal instance with the service
 	p := pal.New(
-		pal.Provide[SimpleService, SimpleServiceImpl](),
+		pal.Provide[SimpleService](&SimpleServiceImpl{}),
 	).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
