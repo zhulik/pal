@@ -33,6 +33,11 @@ func (c *ServiceConst[T]) Run(ctx context.Context) error {
 func (c *ServiceConst[T]) Init(ctx context.Context) error {
 	logger := c.P.logger.With("service", c.Name())
 
+	err := c.P.InjectInto(ctx, c.instance)
+	if err != nil {
+		return err
+	}
+
 	if c.beforeInit != nil {
 		logger.Debug("Calling BeforeInit hook")
 		err := c.beforeInit(ctx, c.instance)
