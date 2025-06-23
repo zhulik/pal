@@ -33,8 +33,8 @@ type Inspect struct {
 
 func ProvideBase() pal.ServiceDef {
 	return pal.ProvideList(
-		pal.Provide[*Inspect, Inspect](),
-		pal.ProvideFactory[*VM, VM](),
+		pal.Provide(&Inspect{}),
+		pal.ProvideFactory(&VM{}),
 
 		pal.ProvideFn(graphviz.New).
 			BeforeShutdown(func(_ context.Context, g *graphviz.Graphviz) error {
@@ -48,7 +48,7 @@ func ProvideRemoteConsole() pal.ServiceDef {
 }
 
 func ProvideConsole() pal.ServiceDef {
-	return pal.Provide[*Console, Console]()
+	return pal.Provide(&Console{})
 }
 
 func (i *Inspect) Shutdown(ctx context.Context) error {
