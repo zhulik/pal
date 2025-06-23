@@ -49,7 +49,7 @@ func TestProvideFactory(t *testing.T) {
 	t.Run("creates a factory service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory[TestServiceInterface, TestServiceStruct]()
+		service := pal.ProvideFactory[TestServiceInterface](&TestServiceStruct{})
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())

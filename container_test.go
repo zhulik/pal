@@ -66,11 +66,6 @@ func (m *MockService) Name() string {
 	return m.name
 }
 
-func (m *MockService) Validate(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
 // TestContainer_New tests the New function for Container
 func TestContainer_New(t *testing.T) {
 	t.Parallel()
@@ -94,43 +89,6 @@ func TestContainer_New(t *testing.T) {
 		assert.NotNil(t, c)
 		// We can verify it works with nil services by checking that Services() returns empty
 		assert.Empty(t, c.Services())
-	})
-}
-
-// TestContainer_Validate tests the Validate method of Container
-func TestContainer_Validate(t *testing.T) {
-	t.Parallel()
-
-	t.Run("validates all services successfully", func(t *testing.T) {
-		t.Parallel()
-
-		service1 := NewMockService("service1")
-		service2 := NewMockService("service2")
-
-		service1.On("Validate", t.Context()).Return(nil)
-		service2.On("Validate", t.Context()).Return(nil)
-
-		c := pal.NewContainer(service1, service2)
-
-		err := c.Validate(t.Context())
-
-		assert.NoError(t, err)
-	})
-
-	t.Run("returns error when service validation fails", func(t *testing.T) {
-		t.Parallel()
-
-		service1 := NewMockService("service1")
-		service2 := NewMockService("service2")
-
-		service1.On("Validate", t.Context()).Return(nil)
-		service2.On("Validate", t.Context()).Return(errTest)
-
-		c := pal.NewContainer(service1, service2)
-
-		err := c.Validate(t.Context())
-
-		assert.ErrorIs(t, err, errTest)
 	})
 }
 

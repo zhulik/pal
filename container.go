@@ -70,19 +70,6 @@ func flattenServices(services []ServiceDef) []ServiceDef {
 	return result
 }
 
-func (c *Container) Validate(ctx context.Context) error {
-	var errs []error
-
-	for _, service := range c.services {
-		validator, ok := service.(Validator)
-		if ok {
-			errs = append(errs, validator.Validate(ctx))
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
 func (c *Container) Init(ctx context.Context) error {
 	c.logger.Debug("Building dependency tree...")
 

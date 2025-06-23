@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-// Provide registers a const as a service. `I` is used to generating service name.
-// Typically, `I` would be one of:
-// - An interface, in this case passed value must implement it. Used when I may have multiple implementations like mocks for tests.
+// Provide registers a const as a service. `T` is used to generating service name.
+// Typically, `T` would be one of:
+// - An interface, in this case passed value must implement it. Used when T may have multiple implementations like mocks for tests.
 // - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
 // If the passed value implements Initer, Init() will be called.
 func Provide[T any](value T) *ServiceConst[T] {
@@ -24,8 +24,10 @@ func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSinglet
 // ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
 // A new factory service instance is created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[I any, S any]() *ServiceFactory[I, S] {
-	return &ServiceFactory[I, S]{}
+func ProvideFactory[T any](value T) *ServiceFactory[T] {
+	return &ServiceFactory[T]{
+		referenceInstance: value,
+	}
 }
 
 // ProvideFnFactory registers a factory service that is build with a given function.
@@ -58,7 +60,7 @@ func ProvidePal(pal *Pal) *ServiceList {
 	return ProvideList(services...)
 }
 
-// Invoke retrieves or creates an instance of type I from the given Pal container.
+// Invoke retrieves or creates an instance of type T from the given Pal container.
 func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
 	name := elem[T]().String()
 

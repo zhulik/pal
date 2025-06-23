@@ -75,15 +75,6 @@ type RunConfiger interface {
 	RunConfig() *RunConfig
 }
 
-// Validator is an optional interfaces, a ServiceDef can implement it to validate the service definition during PAL
-// initialization.
-type Validator interface {
-	// Validate validates the service definition.
-	// This is called during container initialization to ensure the service is properly configured.
-	// It should check that the service implementation satisfies all required interfaces and constraints.
-	Validate(_ context.Context) error
-}
-
 // ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
 // This interface combines all the lifecycle interfaces (Initer, HealthChecker, Shutdowner, Runner)
 // and adds methods specific to service definition and management.
