@@ -70,9 +70,9 @@ func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
 	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
-// Make returns nil for const services as they are already created.
+// Make returns the stored instance so pal knows the entire dependency tree.
 func (c *ServiceConst[T]) Make() any {
-	return nil
+	return c.instance
 }
 
 // Instance returns the constant instance of the service.
