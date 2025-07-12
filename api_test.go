@@ -40,6 +40,14 @@ func TestProvide(t *testing.T) {
 		assert.NotNil(t, service)
 		assert.Equal(t, "*pal_test.RunnerServiceStruct", service.Name())
 	})
+
+	t.Run("makes sure the argument is a pointer to struct", func(t *testing.T) {
+		t.Parallel()
+
+		require.PanicsWithValue(t, "Argument must be a non-nil pointer to a struct, got func()", func() {
+			pal.Provide(func() {})
+		})
+	})
 }
 
 // TestProvideFactory tests the ProvideFactory function
@@ -53,6 +61,14 @@ func TestProvideFactory(t *testing.T) {
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+	})
+
+	t.Run("makes sure the argument is a pointer to struct", func(t *testing.T) {
+		t.Parallel()
+
+		require.PanicsWithValue(t, "Argument must be a non-nil pointer to a struct, got func()", func() {
+			pal.ProvideFactory(func() {})
+		})
 	})
 }
 

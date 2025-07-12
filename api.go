@@ -3,6 +3,7 @@ package pal
 import (
 	"context"
 	"fmt"
+	"reflect"
 )
 
 // Provide registers a const as a service. `T` is used to generating service name.
@@ -11,6 +12,8 @@ import (
 // - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
 // If the passed value implements Initer, Init() will be called.
 func Provide[T any](value T) *ServiceConst[T] {
+	validatePointerToStruct(value)
+
 	return &ServiceConst[T]{instance: value}
 }
 
@@ -25,6 +28,8 @@ func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSinglet
 // A new factory service instance is created every time the service is invoked.
 // it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
 func ProvideFactory[T any](value T) *ServiceFactory[T] {
+	validatePointerToStruct(value)
+
 	return &ServiceFactory[T]{
 		referenceInstance: value,
 	}
@@ -96,4 +101,12 @@ func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
 // Returns an error if dependency invocation fails or other unrecoverable errors occur during injection.
 func InjectInto[T any](ctx context.Context, invoker Invoker, s *T) error {
 	return invoker.InjectInto(ctx, s)
+}
+
+func validatePointerToStruct(value any) {
+	val := reflect.ValueOf(value)
+
+	if val.Kind() != reflect.Ptr || val.IsNil() {
+		panic(fmt.Sprintf("Argument must be a non-nil pointer to a struct, got %T", value))
+	}
 }
