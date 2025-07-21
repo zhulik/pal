@@ -20,6 +20,9 @@ const (
 	CtxValue ContextKey = iota
 )
 
+// DefaultShutdownSignals is the default signals that will be used to shutdown the app.
+var DefaultShutdownSignals = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+
 // Pal is the main struct that manages the lifecycle of services in the application.
 // It handles service initialization, dependency injection, health checking, and graceful shutdown.
 // Pal implements the Invoker interface, allowing services to be retrieved from it.
@@ -143,6 +146,10 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 
 	if err := p.Init(ctx); err != nil {
 		return err
+	}
+
+	if len(signals) == 0 {
+		signals = DefaultShutdownSignals
 	}
 
 	go p.listenToStopSignals(ctx, signals)
