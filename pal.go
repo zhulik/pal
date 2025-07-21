@@ -192,6 +192,8 @@ func (p *Pal) Init(ctx context.Context) error {
 		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
 	}()
 
+	p.logger.Debug("Pal initialized")
+
 	return nil
 }
 

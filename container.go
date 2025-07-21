@@ -105,7 +105,7 @@ func (c *Container) Init(ctx context.Context) error {
 		return err
 	}
 
-	c.logger.Info("Container initialized")
+	c.logger.Debug("Container initialized")
 	return nil
 }
 
@@ -151,7 +151,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 func (c *Container) Shutdown(ctx context.Context) error {
 	var errs []error
 
-	c.logger.Info("Shutting down runners")
+	c.logger.Debug("Shutting down runners")
 	// Shutting down runners by cancelling their root context
 	c.cancelMu.RLock()
 	if c.cancel != nil {
@@ -160,7 +160,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	c.cancelMu.RUnlock()
 
 	errs = append(errs, c.runnerTasks.Wait())
-	// Await for runners to exit and safe possible error.
+	// Await for runners to exit and save possible error.
 	err := errors.Join(errs...)
 
 	if err != nil {
@@ -182,7 +182,7 @@ func (c *Container) Shutdown(ctx context.Context) error {
 		return err
 	}
 
-	c.logger.Info("Container shut down successfully")
+	c.logger.Debug("Container shut down successfully")
 	return nil
 }
 
@@ -250,7 +250,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 		c.logger.Error("Runners finished with error", "error", err)
 		return nil
 	}
-	c.logger.Info("All runners finished successfully")
+	c.logger.Debug("All runners finished successfully")
 	return nil
 }
 

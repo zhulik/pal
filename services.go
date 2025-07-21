@@ -12,7 +12,7 @@ func runService(ctx context.Context, instance any, logger *slog.Logger) error {
 	}
 
 	return tryWrap(func() error {
-		logger.Info("Running")
+		logger.Debug("Running")
 		err := runner.Run(ctx)
 		if err != nil {
 			logger.Error("Runner exited with error, scheduling shutdown", "error", err)
@@ -20,7 +20,7 @@ func runService(ctx context.Context, instance any, logger *slog.Logger) error {
 			return err
 		}
 
-		logger.Info("Runner finished successfully")
+		logger.Debug("Runner finished successfully")
 		return nil
 	})()
 }
