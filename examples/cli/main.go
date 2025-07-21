@@ -49,6 +49,8 @@ func (p *Pinger) Run(ctx context.Context) error {
 }
 
 func (p *Pinger) Shutdown(_ context.Context) error {
+	time.Sleep(2 * time.Second)
+
 	defer slog.Info("Pinger shut down")
 	p.client.CloseIdleConnections()
 
@@ -61,7 +63,7 @@ func main() {
 	).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
-		ShutdownTimeout(time.Second)
+		ShutdownTimeout(3 * time.Second)
 
 	if err := p.Run(context.Background()); err != nil {
 		slog.Error("Error running pal", "error", err)
