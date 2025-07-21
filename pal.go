@@ -153,7 +153,9 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	}
 
 	go p.listenToStopSignals(ctx, signals)
-	go p.Shutdown(p.container.StartRunners(ctx))
+	go func() {
+		p.Shutdown(p.container.StartRunners(ctx))
+	}()
 
 	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
 
