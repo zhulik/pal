@@ -20,6 +20,9 @@ const (
 	CtxValue ContextKey = iota
 )
 
+// DefaultShutdownSignals is the default signals that will be used to shutdown the app.
+var DefaultShutdownSignals = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+
 // Pal is the main struct that manages the lifecycle of services in the application.
 // It handles service initialization, dependency injection, health checking, and graceful shutdown.
 // Pal implements the Invoker interface, allowing services to be retrieved from it.
@@ -139,18 +142,41 @@ func (p *Pal) Shutdown(errs ...error) {
 // Run eagerly starts runners, then blocks until one of the given signals is received or all runners
 // finish their work. If any error occurs during initialization, runner operation or Shutdown - Run() will return it.
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
+	if len(signals) == 0 {
+		signals = DefaultShutdownSignals
+	}
+
 	ctx = context.WithValue(ctx, CtxValue, p)
+	ctx, stop := signal.NotifyContext(ctx, signals...)
+	defer stop()
 
 	if err := p.Init(ctx); err != nil {
 		return err
 	}
 
-	go p.listenToStopSignals(ctx, signals)
-	go p.Shutdown(p.container.StartRunners(ctx))
+	go func() {
+		p.Shutdown(p.container.StartRunners(ctx))
+	}()
 
 	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
 
-	return <-p.shutdownChan
+	select {
+	case <-ctx.Done():
+		p.logger.Warn("Received signal, shutting down.")
+
+		p.Shutdown()
+		go func() {
+			ctx, stop := signal.NotifyContext(context.Background(), signals...)
+			defer stop()
+
+			<-ctx.Done()
+			p.logger.Error("Signal received again, exiting immediately")
+			os.Exit(1)
+		}()
+		return <-p.shutdownChan
+	case err := <-p.shutdownChan:
+		return err
+	}
 }
 
 // Init initializes Pal. Validates config, creates and initializes all singleton services.
@@ -236,37 +262,4 @@ func (p *Pal) Logger() *slog.Logger {
 // Config returns a copy of pal's config.
 func (p *Pal) Config() Config {
 	return *p.config
-}
-
-func (p *Pal) listenToStopSignals(ctx context.Context, signals []os.Signal) {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, signals...)
-
-	shuttingDown := false
-
-	for {
-		select {
-		case <-ctx.Done():
-			p.Shutdown()
-		case sig := <-sigChan:
-			if shuttingDown {
-				if sig == syscall.SIGINT {
-					p.logger.Error("Signal received again, exiting immediately", "signal", sig)
-					os.Exit(1)
-				}
-				p.logger.Warn("Received signal, but the app is already shutting down, ignoring.", "signal", sig)
-				continue
-			}
-
-			p.logger.Warn("Received signal, shutting down.", "signal", sig)
-			if sig == syscall.SIGINT {
-				p.logger.Warn("Received signal, shutting down. Press ^C again to exit immediately", "signal", sig)
-			} else {
-				p.logger.Warn("Received signal, shutting down.", "signal", sig)
-			}
-			shuttingDown = true
-
-			p.Shutdown()
-		}
-	}
 }
