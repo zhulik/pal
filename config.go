@@ -16,6 +16,7 @@ type Config struct {
 	InitTimeout        time.Duration `validate:"gt=0"`
 	HealthCheckTimeout time.Duration `validate:"gt=0"`
 	ShutdownTimeout    time.Duration `validate:"gt=0"`
+	InjectSlog         bool
 }
 
 func (c *Config) Validate(_ context.Context) error {

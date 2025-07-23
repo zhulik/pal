@@ -56,7 +56,7 @@ func New(services ...ServiceDef) *Pal {
 		setPalField(reflect.ValueOf(s), pal)
 	}
 
-	pal.container = NewContainer(services...)
+	pal.container = NewContainer(pal.config, services...)
 
 	return pal
 }
@@ -114,6 +114,12 @@ func (p *Pal) HealthCheckTimeout(t time.Duration) *Pal {
 // ShutdownTimeout sets the timeout for the Shutdown of the services.
 func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 	p.config.ShutdownTimeout = t
+	return p
+}
+
+// InjectSlog enables automatic slog injection into the services.
+func (p *Pal) InjectSlog() *Pal {
+	p.config.InjectSlog = true
 	return p
 }
 

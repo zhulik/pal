@@ -11,10 +11,12 @@ import (
 
 type Pinger struct {
 	client *http.Client
+
+	Logger *slog.Logger
 }
 
 func (p *Pinger) Init(_ context.Context) error {
-	defer slog.Info("Pinger initialized")
+	defer p.Logger.Info("Pinger initialized")
 
 	p.client = &http.Client{
 		Timeout: 5 * time.Second,
@@ -35,14 +37,14 @@ func (p *Pinger) Run(ctx context.Context) error {
 		case <-ticker.C:
 			req, err := http.NewRequestWithContext(ctx, "GET", "https://google.com", nil)
 			if err != nil {
-				slog.Error("Failed to create request", "error", err)
+				p.Logger.Error("Failed to create request", "error", err)
 				return err
 			}
 			resp, err := p.client.Do(req)
 			if err != nil {
 				return nil
 			}
-			slog.Info("GET google.com", "status", resp.Status)
+			p.Logger.Info("GET google.com", "status", resp.Status)
 			resp.Body.Close()
 		}
 	}
@@ -51,7 +53,7 @@ func (p *Pinger) Run(ctx context.Context) error {
 func (p *Pinger) Shutdown(_ context.Context) error {
 	time.Sleep(2 * time.Second)
 
-	defer slog.Info("Pinger shut down")
+	defer p.Logger.Info("Pinger shut down")
 	p.client.CloseIdleConnections()
 
 	return nil
@@ -61,11 +63,12 @@ func main() {
 	p := pal.New(
 		pal.Provide(&Pinger{}),
 	).
+		InjectSlog().
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
 		ShutdownTimeout(3 * time.Second)
 
 	if err := p.Run(context.Background()); err != nil {
-		slog.Error("Error running pal", "error", err)
+		panic(err)
 	}
 }
