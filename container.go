@@ -138,7 +138,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		}
 
 		fieldType := t.Field(i).Type
-		if c.config.InjectSlog && fieldType == reflect.TypeOf((*slog.Logger)(nil)) {
+		if fieldType == reflect.TypeOf((*slog.Logger)(nil)) && c.config.AttrSetters != nil {
 			c.injectLoggerIntoField(field, target)
 			continue
 		}

@@ -130,7 +130,6 @@ func (p *Pal) InjectSlog(configs ...SlogAttributeSetter) *Pal {
 		configs = defaultAttrSetters
 	}
 
-	p.config.InjectSlog = true
 	p.config.AttrSetters = configs
 	return p
 }

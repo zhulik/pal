@@ -20,7 +20,6 @@ type Config struct {
 	InitTimeout        time.Duration `validate:"gt=0"`
 	HealthCheckTimeout time.Duration `validate:"gt=0"`
 	ShutdownTimeout    time.Duration `validate:"gt=0"`
-	InjectSlog         bool
 	AttrSetters        []SlogAttributeSetter
 }
 
