@@ -138,14 +138,9 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		}
 
 		fieldType := t.Field(i).Type
-
-		if c.config.InjectSlog {
-			if fieldType == reflect.TypeOf((*slog.Logger)(nil)) {
-				field.Set(reflect.ValueOf(
-					slog.With("component", fmt.Sprintf("%T", target)),
-				))
-				continue
-			}
+		if c.config.InjectSlog && fieldType == reflect.TypeOf((*slog.Logger)(nil)) {
+			c.injectLoggerIntoField(field, target)
+			continue
 		}
 
 		dependency, err := c.Invoke(ctx, fieldType.String())
@@ -310,6 +305,15 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 	}
 
 	return nil
+}
+
+func (c *Container) injectLoggerIntoField(field reflect.Value, target any) {
+	logger := slog.Default()
+	for _, attrSetter := range c.config.AttrSetters {
+		name, value := attrSetter(target)
+		logger = logger.With(name, value)
+	}
+	field.Set(reflect.ValueOf(logger))
 }
 
 // serviceHash returns a unique identifier for a service, which is its name.

@@ -3,6 +3,7 @@ package pal
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,6 +23,12 @@ const (
 
 // DefaultShutdownSignals is the default signals that will be used to shutdown the app.
 var DefaultShutdownSignals = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+
+var defaultAttrSetters = []SlogAttributeSetter{
+	func(target any) (string, string) {
+		return "component", fmt.Sprintf("%T", target)
+	},
+}
 
 // Pal is the main struct that manages the lifecycle of services in the application.
 // It handles service initialization, dependency injection, health checking, and graceful shutdown.
@@ -118,8 +125,13 @@ func (p *Pal) ShutdownTimeout(t time.Duration) *Pal {
 }
 
 // InjectSlog enables automatic slog injection into the services.
-func (p *Pal) InjectSlog() *Pal {
+func (p *Pal) InjectSlog(configs ...SlogAttributeSetter) *Pal {
+	if len(configs) == 0 {
+		configs = defaultAttrSetters
+	}
+
 	p.config.InjectSlog = true
+	p.config.AttrSetters = configs
 	return p
 }
 
