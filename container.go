@@ -20,6 +20,8 @@ import (
 
 // Container is responsible for storing services, instances and the dependency graph
 type Container struct {
+	config *Config
+
 	services map[string]ServiceDef
 	graph    *dag.DAG[string, ServiceDef]
 	logger   *slog.Logger
@@ -31,7 +33,7 @@ type Container struct {
 }
 
 // NewContainer creates a new Container instance
-func NewContainer(services ...ServiceDef) *Container {
+func NewContainer(config *Config, services ...ServiceDef) *Container {
 	services = flattenServices(services)
 	index := make(map[string]ServiceDef)
 
@@ -40,6 +42,7 @@ func NewContainer(services ...ServiceDef) *Container {
 	}
 
 	return &Container{
+		config:      config,
 		services:    index,
 		graph:       dag.New(serviceHash),
 		logger:      slog.With("palComponent", "Container"),
@@ -84,7 +87,7 @@ func (c *Container) Init(ctx context.Context) error {
 		return err
 	}
 
-	order, err := graph.TopologicalSort[string, ServiceDef](c.graph)
+	order, err := graph.TopologicalSort(c.graph)
 	if err != nil {
 		return err
 	}
@@ -135,6 +138,11 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		}
 
 		fieldType := t.Field(i).Type
+		if fieldType == reflect.TypeOf((*slog.Logger)(nil)) && c.config.AttrSetters != nil {
+			c.injectLoggerIntoField(field, target)
+			continue
+		}
+
 		dependency, err := c.Invoke(ctx, fieldType.String())
 		if err != nil {
 			if errors.Is(err, ErrServiceNotFound) {
@@ -297,6 +305,15 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 	}
 
 	return nil
+}
+
+func (c *Container) injectLoggerIntoField(field reflect.Value, target any) {
+	logger := slog.Default()
+	for _, attrSetter := range c.config.AttrSetters {
+		name, value := attrSetter(target)
+		logger = logger.With(name, value)
+	}
+	field.Set(reflect.ValueOf(logger))
 }
 
 // serviceHash returns a unique identifier for a service, which is its name.
