@@ -6,8 +6,8 @@
 
 Pal is an opinionated [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) framework for Go.
 
-Pal is at very early stages of development. Technically, it's almost feature complete, but it needs some testing and 
-polishing.
+Pal is almost feature complete and is already used in production. However contributes with examples, documentation updates and 
+new features are very welcome.
 
 ## Motivation
 
@@ -115,7 +115,6 @@ Examples can be found here:
 
 ## Example apps:
 - [Web Server](./examples/web) - Demonstrates how to build a web server using Pal.
-- [Message Consumer](./examples/consumer) - Shows how to implement a message consumer that processes messages from a queue.
 - [CLI Application](./examples/cli) - Illustrates how to structure a command-line application using Pal.
 
 ## Service and container lifecycle
@@ -223,3 +222,13 @@ Here are solutions to common issues you might encounter when using Pal:
    - **Symptom**: Services don't shut down gracefully when the context is canceled.
    - **Possible Causes**: The service isn't checking for context cancellation in its Run method.
    - **Solution**: Ensure all long-running operations in your services respect context cancellation by checking `ctx.Done()` regularly.
+
+## Contrubuting
+
+Contributions are welcome.
+
+1. Fork it, implement your feature and open a PR.
+2. Wait for review.
+3. Address possible comments.
+4. ???
+5. You're a contributor now, many thanks!

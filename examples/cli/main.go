@@ -2,73 +2,33 @@ package main
 
 import (
 	"context"
-	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/zhulik/pal"
 )
 
-type Pinger struct {
-	client *http.Client
-
-	Logger *slog.Logger
+// Pinger is an interface for the pinger service.
+type Pinger interface {
+	Ping(ctx context.Context) error
 }
 
-func (p *Pinger) Init(_ context.Context) error {
-	defer p.Logger.Info("Pinger initialized")
-
-	p.client = &http.Client{
-		Timeout: 5 * time.Second,
-	}
-
-	return nil
-}
-
-func (p *Pinger) Run(ctx context.Context) error {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-
-		case <-ticker.C:
-			req, err := http.NewRequestWithContext(ctx, "GET", "https://google.com", nil)
-			if err != nil {
-				p.Logger.Error("Failed to create request", "error", err)
-				return err
-			}
-			resp, err := p.client.Do(req)
-			if err != nil {
-				return nil
-			}
-			p.Logger.Info("GET google.com", "status", resp.Status)
-			resp.Body.Close()
-		}
-	}
-}
-
-func (p *Pinger) Shutdown(_ context.Context) error {
-	time.Sleep(2 * time.Second)
-
-	defer p.Logger.Info("Pinger shut down")
-	p.client.CloseIdleConnections()
-
-	return nil
-}
-
+// main is the entry point of the program.
 func main() {
+	// Create a new pal application, provide the services and initialize pal's lifecycle timeouts.
+	// Pal is aware of the dependencies between the services and initlizes them in correct order:
+	// first pinger, then ticker. After initialization, it runs the runners, in this case the ticker
+	// When shutting down, it first shuts down the ticker, then the pinger. First it stops the runners,
+	// then shuts down the services in the order reversed to the initialization.
 	p := pal.New(
-		pal.Provide(&Pinger{}),
+		pal.Provide[Pinger](&pinger{}), // Provide the pinger service as the Pinger interface.
+		pal.Provide(&ticker{}),         // Provide the ticker service. As it is the main runner, it does not need to have a specific interface.
 	).
-		InjectSlog().
-		InitTimeout(time.Second).
-		HealthCheckTimeout(time.Second).
-		ShutdownTimeout(3 * time.Second)
+		InjectSlog().                    // Enables automatic logger injection.
+		InitTimeout(time.Second).        // Set the timeout for the initialization phase.
+		HealthCheckTimeout(time.Second). // Set the timeout for the health check phase.
+		ShutdownTimeout(3 * time.Second) // Set the timeout for the shutdown phase.
 
-	if err := p.Run(context.Background()); err != nil {
+	if err := p.Run(context.Background()); err != nil { // Run the application.
 		panic(err)
 	}
 }
