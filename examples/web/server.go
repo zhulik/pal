@@ -18,7 +18,7 @@ type server struct {
 func (s *server) Init(_ context.Context) error {
 	defer s.Logger.Info("Server initialized")
 
-	s.server = &http.Server{
+	s.server = &http.Server{ //nolint:gosec
 		Addr: ":8080",
 	}
 
@@ -28,7 +28,7 @@ func (s *server) Init(_ context.Context) error {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		w.Write([]byte("pong")) //nolint:errcheck
 	})
 
 	return nil
@@ -42,7 +42,7 @@ func (s *server) Run(ctx context.Context) error {
 	// instead we use a goroutine to listen for the context done signal and shutdown the server.
 	go func() {
 		<-ctx.Done()
-		s.server.Shutdown(context.Background())
+		s.server.Shutdown(context.Background()) //nolint:errcheck
 	}()
 
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
