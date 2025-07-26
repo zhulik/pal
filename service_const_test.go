@@ -29,7 +29,7 @@ func TestService_Instance(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(&RunnerServiceStruct{}).
-			BeforeInit(func(ctx context.Context, service *RunnerServiceStruct) error {
+			ToInit(func(ctx context.Context, service *RunnerServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 
 				service.On("Init", ctx).Return(nil)
@@ -57,8 +57,8 @@ func TestService_Instance(t *testing.T) {
 	})
 }
 
-// TestService_BeforeInit tests the BeforeInit hook functionality
-func TestService_BeforeInit(t *testing.T) {
+// TestService_ToInit tests the ToInit hook functionality
+func TestService_ToInit(t *testing.T) {
 	t.Parallel()
 
 	t.Run("hook is called when set", func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestService_BeforeInit(t *testing.T) {
 			return nil
 		}
 
-		service := pal.Provide(&TestServiceStruct{}).BeforeInit(hook)
+		service := pal.Provide(&TestServiceStruct{}).ToInit(hook)
 		p := newPal(service)
 
 		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
@@ -88,7 +88,7 @@ func TestService_BeforeInit(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(&TestServiceStruct{}).
-			BeforeInit(func(ctx context.Context, service *TestServiceStruct) error {
+			ToInit(func(ctx context.Context, service *TestServiceStruct) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
 
@@ -113,7 +113,7 @@ func TestService_BeforeInit(t *testing.T) {
 			return errTest
 		}
 
-		service := pal.Provide(&TestServiceStruct{}).BeforeInit(hook)
+		service := pal.Provide(&TestServiceStruct{}).ToInit(hook)
 		p := newPal(service)
 
 		// The error should be propagated from the hook through Initialize to Init
