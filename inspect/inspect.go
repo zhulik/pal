@@ -37,7 +37,7 @@ func ProvideBase() pal.ServiceDef {
 		pal.ProvideFactory(&VM{}),
 
 		pal.ProvideFn(graphviz.New).
-			BeforeShutdown(func(_ context.Context, g *graphviz.Graphviz) error {
+			ToShutdown(func(_ context.Context, g *graphviz.Graphviz) error {
 				return g.Close()
 			}),
 	)

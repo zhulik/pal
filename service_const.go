@@ -38,10 +38,10 @@ func (c *ServiceConst[T]) Init(ctx context.Context) error {
 	}
 
 	if c.hooks.Init != nil {
-		logger.Debug("Calling BeforeInit hook")
+		logger.Debug("Calling ToInit hook")
 		err := c.hooks.Init(ctx, c.instance)
 		if err != nil {
-			logger.Error("BeforeInit hook failed", "error", err)
+			logger.Error("ToInit hook failed", "error", err)
 			return err
 		}
 	}
@@ -64,13 +64,14 @@ func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
 	if c.hooks.Shutdown != nil {
-		c.P.logger.Debug("Calling BeforeShutdown hook")
+		c.P.logger.Debug("Calling ToShutdown hook")
 		err := c.hooks.Shutdown(ctx, c.instance)
 		if err != nil {
-			c.P.logger.Error("BeforeShutdown failed", "error", err)
+			c.P.logger.Error("ToShutdown failed", "error", err)
 			return err
 		}
 	}
+
 	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
 }
 
@@ -84,15 +85,29 @@ func (c *ServiceConst[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
 }
 
-// BeforeInit registers a hook function that will be called before the service is initialized.
-// This can be used to customize the service instance before its Init method is called.
-func (c *ServiceConst[T]) BeforeInit(hook LifecycleHook[T]) *ServiceConst[T] {
+// ToInit registers a hook function that will be called to initialize the service.
+// This hook is called after the service is injected with its dependencies.
+// If the service implements the Initer interface, the Init() method is not called,
+// the hook has higher priority.
+func (c *ServiceConst[T]) ToInit(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.hooks.Init = hook
 	return c
 }
 
-func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
+// ToShutdown registers a hook function that will be called to shutdown the service.
+// This hook is called before service's dependencies are shutdown.
+// If the service implements the Shutdowner interface, the Shutdown() method is not called,
+// the hook has higher priority.
+func (c *ServiceConst[T]) ToShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.hooks.Shutdown = hook
+	return c
+}
+
+// ToHealthCheck registers a hook function that will be called to perform a health check on the service.
+// If the service implements the HealthChecker interface, the HealthCheck() method is not called,
+// the hook has higher priority.
+func (c *ServiceConst[T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceConst[T] {
+	c.hooks.HealthCheck = hook
 	return c
 }
 

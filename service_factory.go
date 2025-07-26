@@ -55,10 +55,10 @@ func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
 	}
 
 	if c.hooks.Init != nil {
-		logger.Debug("Calling BeforeInit hook")
+		logger.Debug("Calling ToInit hook")
 		err := c.hooks.Init(ctx, instance.(T))
 		if err != nil {
-			c.P.logger.Error("BeforeInit hook failed", "error", err)
+			c.P.logger.Error("ToInit hook failed", "error", err)
 			return nil, err
 		}
 	}
@@ -102,7 +102,7 @@ func (c *ServiceFactory[T]) Name() string {
 	return elem[T]().String()
 }
 
-func (c *ServiceFactory[T]) BeforeInit(hook LifecycleHook[T]) *ServiceFactory[T] {
+func (c *ServiceFactory[T]) ToInit(hook LifecycleHook[T]) *ServiceFactory[T] {
 	c.hooks.Init = hook
 	return c
 }

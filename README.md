@@ -130,7 +130,7 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
    - For each service, Pal:
      - Creates an instance
      - Injects dependencies into its fields
-     - Calls any registered BeforeInit hooks
+     - Calls any registered ToInit hooks
      - Calls the service's Init() method if it implements the Initer interface
 
 3. **Running**:
@@ -156,7 +156,7 @@ To get the most out of Pal, follow these best practices:
    - Design services as small, focused components with a single responsibility.
    - Use interfaces to define service contracts, especially for services that might have multiple implementations.
    - Implement the optional lifecycle interfaces (Initer, Shutdowner, HealthChecker) when appropriate.
-   - Use `ProvideConst` and `ProvideFn*` functions with `BeforeShutdown` hook to register services without dedicated
+   - Use `ProvideConst` and `ProvideFn*` functions with `ToShutdown` hook to register services without dedicated
      interfaces and struc wrappers.
 
 2. **Dependency Management**:
@@ -182,7 +182,7 @@ To get the most out of Pal, follow these best practices:
 6. **Configuration**:
    - Set appropriate timeouts for initialization, health checking, and shutdown.
    - Register signal handlers to ensure graceful shutdown on termination signals.
-   - Use BeforeInit hooks to configure services that don't have their own configuration mechanism.
+   - Use ToInit hooks to configure services that don't have their own configuration mechanism.
 
 ## Troubleshooting
 

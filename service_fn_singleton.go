@@ -48,10 +48,10 @@ func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
 	if c.hooks.Shutdown != nil {
-		c.P.logger.Debug("Calling BeforeShutdown hook")
+		c.P.logger.Debug("Calling ToShutdown hook")
 		err := c.hooks.Shutdown(ctx, c.instance)
 		if err != nil {
-			c.P.logger.Error("BeforeShutdown failed", "error", err)
+			c.P.logger.Error("ToShutdown failed", "error", err)
 			return err
 		}
 	}
@@ -68,7 +68,7 @@ func (c *ServiceFnSingleton[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
 }
 
-func (c *ServiceFnSingleton[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
+func (c *ServiceFnSingleton[T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
 	c.hooks.Shutdown = hook
 	return c
 }
