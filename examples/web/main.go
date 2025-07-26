@@ -18,7 +18,7 @@ func main() {
 	// then shuts down the services in the order reversed to the initialization.
 	p := pal.New(
 		pinger.Provide(), // Provide services from the pinger module.
-		server.Provide(), // Provide services frrom the server module.
+		server.Provide(), // Provide services from the server module.
 	).
 		InjectSlog().                    // Enables automatic logger injection.
 		InitTimeout(time.Second).        // Set the timeout for the initialization phase.
