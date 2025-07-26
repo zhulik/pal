@@ -6,5 +6,5 @@ a dependecy identifier.
 
 It also demostrates 2 important concepts:
 
-- Managing a services which does not natively support stopping with a context: http.Server
-- Modularity: it show how to split your app into multiple modules
+- Managing a services which do not natively support stopping with a context: http.Server
+- Modularity: it shows how to split the app into multiple modules
