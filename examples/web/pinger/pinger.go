@@ -1,4 +1,4 @@
-package main
+package pinger
 
 import (
 	"context"
@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-// pinger is a concrete implementation of the Pinger interface.
-type pinger struct {
+// Pinger is a concrete implementation of the Pinger interface.
+type Pinger struct {
 	Logger *slog.Logger
 
 	client *http.Client
 }
 
 // Init initializes the pinger service, creates a http client.
-func (p *pinger) Init(_ context.Context) error {
+func (p *Pinger) Init(_ context.Context) error {
 	defer p.Logger.Info("Pinger initialized")
 
 	p.client = &http.Client{
@@ -26,7 +26,7 @@ func (p *pinger) Init(_ context.Context) error {
 }
 
 // Shutdown closes the http client.
-func (p *pinger) Shutdown(_ context.Context) error {
+func (p *Pinger) Shutdown(_ context.Context) error {
 	defer p.Logger.Info("Pinger shut down")
 	p.client.CloseIdleConnections()
 
@@ -34,7 +34,7 @@ func (p *pinger) Shutdown(_ context.Context) error {
 }
 
 // Ping pings google.com.
-func (p *pinger) Ping(ctx context.Context) error {
+func (p *Pinger) Ping(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://google.com", nil)
 	if err != nil {
 		return err

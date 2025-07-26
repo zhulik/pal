@@ -5,12 +5,9 @@ import (
 	"time"
 
 	"github.com/zhulik/pal"
+	"github.com/zhulik/pal/examples/web/pinger"
+	"github.com/zhulik/pal/examples/web/server"
 )
-
-// Pinger is an interface for the pinger service.
-type Pinger interface {
-	Ping(ctx context.Context) error
-}
 
 // main is the entry point of the program.
 func main() {
@@ -20,8 +17,8 @@ func main() {
 	// When shutting down, it first shuts down the server, then the pinger. First it stops the runners,
 	// then shuts down the services in the order reversed to the initialization.
 	p := pal.New(
-		pal.Provide[Pinger](&pinger{}), // Provide the pinger service as the Pinger interface.
-		pal.Provide(&server{}),         // Provide the server service. As it is the main runner, it does not need to have a specific interface.
+		pinger.Provide(), // Provide services from the pinger module.
+		server.Provide(), // Provide services frrom the server module.
 	).
 		InjectSlog().                    // Enables automatic logger injection.
 		InitTimeout(time.Second).        // Set the timeout for the initialization phase.

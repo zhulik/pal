@@ -1,21 +1,23 @@
-package main
+package server
 
 import (
 	"context"
 	"log/slog"
 	"net/http"
+
+	"github.com/zhulik/pal/examples/web/core"
 )
 
-// server is a simple http server that calls Pinger.Ping on each request.
-type server struct {
-	Pinger Pinger
+// Server is a simple http Server that calls Pinger.Ping on each request.
+type Server struct {
+	Pinger core.Pinger
 	Logger *slog.Logger
 
 	server *http.Server
 }
 
 // Init initializes the server.
-func (s *server) Init(_ context.Context) error {
+func (s *Server) Init(_ context.Context) error {
 	defer s.Logger.Info("Server initialized")
 
 	s.server = &http.Server{ //nolint:gosec
@@ -35,7 +37,7 @@ func (s *server) Init(_ context.Context) error {
 }
 
 // Run runs the server.
-func (s *server) Run(ctx context.Context) error {
+func (s *Server) Run(ctx context.Context) error {
 	s.Logger.Info("Server running on :8080. Do `curl http://localhost:8080/` to see it in action.")
 
 	// We don't use Shutdown here because ListenAndServe() does not natively support context.
