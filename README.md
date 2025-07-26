@@ -100,6 +100,7 @@ Pal provides several functions for registering services:
 - `ProvideFactory[T](value T)` - Registers a factory service. value must be of type `T`. Every time it's invoked, a value is copied and initialized.
 - `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
 - `ProvideFnFactory[T](fn func(ctx context.Context) (T, error)))` - Registers a factory service created using the provided function.
+- `ProvideList(..ServiceDef)` - Registers multiple services at once, useful when splitting apps into mudules, see [example](./examples/web)
 
 Pal also provides functions for retrieving services:
 
