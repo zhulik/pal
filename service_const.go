@@ -37,42 +37,17 @@ func (c *ServiceConst[T]) Init(ctx context.Context) error {
 		return err
 	}
 
-	if c.hooks.Init != nil {
-		logger.Debug("Calling ToInit hook")
-		err := c.hooks.Init(ctx, c.instance)
-		if err != nil {
-			logger.Error("ToInit hook failed", "error", err)
-			return err
-		}
-	}
-
-	if initer, ok := any(c.instance).(Initer); ok && any(c.instance) != any(c.P) {
-		logger.Debug("Calling Init method")
-		if err := initer.Init(ctx); err != nil {
-			logger.Error("Init failed", "error", err)
-			return err
-		}
-	}
-	return nil
+	return initService(ctx, c.instance, c.hooks.Init, c.P, logger)
 }
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return healthcheckService(ctx, c.instance, c.hooks.HealthCheck, c.P.logger.With("service", c.Name()))
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
-	if c.hooks.Shutdown != nil {
-		c.P.logger.Debug("Calling ToShutdown hook")
-		err := c.hooks.Shutdown(ctx, c.instance)
-		if err != nil {
-			c.P.logger.Error("ToShutdown failed", "error", err)
-			return err
-		}
-	}
-
-	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return shutdownService(ctx, c.instance, c.hooks.Shutdown, c.P.logger.With("service", c.Name()))
 }
 
 // Make returns the stored instance so pal knows the entire dependency tree.

@@ -54,22 +54,11 @@ func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
 		return nil, err
 	}
 
-	if c.hooks.Init != nil {
-		logger.Debug("Calling ToInit hook")
-		err := c.hooks.Init(ctx, instance.(T))
-		if err != nil {
-			c.P.logger.Error("ToInit hook failed", "error", err)
-			return nil, err
-		}
+	err = initService(ctx, instance.(T), c.hooks.Init, c.P, logger)
+	if err != nil {
+		return nil, err
 	}
 
-	if initer, ok := instance.(Initer); ok {
-		logger.Debug("Calling Init method")
-		if err := initer.Init(ctx); err != nil {
-			logger.Error("Init failed", "error", err)
-			return nil, err
-		}
-	}
 	return instance, nil
 }
 
