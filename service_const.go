@@ -9,8 +9,7 @@ import (
 type ServiceConst[T any] struct {
 	P *Pal
 
-	beforeInit     LifecycleHook[T]
-	beforeShutdown LifecycleHook[T]
+	hooks LifecycleHooks[T]
 
 	instance T
 }
@@ -38,9 +37,9 @@ func (c *ServiceConst[T]) Init(ctx context.Context) error {
 		return err
 	}
 
-	if c.beforeInit != nil {
+	if c.hooks.Init != nil {
 		logger.Debug("Calling BeforeInit hook")
-		err := c.beforeInit(ctx, c.instance)
+		err := c.hooks.Init(ctx, c.instance)
 		if err != nil {
 			logger.Error("BeforeInit hook failed", "error", err)
 			return err
@@ -64,9 +63,9 @@ func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
-	if c.beforeShutdown != nil {
+	if c.hooks.Shutdown != nil {
 		c.P.logger.Debug("Calling BeforeShutdown hook")
-		err := c.beforeShutdown(ctx, c.instance)
+		err := c.hooks.Shutdown(ctx, c.instance)
 		if err != nil {
 			c.P.logger.Error("BeforeShutdown failed", "error", err)
 			return err
@@ -88,12 +87,12 @@ func (c *ServiceConst[T]) Instance(_ context.Context) (any, error) {
 // BeforeInit registers a hook function that will be called before the service is initialized.
 // This can be used to customize the service instance before its Init method is called.
 func (c *ServiceConst[T]) BeforeInit(hook LifecycleHook[T]) *ServiceConst[T] {
-	c.beforeInit = hook
+	c.hooks.Init = hook
 	return c
 }
 
 func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
-	c.beforeShutdown = hook
+	c.hooks.Shutdown = hook
 	return c
 }
 
