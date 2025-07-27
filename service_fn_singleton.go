@@ -42,12 +42,12 @@ func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance, c.hooks.HealthCheck, c.P.logger.With("service", c.Name()))
+	return healthcheckService(ctx, c.instance, c.hooks.HealthCheck, c.P, c.P.logger.With("service", c.Name()))
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
-	return shutdownService(ctx, c.instance, c.hooks.Shutdown, c.P.logger.With("service", c.Name()))
+	return shutdownService(ctx, c.instance, c.hooks.Shutdown, c.P, c.P.logger.With("service", c.Name()))
 }
 
 // Make returns nil for singleton services as they are created during initialization.

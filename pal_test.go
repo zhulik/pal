@@ -31,7 +31,7 @@ func Test_New(t *testing.T) {
 
 		p := newPal(
 			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
 
@@ -52,7 +52,7 @@ func Test_New(t *testing.T) {
 			pal.ProvideList(
 				pal.ProvideList(
 					pal.Provide(&TestServiceStruct{}).
-						ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+						ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 							eventuallyAssertExpectations(t, service)
 							service.On("Init", ctx).Return(nil)
 
@@ -184,7 +184,7 @@ func TestPal_Services(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(&TestServiceStruct{}).
-			ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
 
@@ -222,7 +222,7 @@ func TestPal_Invoke(t *testing.T) {
 
 		p := newPal(
 			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
 
@@ -268,7 +268,7 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(&RunnerServiceStruct{}).
-			ToInit(func(_ context.Context, service *RunnerServiceStruct) error {
+			ToInit(func(_ context.Context, service *RunnerServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Run", mock.Anything).Return(nil)
 
@@ -302,7 +302,7 @@ func TestPal_Run(t *testing.T) {
 
 		// Create a service that will be initialized successfully
 		shutdownService := pal.Provide(&TestServiceStruct{}).
-			ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
 				service.On("Shutdown", ctx).Return(nil)
@@ -312,7 +312,7 @@ func TestPal_Run(t *testing.T) {
 
 		// Create a service that will fail during initialization
 		failingService := pal.Provide(&TestServiceStruct{}).
-			ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(errTest)
 
@@ -343,7 +343,7 @@ func TestPal_Run(t *testing.T) {
 
 		// Create a service that will track if it was shut down
 		shutdownService := pal.Provide(&TestServiceStruct{}).
-			ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Init", ctx).Return(nil)
 				service.On("Shutdown", mock.Anything).Return(nil)
@@ -355,7 +355,7 @@ func TestPal_Run(t *testing.T) {
 		type errorRunnerInterface = TestServiceInterface
 		// Create a runner that will return an error
 		errorRunnerService := pal.Provide[errorRunnerInterface](&RunnerServiceStruct{}).
-			ToInit(func(_ context.Context, service errorRunnerInterface) error {
+			ToInit(func(_ context.Context, service errorRunnerInterface, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.(*RunnerServiceStruct).On("Run", mock.Anything).Return(errTest)
 
@@ -364,7 +364,7 @@ func TestPal_Run(t *testing.T) {
 
 		// Create a normal runner
 		runnerService := pal.Provide(&RunnerServiceStruct{}).
-			ToInit(func(_ context.Context, service *RunnerServiceStruct) error {
+			ToInit(func(_ context.Context, service *RunnerServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Run", mock.Anything).Return(nil)
 

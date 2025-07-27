@@ -34,10 +34,10 @@ func runConfig(instance any) *RunConfig {
 	return nil
 }
 
-func healthcheckService[T any](ctx context.Context, instance T, hook LifecycleHook[T], logger *slog.Logger) error {
+func healthcheckService[T any](ctx context.Context, instance T, hook LifecycleHook[T], p *Pal, logger *slog.Logger) error {
 	if hook != nil {
 		logger.Debug("Calling ToHealthCheck hook")
-		err := hook(ctx, instance)
+		err := hook(ctx, instance, p)
 		if err != nil {
 			logger.Error("Healthcheck hook failed", "error", err)
 		}
@@ -58,10 +58,10 @@ func healthcheckService[T any](ctx context.Context, instance T, hook LifecycleHo
 	return nil
 }
 
-func shutdownService[T any](ctx context.Context, instance T, hook LifecycleHook[T], logger *slog.Logger) error {
+func shutdownService[T any](ctx context.Context, instance T, hook LifecycleHook[T], p *Pal, logger *slog.Logger) error {
 	if hook != nil {
 		logger.Debug("Calling ToShutdown hook")
-		err := hook(ctx, instance)
+		err := hook(ctx, instance, p)
 		if err != nil {
 			logger.Error("Shutdown hook failed", "error", err)
 		}
@@ -85,7 +85,7 @@ func shutdownService[T any](ctx context.Context, instance T, hook LifecycleHook[
 func initService[T any](ctx context.Context, instance T, hook LifecycleHook[T], p *Pal, logger *slog.Logger) error {
 	if hook != nil {
 		logger.Debug("Calling ToInit hook")
-		err := hook(ctx, instance)
+		err := hook(ctx, instance, p)
 		if err != nil {
 			logger.Error("Init hook failed", "error", err)
 			return err

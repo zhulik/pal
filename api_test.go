@@ -30,7 +30,7 @@ func TestProvide(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(&RunnerServiceStruct{}).
-			ToInit(func(ctx context.Context, service *RunnerServiceStruct) error {
+			ToInit(func(ctx context.Context, service *RunnerServiceStruct, _ *pal.Pal) error {
 				eventuallyAssertExpectations(t, service)
 				service.On("Run", ctx).Return(nil)
 
@@ -135,7 +135,7 @@ func TestInvoke(t *testing.T) {
 
 		p := newPal(
 			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
 
@@ -173,7 +173,7 @@ func TestBuild(t *testing.T) {
 
 		p := newPal(
 			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
 
@@ -254,7 +254,7 @@ func TestInjectInto(t *testing.T) {
 
 		p := newPal(
 			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct) error {
+				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
 					eventuallyAssertExpectations(t, service)
 					service.On("Init", ctx).Return(nil)
 
