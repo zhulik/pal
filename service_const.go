@@ -24,30 +24,28 @@ func (c *ServiceConst[T]) Dependencies() []ServiceDef {
 
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceConst[T]) Run(ctx context.Context) error {
-	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
 // Init is a no-op for const services as they are already initialized.
 // It injects dependencies to the stored instance and calls its Init method if it implements Initer.
 func (c *ServiceConst[T]) Init(ctx context.Context) error {
-	logger := c.P.logger.With("service", c.Name())
-
 	err := c.P.InjectInto(ctx, c.instance)
 	if err != nil {
 		return err
 	}
 
-	return initService(ctx, c.instance, c.hooks.Init, c.P, logger)
+	return initService(ctx, c.Name(), c.instance, c.hooks.Init, c.P)
 }
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance, c.hooks.HealthCheck, c.P, c.P.logger.With("service", c.Name()))
+	return healthcheckService(ctx, c.Name(), c.instance, c.hooks.HealthCheck, c.P)
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
-	return shutdownService(ctx, c.instance, c.hooks.Shutdown, c.P, c.P.logger.With("service", c.Name()))
+	return shutdownService(ctx, c.Name(), c.instance, c.hooks.Shutdown, c.P)
 }
 
 // Make returns the stored instance so pal knows the entire dependency tree.

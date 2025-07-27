@@ -2,10 +2,10 @@ package pal
 
 import (
 	"context"
-	"log/slog"
 )
 
-func runService(ctx context.Context, instance any, logger *slog.Logger) error {
+func runService(ctx context.Context, name string, instance any, p *Pal) error {
+	logger := p.logger.With("service", name)
 	runner, ok := instance.(Runner)
 	if !ok {
 		return nil
@@ -34,7 +34,8 @@ func runConfig(instance any) *RunConfig {
 	return nil
 }
 
-func healthcheckService[T any](ctx context.Context, instance T, hook LifecycleHook[T], p *Pal, logger *slog.Logger) error {
+func healthcheckService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
+	logger := p.logger.With("service", name)
 	if hook != nil {
 		logger.Debug("Calling ToHealthCheck hook")
 		err := hook(ctx, instance, p)
@@ -58,7 +59,8 @@ func healthcheckService[T any](ctx context.Context, instance T, hook LifecycleHo
 	return nil
 }
 
-func shutdownService[T any](ctx context.Context, instance T, hook LifecycleHook[T], p *Pal, logger *slog.Logger) error {
+func shutdownService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
+	logger := p.logger.With("service", name)
 	if hook != nil {
 		logger.Debug("Calling ToShutdown hook")
 		err := hook(ctx, instance, p)
@@ -82,7 +84,9 @@ func shutdownService[T any](ctx context.Context, instance T, hook LifecycleHook[
 	return nil
 }
 
-func initService[T any](ctx context.Context, instance T, hook LifecycleHook[T], p *Pal, logger *slog.Logger) error {
+func initService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
+	logger := p.logger.With("service", name)
+
 	if hook != nil {
 		logger.Debug("Calling ToInit hook")
 		err := hook(ctx, instance, p)

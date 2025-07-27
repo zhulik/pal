@@ -54,7 +54,7 @@ func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
 		return nil, err
 	}
 
-	err = initService(ctx, instance.(T), c.hooks.Init, c.P, logger)
+	err = initService(ctx, c.Name(), instance.(T), c.hooks.Init, c.P)
 	if err != nil {
 		return nil, err
 	}

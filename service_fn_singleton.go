@@ -21,7 +21,7 @@ func (c *ServiceFnSingleton[T]) Dependencies() []ServiceDef {
 
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceFnSingleton[T]) Run(ctx context.Context) error {
-	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
 // Init initializes the service by calling the provided function to create the instance.
@@ -42,12 +42,12 @@ func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance, c.hooks.HealthCheck, c.P, c.P.logger.With("service", c.Name()))
+	return healthcheckService(ctx, c.Name(), c.instance, c.hooks.HealthCheck, c.P)
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
-	return shutdownService(ctx, c.instance, c.hooks.Shutdown, c.P, c.P.logger.With("service", c.Name()))
+	return shutdownService(ctx, c.Name(), c.instance, c.hooks.Shutdown, c.P)
 }
 
 // Make returns nil for singleton services as they are created during initialization.
