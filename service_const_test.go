@@ -64,14 +64,13 @@ func TestService_ToInit(t *testing.T) {
 	t.Run("hook is called when set", func(t *testing.T) {
 		t.Parallel()
 
-		hook := func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
-			eventuallyAssertExpectations(t, service)
-			service.On("Init", ctx).Return(nil)
+		service := pal.Provide(&TestServiceStruct{}).
+			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
+				eventuallyAssertExpectations(t, service)
+				service.On("Init", ctx).Return(nil)
 
-			return nil
-		}
-
-		service := pal.Provide(&TestServiceStruct{}).ToInit(hook)
+				return nil
+			})
 		p := newPal(service)
 
 		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
@@ -109,11 +108,10 @@ func TestService_ToInit(t *testing.T) {
 	t.Run("propagates error from hook", func(t *testing.T) {
 		t.Parallel()
 
-		hook := func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
-			return errTest
-		}
-
-		service := pal.Provide(&TestServiceStruct{}).ToInit(hook)
+		service := pal.Provide(&TestServiceStruct{}).
+			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
+				return errTest
+			})
 		p := newPal(service)
 
 		// The error should be propagated from the hook through Initialize to Init

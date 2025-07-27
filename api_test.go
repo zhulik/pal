@@ -134,13 +134,12 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
-					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
-
-					return nil
-				}),
+			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+				s := &TestServiceStruct{}
+				eventuallyAssertExpectations(t, s)
+				s.On("Init", ctx).Return(nil)
+				return s, nil
+			}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
@@ -172,13 +171,12 @@ func TestBuild(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
-					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
-
-					return nil
-				}),
+			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+				s := &TestServiceStruct{}
+				eventuallyAssertExpectations(t, s)
+				s.On("Init", ctx).Return(nil)
+				return s, nil
+			}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
@@ -253,13 +251,12 @@ func TestInjectInto(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.Provide(&TestServiceStruct{}).
-				ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
-					eventuallyAssertExpectations(t, service)
-					service.On("Init", ctx).Return(nil)
-
-					return nil
-				}),
+			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+				s := &TestServiceStruct{}
+				eventuallyAssertExpectations(t, s)
+				s.On("Init", ctx).Return(nil)
+				return s, nil
+			}),
 		)
 
 		require.NoError(t, p.Init(t.Context()))
