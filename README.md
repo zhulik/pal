@@ -108,6 +108,129 @@ Pal also provides functions for retrieving services:
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves it's dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
 
+## Service Types
+
+Pal supports several types of services, each designed for different use cases:
+
+### Singleton Services
+Singleton services are created once during application initialization and reused throughout the application's lifetime. They are ideal for:
+- Database connections and clients
+- HTTP clients and servers
+- Configuration objects
+- Business logic services
+- Any stateful component that should be shared
+
+**Registration:**
+```go
+// Register a singleton service
+pal.Provide[MyService](&MyServiceImpl{})
+
+// Register a singleton service using a factory function
+pal.ProvideFn[MyService](func(ctx context.Context) (MyService, error) {
+    return &MyServiceImpl{}, nil
+})
+```
+
+### Factory Services
+Factory services create a new instance every time they are invoked. They are perfect for:
+- Stateless components
+- Request-scoped objects
+- Objects that need different configurations per use
+- Components that should not be shared
+
+**Registration:**
+```go
+// Register a factory service
+pal.ProvideFactory[MyService](&MyServiceImpl{})
+
+// Register a factory service using a factory function
+pal.ProvideFnFactory[MyService](func(ctx context.Context) (MyService, error) {
+    return &MyServiceImpl{}, nil
+})
+```
+
+### Const Services
+Const services wrap existing instances. They are useful for:
+- Registering third-party objects
+- Wrapping existing instances that don't implement pal interfaces
+- Testing with mock objects
+
+**Registration:**
+```go
+// Register a const service
+existingInstance := &MyServiceImpl{}
+pal.ProvideConst[MyService](existingInstance)
+```
+
+### Runner Services
+Runner services are special singleton services that run in the background. They implement the `Runner` interface and are used for:
+- HTTP servers
+- Message consumers
+- Background workers
+- Long-running processes
+
+**Example:**
+```go
+type HTTPServer struct {
+    // dependencies...
+}
+
+func (s *HTTPServer) Run(ctx context.Context) error {
+    // Start HTTP server and run until context is canceled
+    return http.ListenAndServe(":8080", s.router)
+}
+```
+
+## Lifecycle Hooks
+
+Pal provides lifecycle hooks that allow you to customize service behavior without implementing the full lifecycle interfaces. Hooks take precedence over interface methods and are useful for:
+- Adding custom initialization logic
+- Implementing custom shutdown procedures
+- Adding health check functionality
+- Wrapping existing objects with lifecycle behavior
+
+### Available Hooks
+
+- **ToInit** - Called during service initialization, after dependencies are injected
+- **ToShutdown** - Called during service shutdown, before dependencies are shut down
+- **ToHealthCheck** - Called during health checks
+
+### Using Hooks
+
+Hooks can be used with any service type and provide a flexible way to add lifecycle behavior:
+
+```go
+// With const services
+pal.ProvideConst[MyService](existingInstance).
+    ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+        // Custom initialization logic
+        return service.Connect()
+    }).
+    ToShutdown(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+        // Custom shutdown logic
+        return service.Disconnect()
+    }).
+    ToHealthCheck(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+        // Custom health check logic
+        return service.Ping()
+    })
+
+// With factory services
+pal.ProvideFactory[MyService](&MyServiceImpl{}).
+    ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+        // Each factory instance will be initialized with this hook
+        return service.Setup()
+    })
+
+// With function-based services
+pal.ProvideFn[MyService](func(ctx context.Context) (MyService, error) {
+    return &MyServiceImpl{}, nil
+}).
+    ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+        return service.Initialize()
+    })
+```
+
 ## Examples:
 
 Examples can be found here:
