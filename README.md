@@ -81,7 +81,7 @@ a few rules described below.
     Pal recognizes a special kind of Singleton service:
     - [Runner](./interfaces.go#L41) — is a special singleton service that runs the background. Pal run such services in
       the background. Any app should have at least one Runner. For a web service it would be the place where you run
-      `http.ListenAndServe(...)`. For a CLI - where the main logic is. Pal.Run() exits when all runners are finished.
+      `http.ListenAndServe(...)`. For a CLI - where the main logic is. `Pal.Run()` exits when all runners are finished.
       Run() will exit immediately of no runners registered.
   - Factory service — a special type of service. Unlike singletons, a new instance of a factory service is created every
     time it is invoked.
@@ -97,10 +97,10 @@ a few rules described below.
 Pal provides several functions for registering services:
 
 - `Provide[T any](value T)` - Registers an instance of service.
-- `ProvideFactory[T](value T)` - Registers a factory service. value must be of type `T`. Every time it's invoked, a value is copied and initialized.
+- `ProvideFactory[T any](value T)` - Registers a factory service. value must be of type `T`. Every time it's invoked, a value is copied and initialized.
 - `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
-- `ProvideFnFactory[T](fn func(ctx context.Context) (T, error)))` - Registers a factory service created using the provided function.
-- `ProvideList(..ServiceDef)` - Registers multiple services at once, useful when splitting apps into mudules, see [example](./examples/web)
+- `ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)))` - Registers a factory service created using the provided function.
+- `ProvideList(...ServiceDef)` - Registers multiple services at once, useful when splitting apps into mudules, see [example](./examples/web)
 
 Pal also provides functions for retrieving services:
 
@@ -143,10 +143,10 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
    - If any service returns an error, Pal initiates a graceful shutdown.
 
 5. **Shutdown**:
-   - When Pal.Shutdown() is called or a termination signal is received, Pal initiates the shutdown sequence.
+   - When `Pal.Shutdown()` is called or a termination signal is received, Pal initiates the shutdown sequence.
    - Pal cancels the context for all running services (Runners) and awaits for runners to finish.
    - Pal calls Shutdown() on all services that implement the Shutdowner interface in reverse dependency order.
-   - If all services shut down successfully, Pal.Run() returns nil, otherwise it returns the collected errors.
+   - If all services shut down successfully, `Pal.Run()` returns nil, otherwise it returns the collected errors.
 
 ## Best practices
 
@@ -162,7 +162,7 @@ To get the most out of Pal, follow these best practices:
 2. **Dependency Management**:
    - Use singleton services for stateful components like database connections, HTTP clients, etc.
    - Use factory services for stateless components that need to be created on demand.
-   - Prefer constructor injection (via fields) over service locator pattern (directly using Pal.Invoke).
+   - Prefer constructor injection (via fields) over service locator pattern (directly using `Pal.Invoke()`).
 
 3. **Error Handling**:
    - Handle errors appropriately in service implementations, especially in Init, Shutdown, and HealthCheck methods.
