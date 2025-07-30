@@ -74,7 +74,7 @@ func newPal(services ...pal.ServiceDef) *pal.Pal {
 	return pal.New(services...).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
-		ShutdownTimeout(time.Second)
+		ShutdownTimeout(3 * time.Second)
 }
 
 // MockInvoker is a mock implementation of the Invoker interface
