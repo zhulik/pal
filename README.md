@@ -197,6 +197,9 @@ Pal provides lifecycle hooks that allow you to customize service behavior withou
 
 ### Using Hooks
 
+Even though pal supports hooks, using lifecycle management methods is recommended in the first place as they keep 
+lifecycle mangement code closer to the resources they manage.
+
 Hooks can be used with any service type and provide a flexible way to add lifecycle behavior:
 
 ```go
