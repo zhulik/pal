@@ -89,7 +89,7 @@ a few rules described below.
 
   Each service can implement any of optional service interfaces:
   - [Initer](./interfaces.go#L31) — if a service requires initialization such as connecting to a database.
-  - [Shutdowner](./interfaces.go#L20) — if a service requires finalization such as closing connection to a database.
+  - [`Shutdowner`](./interfaces.go#L20) — if a service requires finalization such as closing connection to a database.
   - [HealthChecker](./interfaces.go#L10) — if a service can be inspected by checking its database connection status.
 
 ## API Functions
@@ -248,27 +248,31 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
 1. **Registration**: Services are registered with Pal using the `Provide*` functions.
 
 2. **Initialization**:
-   - When `Pal.Init()` Pal builds a dependency graph of all registered services.
+   - When `Pal.Init()` is called, Pal builds a dependency graph of all registered services.
    - Services are initialized in dependency order (dependencies first).
    - For each service, Pal:
      - Creates an instance
      - Injects dependencies into its fields
-     - Calls any registered ToInit hooks
-     - Calls the service's Init() method if it implements the Initer interface
+     - Calls `ToInit` hook if specified or the `Init()` method if it implements the Initer interface
+     - If `ToInit` is specified, `Init()` will not be called.
 
 3. **Running**:
-   - After initialization, Pal starts all services that implement the Runner interface in background goroutines.
+   - After initialization, Pal starts all services that implement the `Runner` interface in background goroutines.
    - The Run() method of these services is called with a context that will be canceled during shutdown.
 
 4. **Health Checking**:
    - Developers can use `Pal.HealthCheck()` to initiate the healthcheck sequence. In a web application it should be called
      from the `/health` handler which can be used as a liveliness probe.
+   - Services may implement their healcheck logic either spcified `ToHealthCheck` hood or by implementing the `HealCheck` method.
+   - If `ToHealthcheck` hook is specified, the `HealthCheck` method will not be called.
    - If any service returns an error, Pal initiates a graceful shutdown.
+   
 
 5. **Shutdown**:
    - When `Pal.Shutdown()` is called or a termination signal is received, Pal initiates the shutdown sequence.
    - Pal cancels the context for all running services (Runners) and awaits for runners to finish.
-   - Pal calls Shutdown() on all services that implement the Shutdowner interface in reverse dependency order.
+   - Pal shuts down dependencies in reverse to initialization order. If `ToShutdown` hook is specified, it's being called, if the services implements `Shutdowner`, the `Shutdown` method will be called.
+   - If `ToShutdown` is specified, the `Shutdown` will not be called.
    - If all services shut down successfully, `Pal.Run()` returns nil, otherwise it returns the collected errors.
 
 ## Best practices
@@ -278,7 +282,7 @@ To get the most out of Pal, follow these best practices:
 1. **Service Design**:
    - Design services as small, focused components with a single responsibility.
    - Use interfaces to define service contracts, especially for services that might have multiple implementations.
-   - Implement the optional lifecycle interfaces (Initer, Shutdowner, HealthChecker) when appropriate.
+   - Implement the optional lifecycle interfaces (Initer, `Shutdowner`, HealthChecker) when appropriate.
    - Use `ProvideConst` and `ProvideFn*` functions with `ToShutdown` hook to register services without dedicated
      interfaces and struc wrappers.
 

@@ -92,8 +92,8 @@ func initService[T any](ctx context.Context, name string, instance T, hook Lifec
 		err := hook(ctx, instance, p)
 		if err != nil {
 			logger.Error("Init hook failed", "error", err)
-			return err
 		}
+		return err
 	}
 
 	if initer, ok := any(instance).(Initer); ok && any(instance) != any(p) {
