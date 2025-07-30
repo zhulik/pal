@@ -9,8 +9,7 @@ import (
 type ServiceConst[T any] struct {
 	P *Pal
 
-	beforeInit     LifecycleHook[T]
-	beforeShutdown LifecycleHook[T]
+	hooks LifecycleHooks[T]
 
 	instance T
 }
@@ -25,54 +24,28 @@ func (c *ServiceConst[T]) Dependencies() []ServiceDef {
 
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceConst[T]) Run(ctx context.Context) error {
-	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
 // Init is a no-op for const services as they are already initialized.
 // It injects dependencies to the stored instance and calls its Init method if it implements Initer.
 func (c *ServiceConst[T]) Init(ctx context.Context) error {
-	logger := c.P.logger.With("service", c.Name())
-
 	err := c.P.InjectInto(ctx, c.instance)
 	if err != nil {
 		return err
 	}
 
-	if c.beforeInit != nil {
-		logger.Debug("Calling BeforeInit hook")
-		err := c.beforeInit(ctx, c.instance)
-		if err != nil {
-			logger.Error("BeforeInit hook failed", "error", err)
-			return err
-		}
-	}
-
-	if initer, ok := any(c.instance).(Initer); ok && any(c.instance) != any(c.P) {
-		logger.Debug("Calling Init method")
-		if err := initer.Init(ctx); err != nil {
-			logger.Error("Init failed", "error", err)
-			return err
-		}
-	}
-	return nil
+	return initService(ctx, c.Name(), c.instance, c.hooks.Init, c.P)
 }
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return healthcheckService(ctx, c.Name(), c.instance, c.hooks.HealthCheck, c.P)
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
-	if c.beforeShutdown != nil {
-		c.P.logger.Debug("Calling BeforeShutdown hook")
-		err := c.beforeShutdown(ctx, c.instance)
-		if err != nil {
-			c.P.logger.Error("BeforeShutdown failed", "error", err)
-			return err
-		}
-	}
-	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return shutdownService(ctx, c.Name(), c.instance, c.hooks.Shutdown, c.P)
 }
 
 // Make returns the stored instance so pal knows the entire dependency tree.
@@ -85,15 +58,29 @@ func (c *ServiceConst[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
 }
 
-// BeforeInit registers a hook function that will be called before the service is initialized.
-// This can be used to customize the service instance before its Init method is called.
-func (c *ServiceConst[T]) BeforeInit(hook LifecycleHook[T]) *ServiceConst[T] {
-	c.beforeInit = hook
+// ToInit registers a hook function that will be called to initialize the service.
+// This hook is called after the service is injected with its dependencies.
+// If the service implements the Initer interface, the Init() method is not called,
+// the hook has higher priority.
+func (c *ServiceConst[T]) ToInit(hook LifecycleHook[T]) *ServiceConst[T] {
+	c.hooks.Init = hook
 	return c
 }
 
-func (c *ServiceConst[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
-	c.beforeShutdown = hook
+// ToShutdown registers a hook function that will be called to shutdown the service.
+// This hook is called before service's dependencies are shutdown.
+// If the service implements the Shutdowner interface, the Shutdown() method is not called,
+// the hook has higher priority.
+func (c *ServiceConst[T]) ToShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
+	c.hooks.Shutdown = hook
+	return c
+}
+
+// ToHealthCheck registers a hook function that will be called to perform a health check on the service.
+// If the service implements the HealthChecker interface, the HealthCheck() method is not called,
+// the hook has higher priority.
+func (c *ServiceConst[T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceConst[T] {
+	c.hooks.HealthCheck = hook
 	return c
 }
 

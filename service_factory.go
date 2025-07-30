@@ -11,7 +11,8 @@ import (
 type ServiceFactory[T any] struct {
 	P                 *Pal
 	referenceInstance T
-	beforeInit        LifecycleHook[T]
+
+	hooks LifecycleHooks[T]
 }
 
 func (c *ServiceFactory[T]) Dependencies() []ServiceDef {
@@ -53,22 +54,11 @@ func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
 		return nil, err
 	}
 
-	if c.beforeInit != nil {
-		logger.Debug("Calling BeforeInit hook")
-		err := c.beforeInit(ctx, instance.(T))
-		if err != nil {
-			c.P.logger.Error("BeforeInit hook failed", "error", err)
-			return nil, err
-		}
+	err = initService(ctx, c.Name(), instance.(T), c.hooks.Init, c.P)
+	if err != nil {
+		return nil, err
 	}
 
-	if initer, ok := instance.(Initer); ok {
-		logger.Debug("Calling Init method")
-		if err := initer.Init(ctx); err != nil {
-			logger.Error("Init failed", "error", err)
-			return nil, err
-		}
-	}
 	return instance, nil
 }
 
@@ -101,7 +91,7 @@ func (c *ServiceFactory[T]) Name() string {
 	return elem[T]().String()
 }
 
-func (c *ServiceFactory[T]) BeforeInit(hook LifecycleHook[T]) *ServiceFactory[T] {
-	c.beforeInit = hook
+func (c *ServiceFactory[T]) ToInit(hook LifecycleHook[T]) *ServiceFactory[T] {
+	c.hooks.Init = hook
 	return c
 }

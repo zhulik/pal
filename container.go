@@ -93,7 +93,7 @@ func (c *Container) Init(ctx context.Context) error {
 	}
 	slices.Reverse(order)
 
-	c.logger.Debug("Dependency tree built", "tree", adjMap, "order", order)
+	c.logger.Debug("Dependency tree is built", "tree", adjMap, "order", order)
 
 	err = c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
 		if err := service.Init(ctx); err != nil {

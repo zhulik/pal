@@ -10,7 +10,7 @@ type ServiceFnSingleton[T any] struct {
 	P  *Pal
 	fn func(ctx context.Context) (T, error)
 
-	beforeShutdown LifecycleHook[T]
+	hooks LifecycleHooks[T]
 
 	instance T
 }
@@ -21,7 +21,7 @@ func (c *ServiceFnSingleton[T]) Dependencies() []ServiceDef {
 
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceFnSingleton[T]) Run(ctx context.Context) error {
-	return runService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
 // Init initializes the service by calling the provided function to create the instance.
@@ -42,20 +42,12 @@ func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
 func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
-	return healthcheckService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return healthcheckService(ctx, c.Name(), c.instance, c.hooks.HealthCheck, c.P)
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
-	if c.beforeShutdown != nil {
-		c.P.logger.Debug("Calling BeforeShutdown hook")
-		err := c.beforeShutdown(ctx, c.instance)
-		if err != nil {
-			c.P.logger.Error("BeforeShutdown failed", "error", err)
-			return err
-		}
-	}
-	return shutdownService(ctx, c.instance, c.P.logger.With("service", c.Name()))
+	return shutdownService(ctx, c.Name(), c.instance, c.hooks.Shutdown, c.P)
 }
 
 // Make returns nil for singleton services as they are created during initialization.
@@ -68,8 +60,16 @@ func (c *ServiceFnSingleton[T]) Instance(_ context.Context) (any, error) {
 	return c.instance, nil
 }
 
-func (c *ServiceFnSingleton[T]) BeforeShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
-	c.beforeShutdown = hook
+func (c *ServiceFnSingleton[T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
+	c.hooks.Shutdown = hook
+	return c
+}
+
+// ToHealthCheck registers a hook function that will be called to perform a health check on the service.
+// If the service implements the HealthChecker interface, the HealthCheck() method is not called,
+// the hook has higher priority.
+func (c *ServiceFnSingleton[T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
+	c.hooks.HealthCheck = hook
 	return c
 }
 

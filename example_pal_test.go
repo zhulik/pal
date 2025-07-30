@@ -59,7 +59,7 @@ func Example_pal_runner() {
 	).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
-		ShutdownTimeout(time.Second)
+		ShutdownTimeout(3 * time.Second)
 
 	err := p.Run(context.Background())
 	if err != nil {

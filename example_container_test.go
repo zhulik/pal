@@ -29,7 +29,7 @@ func Example_container() {
 	).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
-		ShutdownTimeout(time.Second)
+		ShutdownTimeout(3 * time.Second)
 
 	// Initialize Pal
 	ctx := context.Background()
