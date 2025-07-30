@@ -240,6 +240,7 @@ Examples can be found here:
 ## Example apps:
 - [Web Server](./examples/web) - Demonstrates how to build a web server using Pal.
 - [CLI Application](./examples/cli) - Illustrates how to structure a command-line application using Pal.
+- [Dependency management using hooks](./examples/hooks) - Illustrates how to use hooks.
 
 ## Service and container lifecycle
 
