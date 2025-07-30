@@ -12,7 +12,7 @@ import (
 func Provide() pal.ServiceDef {
 	return pal.ProvideList(
 		pal.Provide(&Pinger{}).
-			ToInit(func(ctx context.Context, pinger *Pinger, pal *pal.Pal) error {
+			ToInit(func(_ context.Context, pinger *Pinger, _ *pal.Pal) error {
 				defer pinger.Logger.Info("Pinger initialized")
 
 				pinger.client = &http.Client{
@@ -21,7 +21,7 @@ func Provide() pal.ServiceDef {
 
 				return nil
 			}).
-			ToShutdown(func(ctx context.Context, pinger *Pinger, pal *pal.Pal) error {
+			ToShutdown(func(_ context.Context, pinger *Pinger, _ *pal.Pal) error {
 				defer pinger.Logger.Info("Pinger shut down")
 				pinger.client.CloseIdleConnections()
 
