@@ -279,6 +279,27 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
    - If `ToShutdown` is specified, the `Shutdown` will not be called.
    - If all services shut down successfully, `Pal.Run()` returns nil, otherwise it returns the collected errors.
 
+## Addition features
+
+### Integration with slog
+
+Pal can automatically inject `*slog.Logger` to your services. To enable this behavior call `InjectSlog()`. Pal
+will automatically add the name of service to the `component` attribute of the logger. Attiributes added to the
+injected logger can be customized by passing arguments to `InjectSlog()`.
+
+### Embedded healthcheck server
+
+Pal includes an embedded healthcheck server so you don't have to implement it yourself. Just call
+`RunHealthCheckServer(":8081", "/healthz")` and specify addr and path and the server will start on the specified
+addr and respond on GET requests on the specified path. It never responds with a body and does not add any headers
+beyound the default ones. It may return one of 4 status codes:
+
+- **200** - all services are healthy
+- **404** - wronng path requested
+- **405** - wrong HTTP method is used
+- **500** - one or more services are unhealthy
+
+
 ## Best practices
 
 To get the most out of Pal, follow these best practices:

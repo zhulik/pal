@@ -134,6 +134,18 @@ func (p *Pal) InjectSlog(configs ...SlogAttributeSetter) *Pal {
 	return p
 }
 
+// RunHealthCheckServer enables the default health check server.
+func (p *Pal) RunHealthCheckServer(addr, path string) *Pal {
+	p.config.HealthCheckAddr = addr
+	p.config.HealthCheckPath = path
+
+	server := Provide[palHealthCheckServer](&healthCheckServer{})
+	setPalField(reflect.ValueOf(server), p)
+	p.container.services[server.Name()] = server
+
+	return p
+}
+
 // HealthCheck verifies the health of the service Container within a configurable timeout.
 func (p *Pal) HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
