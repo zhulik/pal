@@ -20,10 +20,11 @@ func main() {
 		pinger.Provide(), // Provide services from the pinger module.
 		server.Provide(), // Provide services from the server module.
 	).
-		InjectSlog().                    // Enables automatic logger injection.
-		InitTimeout(time.Second).        // Set the timeout for the initialization phase.
-		HealthCheckTimeout(time.Second). // Set the timeout for the health check phase.
-		ShutdownTimeout(3 * time.Second) // Set the timeout for the shutdown phase.
+		InjectSlog().                              // Enables automatic logger injection.
+		RunHealthCheckServer(":8081", "/healthz"). // Run the health check server.
+		InitTimeout(time.Second).                  // Set the timeout for the initialization phase.
+		HealthCheckTimeout(time.Second).           // Set the timeout for the health check phase.
+		ShutdownTimeout(3 * time.Second)           // Set the timeout for the shutdown phase.
 
 	if err := p.Run(context.Background()); err != nil { // Run the application.
 		panic(err)

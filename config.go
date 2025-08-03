@@ -20,7 +20,10 @@ type Config struct {
 	InitTimeout        time.Duration `validate:"gt=0"`
 	HealthCheckTimeout time.Duration `validate:"gt=0"`
 	ShutdownTimeout    time.Duration `validate:"gt=0"`
-	AttrSetters        []SlogAttributeSetter
+
+	AttrSetters     []SlogAttributeSetter
+	HealthCheckAddr string
+	HealthCheckPath string
 }
 
 func (c *Config) Validate(_ context.Context) error {

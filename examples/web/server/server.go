@@ -38,7 +38,7 @@ func (s *Server) Init(_ context.Context) error {
 
 // Run runs the server.
 func (s *Server) Run(ctx context.Context) error {
-	s.Logger.Info("Server running on :8080. Do `curl http://localhost:8080/` to see it in action.")
+	s.Logger.Info("Server running on :8080. Run `curl http://localhost:8080/` to see it in action.")
 
 	// We don't use Shutdown here because ListenAndServe() does not natively support context.
 	// instead we use a goroutine to listen for the context done signal and shutdown the server.
