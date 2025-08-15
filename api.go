@@ -82,13 +82,18 @@ func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
 	return casted, nil
 }
 
-// Build resolves dependencies for a struct of type S using the provided context and Pal instance.
+// MustInvoke is like Invoke but panics if an error occurs.
+func MustInvoke[T any](ctx context.Context, invoker Invoker) T {
+	return must(Invoke[T](ctx, invoker))
+}
+
+// Build resolves dependencies for a struct of type T using the provided context and Invoker.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
 func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
 	s := new(T)
 
-	err := InjectInto[T](ctx, invoker, s)
+	err := InjectInto(ctx, invoker, s)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +101,28 @@ func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
 	return s, nil
 }
 
+// MustBuild is like Build but panics if an error occurs.
+func MustBuild[T any](ctx context.Context, invoker Invoker) *T {
+	return must(Build[T](ctx, invoker))
+}
+
 // InjectInto populates the fields of a struct of type T with dependencies obtained from the given Invoker.
 // It only sets fields that are exported and match a resolvable dependency, skipping fields when ErrServiceNotFound occurs.
 // Returns an error if dependency invocation fails or other unrecoverable errors occur during injection.
 func InjectInto[T any](ctx context.Context, invoker Invoker, s *T) error {
 	return invoker.InjectInto(ctx, s)
+}
+
+// MustInjectInto is like InjectInto but panics if an error occurs.
+func MustInjectInto[T any](ctx context.Context, invoker Invoker, s *T) {
+	must("", InjectInto(ctx, invoker, s))
+}
+
+func must[T any](value T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return value
 }
 
 func validatePointerToStruct(value any) {
