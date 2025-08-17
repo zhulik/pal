@@ -38,5 +38,15 @@ func (c *ServiceFactory4[T, P1, P2, P3, P4]) Instance(ctx context.Context, args 
 		return nil, fmt.Errorf("%w: %T, expected %T", ErrServiceInvalidArgumentType, args[3], p4)
 	}
 
-	return c.fn(ctx, p1, p2, p3, p4)
+	instance, err := c.fn(ctx, p1, p2, p3, p4)
+	if err != nil {
+		return nil, err
+	}
+
+	err = initService(ctx, c.Name(), instance, nil, c.P)
+	if err != nil {
+		return nil, err
+	}
+
+	return instance, nil
 }

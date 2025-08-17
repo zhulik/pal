@@ -13,5 +13,15 @@ type ServiceFactory0[T any] struct {
 
 // Instance creates and returns a new instance of the service using the provided function.
 func (c *ServiceFactory0[T]) Instance(ctx context.Context, _ ...any) (any, error) {
-	return c.fn(ctx)
+	instance, err := c.fn(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = initService(ctx, c.Name(), instance, nil, c.P)
+	if err != nil {
+		return nil, err
+	}
+
+	return instance, nil
 }
