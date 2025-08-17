@@ -12,12 +12,12 @@ type ServiceFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any] struct {
 	fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)
 }
 
+func (c *ServiceFactory5[T, P1, P2, P3, P4, P5]) Arguments() int {
+	return 5
+}
+
 // Instance creates and returns a new instance of the service using the provided function.
 func (c *ServiceFactory5[T, P1, P2, P3, P4, P5]) Instance(ctx context.Context, args ...any) (any, error) {
-	if len(args) != 5 {
-		return nil, fmt.Errorf("%w: %d, expected 5", ErrServiceInvalidArgumentsCount, len(args))
-	}
-
 	p1, ok := args[0].(P1)
 	if !ok {
 		return nil, fmt.Errorf("%w: %T, expected %T", ErrServiceInvalidArgumentType, args[0], p1)

@@ -118,6 +118,10 @@ func (c *Container) Invoke(ctx context.Context, name string, args ...any) (any, 
 		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, c.services)
 	}
 
+	if len(args) != service.Arguments() {
+		return nil, fmt.Errorf("%w: '%s': %d arguments expected, got %d", ErrServiceInvalidArgumentsCount, name, service.Arguments(), len(args))
+	}
+
 	instance, err := service.Instance(ctx, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: '%s': %w", ErrServiceInitFailed, name, err)

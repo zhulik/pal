@@ -44,3 +44,7 @@ func (c *ServiceTyped[T]) Make() any {
 func (c *ServiceTyped[T]) Name() string {
 	return elem[T]().String()
 }
+
+func (c *ServiceTyped[T]) Arguments() int {
+	return 0
+}

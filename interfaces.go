@@ -33,6 +33,10 @@ type ServiceDef interface {
 	// For factories, this creates and returns a new instance each time.
 	Instance(ctx context.Context, args ...any) (any, error)
 
+	// Arguments returns the number of arguments the service expects.
+	// This is used to validate the number of arguments passed to the service.
+	Arguments() int
+
 	// Dependencies allows services to provide their own dependencies.
 	Dependencies() []ServiceDef
 }

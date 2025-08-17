@@ -29,14 +29,14 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		instance1, err := service.Instance(ctx, "test")
+		instance1, err := p.Invoke(ctx, service.Name(), "test")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance1)
 
 		assert.Equal(t, "test", instance1.(*Factory1Service).Name)
 
-		instance2, err := service.Instance(ctx, "test2")
+		instance2, err := p.Invoke(ctx, service.Name(), "test2")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, instance1)
@@ -58,7 +58,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		_, err = service.Instance(ctx)
+		_, err = p.Invoke(ctx, service.Name())
 
 		assert.ErrorIs(t, err, pal.ErrServiceInvalidArgumentsCount)
 	})
@@ -76,7 +76,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		_, err = service.Instance(ctx, 1)
+		_, err = p.Invoke(ctx, service.Name(), 1)
 
 		assert.ErrorIs(t, err, pal.ErrServiceInvalidArgumentType)
 	})

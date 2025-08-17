@@ -66,6 +66,10 @@ func (m *MockService) Name() string {
 	return m.name
 }
 
+func (m *MockService) Arguments() int {
+	return 0
+}
+
 // TestContainer_New tests the New function for Container
 func TestContainer_New(t *testing.T) {
 	t.Parallel()
