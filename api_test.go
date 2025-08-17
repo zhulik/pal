@@ -50,28 +50,6 @@ func TestProvide(t *testing.T) {
 	})
 }
 
-// TestProvideFactory tests the ProvideFactory function
-func TestProvideFactory(t *testing.T) {
-	t.Parallel()
-
-	t.Run("creates a factory service", func(t *testing.T) {
-		t.Parallel()
-
-		service := pal.ProvideFactory[TestServiceInterface](&TestServiceStruct{})
-
-		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
-	})
-
-	t.Run("makes sure the argument is a pointer to struct", func(t *testing.T) {
-		t.Parallel()
-
-		require.PanicsWithValue(t, "Argument must be a non-nil pointer to a struct, got func()", func() {
-			pal.ProvideFactory(func() {})
-		})
-	})
-}
-
 // TestProvideFn tests the ProvideFn function
 func TestProvideFn(t *testing.T) {
 	t.Parallel()
@@ -90,14 +68,14 @@ func TestProvideFn(t *testing.T) {
 	})
 }
 
-// TestProvideFnFactory tests the ProvideFnFactory function
-func TestProvideFnFactory(t *testing.T) {
+// TestProvideFactory0 tests the ProvideFactory0 function
+func TestProvideFactory0(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a factory service with a function", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFnFactory[TestServiceInterface](func(_ context.Context) (TestServiceInterface, error) {
+		service := pal.ProvideFactory0(func(_ context.Context) (TestServiceInterface, error) {
 			return &TestServiceStruct{}, nil
 		})
 

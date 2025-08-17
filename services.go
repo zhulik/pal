@@ -87,6 +87,11 @@ func shutdownService[T any](ctx context.Context, name string, instance T, hook L
 func initService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
 	logger := p.logger.With("service", name)
 
+	err := p.InjectInto(ctx, instance)
+	if err != nil {
+		return err
+	}
+
 	if hook != nil {
 		logger.Debug("Calling ToInit hook")
 		err := hook(ctx, instance, p)

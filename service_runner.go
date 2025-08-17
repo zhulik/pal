@@ -9,43 +9,20 @@ import (
 const idCharset = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 type ServiceRunner struct {
+	ServiceTyped[any]
 	fn func(ctx context.Context) error
-}
-
-func (c *ServiceRunner) Dependencies() []ServiceDef {
-	return nil
 }
 
 func (c *ServiceRunner) Run(ctx context.Context) error {
 	return c.fn(ctx)
 }
 
-func (c *ServiceRunner) Init(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceRunner) HealthCheck(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceRunner) Shutdown(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceRunner) Make() any {
-	return nil
-}
-
-func (c *ServiceRunner) Instance(_ context.Context) (any, error) {
+func (c *ServiceRunner) Instance(_ context.Context, _ ...any) (any, error) {
 	return nil, nil
 }
 
 func (c *ServiceRunner) Name() string {
-	return fmt.Sprintf("function-runner-%s", randomID())
-}
-
-func (c *ServiceRunner) RunConfig() *RunConfig {
-	return nil
+	return fmt.Sprintf("$function-runner-%s", randomID())
 }
 
 func randomID() string {

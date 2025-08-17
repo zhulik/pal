@@ -52,7 +52,7 @@ func (m *MockService) Shutdown(ctx context.Context) error {
 	return args.Error(0)
 }
 
-func (m *MockService) Instance(ctx context.Context) (any, error) {
+func (m *MockService) Instance(ctx context.Context, _ ...any) (any, error) {
 	args := m.Called(ctx)
 	return args.Get(0), args.Error(1)
 }
@@ -64,6 +64,10 @@ func (m *MockService) HealthCheck(ctx context.Context) error {
 
 func (m *MockService) Name() string {
 	return m.name
+}
+
+func (m *MockService) Arguments() int {
+	return 0
 }
 
 // TestContainer_New tests the New function for Container

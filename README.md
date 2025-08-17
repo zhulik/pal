@@ -97,9 +97,8 @@ a few rules described below.
 Pal provides several functions for registering services:
 
 - `Provide[T any](value T)` - Registers an instance of service.
-- `ProvideFactory[T any](value T)` - Registers a factory service. value must be of type `T`. Every time it's invoked, a value is copied and initialized.
 - `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
-- `ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)))` - Registers a factory service created using the provided function.
+- `ProvideFactory{0-5}[T any, {0-5}P any](fn func(ctx context.Context, {0-5}P args) (T, error)))` - Registers a factory service created using the provided function with given amount of arguments.
 - `ProvideList(...ServiceDef)` - Registers multiple services at once, useful when splitting apps into modules, see [example](./examples/web)
 
 Pal also provides functions for retrieving services:
@@ -132,7 +131,8 @@ pal.ProvideFn[MyService](func(ctx context.Context) (MyService, error) {
 ```
 
 ### Factory Services
-Factory services create a new instance every time they are invoked. They are perfect for:
+Factory services create a new instance every time they are invoked. They may accept up to 5 arguments arguments, those which accept any
+argument cannot be explicitdependencies of other services. They are perfect for:
 - Stateless components
 - Request-scoped objects
 - Objects that need different configurations per use
@@ -140,13 +140,21 @@ Factory services create a new instance every time they are invoked. They are per
 
 **Registration:**
 ```go
-// Register a factory service
-pal.ProvideFactory[MyService](&MyServiceImpl{})
-
-// Register a factory service using a factory function
-pal.ProvideFnFactory[MyService](func(ctx context.Context) (MyService, error) {
+// Register a factory service with no arguments
+pal.ProvideFactory0[MyService](func(ctx context.Context) (MyService, error) {
     return &MyServiceImpl{}, nil
 })
+
+// Register a factory service with arguments
+pal.ProvideFactory2[MyService](func(ctx context.Context, url string, timeout time.Duration) (MyService, error) {
+    return &MyServiceImpl{URL: url, Timeout: timeout}, nil
+})
+```
+
+**Invocation**
+
+```go
+pal.Invoke[MyService](ctx, p, "https://exmaple.com", timeout)
 ```
 
 ### Const Services
@@ -244,6 +252,7 @@ Examples can be found here:
 - [Web Server](./examples/web) - Demonstrates how to build a web server using Pal.
 - [CLI Application](./examples/cli) - Illustrates how to structure a command-line application using Pal.
 - [Dependency management using hooks](./examples/hooks) - Illustrates how to use hooks.
+- [Factories](./examples/factories) - Illustrates how to use factories.
 
 ## Service and container lifecycle
 
