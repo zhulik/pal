@@ -23,4 +23,7 @@ var (
 
 	// ErrServiceInvalidArgumentType is returned when a service is called with incorrect argument type.
 	ErrServiceInvalidArgumentType = errors.New("service called with incorrect argument type")
+
+	// ErrFactoryServiceDependency is returned when a service with a factory service dependency is invoked.
+	ErrFactoryServiceDependency = errors.New("factory service cannot be a dependency of another service")
 )

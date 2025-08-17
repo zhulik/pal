@@ -152,6 +152,9 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			if errors.Is(err, ErrServiceNotFound) {
 				continue
 			}
+			if errors.Is(err, ErrServiceInvalidArgumentsCount) {
+				return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, fieldType.String(), err)
+			}
 			return err
 		}
 
