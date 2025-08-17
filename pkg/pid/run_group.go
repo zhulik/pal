@@ -19,7 +19,6 @@ type RunGroup struct {
 	counter atomic.Int32
 	jobs    *haxmap.Map[int32, *job]
 
-	wait func() error
 	stop func()
 }
 
@@ -32,7 +31,6 @@ func NewRunGroup() *RunGroup {
 		mainWG:      mainWG,
 		secondaryWG: secondaryWG,
 		jobs:        haxmap.New[int32, *job](),
-		wait:        sync.OnceValue(func() error { return errors.Join(mainWG.Wait(), secondaryWG.Wait()) }),
 		stop: sync.OnceFunc(func() {
 			g.jobs.ForEach(func(_ int32, j *job) bool {
 				j.cancel()
@@ -98,7 +96,7 @@ func (g *RunGroup) Go(ctx context.Context, wait bool, fn jobFN) {
 }
 
 func (g *RunGroup) Wait() error {
-	return g.wait()
+	return errors.Join(g.mainWG.Wait(), g.secondaryWG.Wait())
 }
 
 func (g *RunGroup) Stop() {
