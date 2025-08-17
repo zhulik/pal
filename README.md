@@ -252,6 +252,7 @@ Examples can be found here:
 - [Web Server](./examples/web) - Demonstrates how to build a web server using Pal.
 - [CLI Application](./examples/cli) - Illustrates how to structure a command-line application using Pal.
 - [Dependency management using hooks](./examples/hooks) - Illustrates how to use hooks.
+- [Factories](./examples/factories) - Illustrates how to use factories.
 
 ## Service and container lifecycle
 
