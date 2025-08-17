@@ -60,6 +60,34 @@ func ProvideFactory1[T any, P1 any](fn func(ctx context.Context, p1 P1) (T, erro
 	}
 }
 
+// ProvideFactory2 registers a factory service that is built in runtime with a given function that takes two arguments.
+func ProvideFactory2[T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[T, P1, P2] {
+	return &ServiceFactory2[T, P1, P2]{
+		fn: fn,
+	}
+}
+
+// ProvideFactory3 registers a factory service that is built in runtime with a given function that takes three arguments.
+func ProvideFactory3[T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[T, P1, P2, P3] {
+	return &ServiceFactory3[T, P1, P2, P3]{
+		fn: fn,
+	}
+}
+
+// ProvideFactory4 registers a factory service that is built in runtime with a given function that takes four arguments.
+func ProvideFactory4[T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[T, P1, P2, P3, P4] {
+	return &ServiceFactory4[T, P1, P2, P3, P4]{
+		fn: fn,
+	}
+}
+
+// ProvideFactory5 registers a factory service that is built in runtime with a given function that takes five arguments.
+func ProvideFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[T, P1, P2, P3, P4, P5] {
+	return &ServiceFactory5[T, P1, P2, P3, P4, P5]{
+		fn: fn,
+	}
+}
+
 // ProvidePal registers all services for the given pal instance
 func ProvidePal(pal *Pal) *ServiceList {
 	services := make([]ServiceDef, 0, len(pal.Services()))
