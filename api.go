@@ -53,6 +53,13 @@ func ProvideList(services ...ServiceDef) *ServiceList {
 	return &ServiceList{services}
 }
 
+// ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
+func ProvideFactory1[T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
+	return &ServiceFactory1[T, P1]{
+		fn: fn,
+	}
+}
+
 // ProvidePal registers all services for the given pal instance
 func ProvidePal(pal *Pal) *ServiceList {
 	services := make([]ServiceDef, 0, len(pal.Services()))

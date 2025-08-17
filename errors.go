@@ -17,4 +17,10 @@ var (
 	// ErrServiceInvalid is returned when a service is invalid.
 	// This can happen when a service doesn't implement a required interface or when type assertions fail.
 	ErrServiceInvalid = errors.New("service invalid")
+
+	// ErrServiceInvalidArgumentsCount is returned when a service is called with incorrect number of arguments.
+	ErrServiceInvalidArgumentsCount = errors.New("service called with incorrect number of arguments")
+
+	// ErrServiceInvalidArgumentType is returned when a service is called with incorrect argument type.
+	ErrServiceInvalidArgumentType = errors.New("service called with incorrect argument type")
 )
