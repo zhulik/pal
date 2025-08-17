@@ -24,15 +24,6 @@ func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSinglet
 	}
 }
 
-// ProvideFactory registers a factory service with pal. See Provide for info on type arguments.
-// A new factory service instance is created every time the service is invoked.
-// it's the caller's responsibility to shut down the service, pal will also not healthcheck it.
-func ProvideFactory[T any](value T) *ServiceFactory[T] {
-	validatePointerToStruct(value)
-
-	return &ServiceFactory[T]{referenceInstance: value}
-}
-
 // ProvideFactory0 registers a factory service that is build with a given function with no arguments.
 func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
 	return &ServiceFactory0[T]{
