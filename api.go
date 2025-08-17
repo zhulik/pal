@@ -101,7 +101,7 @@ func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
 	return s, nil
 }
 
-// MustBuild is like Build but panics if an error occurs.
+// MustBuild is like Build but panics if an error occurs.x
 func MustBuild[T any](ctx context.Context, invoker Invoker) *T {
 	return must(Build[T](ctx, invoker))
 }

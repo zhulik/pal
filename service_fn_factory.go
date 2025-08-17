@@ -41,7 +41,8 @@ func (c *ServiceFnFactory[T]) RunConfig() *RunConfig {
 
 // Make is a no-op for factory services as they are created on demand.
 func (c *ServiceFnFactory[T]) Make() any {
-	return nil
+	var t T
+	return t
 }
 
 // Instance creates and returns a new instance of the service using the provided function.

@@ -52,7 +52,8 @@ func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
 
 // Make returns nil for singleton services as they are created during initialization.
 func (c *ServiceFnSingleton[T]) Make() any {
-	return nil
+	var t T
+	return t
 }
 
 // Instance returns the singleton instance of the service.
