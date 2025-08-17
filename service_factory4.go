@@ -6,7 +6,7 @@ import (
 )
 
 // ServiceFactory4 is a factory service that creates a new instance each time it is invoked.
-// It uses the provided function to create the instance.
+// It uses the provided function with four arguments to create the instance.
 type ServiceFactory4[T any, P1 any, P2 any, P3 any, P4 any] struct {
 	ServiceTyped[T]
 	fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)

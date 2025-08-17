@@ -6,7 +6,7 @@ import (
 )
 
 // ServiceFactory2 is a factory service that creates a new instance each time it is invoked.
-// It uses the provided function to create the instance.
+// It uses the provided function with two arguments to create the instance.
 type ServiceFactory2[T any, P1 any, P2 any] struct {
 	ServiceTyped[T]
 	fn func(ctx context.Context, p1 P1, p2 P2) (T, error)
