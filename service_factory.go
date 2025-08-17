@@ -9,34 +9,10 @@ import (
 // ServiceFactory is a service that wraps a constant value which will copied and initialized on every invocation unlike
 // ServiceConst, which is initialized only once and always return the same instance when invoked.
 type ServiceFactory[T any] struct {
-	P                 *Pal
+	ServiceTyped[T]
 	referenceInstance T
 
 	hooks LifecycleHooks[T]
-}
-
-func (c *ServiceFactory[T]) Dependencies() []ServiceDef {
-	return nil
-}
-
-func (c *ServiceFactory[T]) Run(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceFactory[T]) Init(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceFactory[T]) HealthCheck(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceFactory[T]) Shutdown(_ context.Context) error {
-	return nil
-}
-
-func (c *ServiceFactory[T]) Make() any {
-	return c.referenceInstance
 }
 
 func (c *ServiceFactory[T]) Instance(ctx context.Context, _ ...any) (any, error) {
@@ -81,14 +57,6 @@ func (c *ServiceFactory[T]) copyInstance() (any, error) {
 
 	instance := newInstance.Interface()
 	return instance, nil
-}
-
-func (c *ServiceFactory[T]) RunConfig() *RunConfig {
-	return nil
-}
-
-func (c *ServiceFactory[T]) Name() string {
-	return elem[T]().String()
 }
 
 func (c *ServiceFactory[T]) ToInit(hook LifecycleHook[T]) *ServiceFactory[T] {

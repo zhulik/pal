@@ -7,7 +7,7 @@ import (
 // ServiceConst is a service that wraps a constant value.
 // It is used to register existing instances as services.
 type ServiceConst[T any] struct {
-	P *Pal
+	ServiceTyped[T]
 
 	hooks LifecycleHooks[T]
 
@@ -16,10 +16,6 @@ type ServiceConst[T any] struct {
 
 func (c *ServiceConst[T]) RunConfig() *RunConfig {
 	return runConfig(c.instance)
-}
-
-func (c *ServiceConst[T]) Dependencies() []ServiceDef {
-	return nil
 }
 
 // Run executes the service if it implements the Runner interface.
@@ -46,11 +42,6 @@ func (c *ServiceConst[T]) HealthCheck(ctx context.Context) error {
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
 func (c *ServiceConst[T]) Shutdown(ctx context.Context) error {
 	return shutdownService(ctx, c.Name(), c.instance, c.hooks.Shutdown, c.P)
-}
-
-// Make returns the stored instance so pal knows the entire dependency tree.
-func (c *ServiceConst[T]) Make() any {
-	return c.instance
 }
 
 // Instance returns the constant instance of the service.
@@ -82,9 +73,4 @@ func (c *ServiceConst[T]) ToShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
 func (c *ServiceConst[T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.hooks.HealthCheck = hook
 	return c
-}
-
-// Name returns the name of the service, which is the type name of T.
-func (c *ServiceConst[T]) Name() string {
-	return elem[T]().String()
 }
