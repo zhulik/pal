@@ -33,9 +33,9 @@ func ProvideFactory[T any](value T) *ServiceFactory[T] {
 	return &ServiceFactory[T]{referenceInstance: value}
 }
 
-// ProvideFnFactory registers a factory service that is build with a given function.
-func ProvideFnFactory[T any](fn func(ctx context.Context) (T, error)) *ServiceFnFactory[T] {
-	return &ServiceFnFactory[T]{
+// ProvideFactory0 registers a factory service that is build with a given function with no arguments.
+func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
+	return &ServiceFactory0[T]{
 		fn: fn,
 	}
 }

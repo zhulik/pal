@@ -90,14 +90,14 @@ func TestProvideFn(t *testing.T) {
 	})
 }
 
-// TestProvideFnFactory tests the ProvideFnFactory function
-func TestProvideFnFactory(t *testing.T) {
+// TestProvideFactory0 tests the ProvideFactory0 function
+func TestProvideFactory0(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a factory service with a function", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFnFactory[TestServiceInterface](func(_ context.Context) (TestServiceInterface, error) {
+		service := pal.ProvideFactory0(func(_ context.Context) (TestServiceInterface, error) {
 			return &TestServiceStruct{}, nil
 		})
 
