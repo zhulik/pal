@@ -57,7 +57,7 @@ func (c *ServiceFnSingleton[T]) Make() any {
 }
 
 // Instance returns the singleton instance of the service.
-func (c *ServiceFnSingleton[T]) Instance(_ context.Context) (any, error) {
+func (c *ServiceFnSingleton[T]) Instance(_ context.Context, _ ...any) (any, error) {
 	return c.instance, nil
 }
 

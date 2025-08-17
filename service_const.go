@@ -54,7 +54,7 @@ func (c *ServiceConst[T]) Make() any {
 }
 
 // Instance returns the constant instance of the service.
-func (c *ServiceConst[T]) Instance(_ context.Context) (any, error) {
+func (c *ServiceConst[T]) Instance(_ context.Context, _ ...any) (any, error) {
 	return c.instance, nil
 }
 

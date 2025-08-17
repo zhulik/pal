@@ -112,13 +112,13 @@ func (c *Container) Init(ctx context.Context) error {
 	return nil
 }
 
-func (c *Container) Invoke(ctx context.Context, name string) (any, error) {
+func (c *Container) Invoke(ctx context.Context, name string, args ...any) (any, error) {
 	service, ok := c.services[name]
 	if !ok {
 		return nil, fmt.Errorf("%w: '%s', known services: %s", ErrServiceNotFound, name, c.services)
 	}
 
-	instance, err := service.Instance(ctx)
+	instance, err := service.Instance(ctx, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: '%s': %w", ErrServiceInitFailed, name, err)
 	}

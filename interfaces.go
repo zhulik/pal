@@ -31,7 +31,7 @@ type ServiceDef interface {
 	// Instance returns a stored instance in the case of singleton service and a new instance in the case of factory.
 	// For singletons, this returns the cached instance after initialization.
 	// For factories, this creates and returns a new instance each time.
-	Instance(ctx context.Context) (any, error)
+	Instance(ctx context.Context, args ...any) (any, error)
 
 	// Dependencies allows services to provide their own dependencies.
 	Dependencies() []ServiceDef
@@ -42,7 +42,7 @@ type ServiceDef interface {
 type Invoker interface {
 	// Invoke retrieves a service by name from the container.
 	// Returns the service instance or an error if the service is not found or cannot be initialized.
-	Invoke(ctx context.Context, name string) (any, error)
+	Invoke(ctx context.Context, name string, args ...any) (any, error)
 
 	// InjectInto injects services into the fields of the target struct.
 	// It looks at each field's type and tries to find a matching service in the container.

@@ -36,7 +36,7 @@ func (c *ServiceRunner) Make() any {
 	return nil
 }
 
-func (c *ServiceRunner) Instance(_ context.Context) (any, error) {
+func (c *ServiceRunner) Instance(_ context.Context, _ ...any) (any, error) {
 	return nil, nil
 }
 

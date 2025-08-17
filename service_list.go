@@ -33,7 +33,7 @@ func (s *ServiceList) Make() any {
 	return nil
 }
 
-func (s *ServiceList) Instance(_ context.Context) (any, error) {
+func (s *ServiceList) Instance(_ context.Context, _ ...any) (any, error) {
 	return nil, nil
 }
 

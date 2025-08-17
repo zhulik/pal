@@ -39,7 +39,7 @@ func (c *ServiceFactory[T]) Make() any {
 	return c.referenceInstance
 }
 
-func (c *ServiceFactory[T]) Instance(ctx context.Context) (any, error) {
+func (c *ServiceFactory[T]) Instance(ctx context.Context, _ ...any) (any, error) {
 	logger := c.P.logger.With("service", c.Name())
 
 	logger.Debug("Creating an instance")

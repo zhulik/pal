@@ -66,10 +66,10 @@ func ProvidePal(pal *Pal) *ServiceList {
 }
 
 // Invoke retrieves or creates an instance of type T from the given Pal container.
-func Invoke[T any](ctx context.Context, invoker Invoker) (T, error) {
+func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error) {
 	name := elem[T]().String()
 
-	a, err := invoker.Invoke(ctx, name)
+	a, err := invoker.Invoke(ctx, name, args...)
 	if err != nil {
 		return empty[T](), err
 	}

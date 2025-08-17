@@ -261,10 +261,10 @@ func (p *Pal) Services() map[string]ServiceDef {
 // Invoke retrieves a service by name from the container.
 // It implements the Invoker interface.
 // The context is enriched with the Pal instance before being passed to the container.
-func (p *Pal) Invoke(ctx context.Context, name string) (any, error) {
+func (p *Pal) Invoke(ctx context.Context, name string, args ...any) (any, error) {
 	ctx = context.WithValue(ctx, CtxValue, p)
 
-	return p.container.Invoke(ctx, name)
+	return p.container.Invoke(ctx, name, args...)
 }
 
 // InjectInto injects services into the fields of the target struct.

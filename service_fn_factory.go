@@ -46,7 +46,7 @@ func (c *ServiceFnFactory[T]) Make() any {
 }
 
 // Instance creates and returns a new instance of the service using the provided function.
-func (c *ServiceFnFactory[T]) Instance(ctx context.Context) (any, error) {
+func (c *ServiceFnFactory[T]) Instance(ctx context.Context, _ ...any) (any, error) {
 	return c.fn(ctx)
 }
 
