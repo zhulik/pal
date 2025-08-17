@@ -2,7 +2,6 @@ package pal
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"time"
 )
@@ -12,8 +11,7 @@ type palHealthCheckServer interface {
 }
 
 type healthCheckServer struct {
-	Pal    *Pal
-	Logger *slog.Logger
+	Pal *Pal
 
 	server *http.Server
 }
@@ -58,7 +56,6 @@ func (h *healthCheckServer) Run(ctx context.Context) error {
 		h.server.Shutdown(context.Background()) //nolint:errcheck
 	}()
 
-	h.Logger.Info("Health check server running", "addr", h.server.Addr)
 	err := h.server.ListenAndServe()
 
 	if err != nil && err != http.ErrServerClosed {
