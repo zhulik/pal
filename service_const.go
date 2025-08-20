@@ -26,12 +26,12 @@ func (c *ServiceConst[T]) Run(ctx context.Context) error {
 // Init is a no-op for const services as they are already initialized.
 // It injects dependencies to the stored instance and calls its Init method if it implements Initer.
 func (c *ServiceConst[T]) Init(ctx context.Context) error {
-	err := c.P.InjectInto(ctx, c.instance)
-	if err != nil {
-		return err
-	}
-
 	return initService(ctx, c.Name(), c.instance, c.hooks.Init, c.P)
+}
+
+// Make is a no-op for factory services as they are created on demand.
+func (c *ServiceConst[T]) Make() any {
+	return c.instance
 }
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
