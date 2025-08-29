@@ -31,26 +31,6 @@ type Inspect struct {
 	server *http.Server
 }
 
-func ProvideBase() pal.ServiceDef {
-	return pal.ProvideList(
-		pal.Provide(&Inspect{}),
-		pal.ProvideFactory(&VM{}),
-
-		pal.ProvideFn(graphviz.New).
-			BeforeShutdown(func(_ context.Context, g *graphviz.Graphviz) error {
-				return g.Close()
-			}),
-	)
-}
-
-func ProvideRemoteConsole() pal.ServiceDef {
-	return pal.ProvideRunner(RemoteConsole)
-}
-
-func ProvideConsole() pal.ServiceDef {
-	return pal.Provide(&Console{})
-}
-
 func (i *Inspect) Shutdown(ctx context.Context) error {
 	err := i.VM.Shutdown(ctx)
 	if err != nil {
@@ -69,7 +49,6 @@ func (i *Inspect) Init(_ context.Context) error {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", i.httpHealth)
 
 	mux.HandleFunc("/pal/eval", i.httpEval)
 	mux.HandleFunc("/pal/graph", i.httpGraph)
@@ -88,8 +67,11 @@ func (i *Inspect) Run(ctx context.Context) error {
 
 	go func() {
 		<-ctx.Done()
-		// TODO: figure out a good context here, Run's ctx is cancelled.
-		i.server.Shutdown(context.TODO()) //nolint:errcheck
+
+		ctx, cancel := context.WithTimeout(context.Background(), i.P.Config().ShutdownTimeout)
+		defer cancel()
+
+		i.server.Shutdown(ctx) //nolint:errcheck
 	}()
 
 	err = i.server.Serve(ln)
@@ -97,17 +79,6 @@ func (i *Inspect) Run(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (i *Inspect) httpHealth(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-
-	err := i.P.HealthCheck(r.Context())
-
-	if err != nil {
-		i.P.Logger().Error("Health check failed", "err", err)
-		w.WriteHeader(500)
-	}
 }
 
 func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
