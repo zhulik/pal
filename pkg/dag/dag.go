@@ -65,12 +65,24 @@ func (d *DAG[K, T]) ForEachVertex(fn func(T) error) error {
 	return nil
 }
 
+func (d *DAG[K, T]) TopologicalOrder() ([]K, error) {
+	return graph.TopologicalSort(d.Graph)
+}
+
+func (d *DAG[K, T]) ReverseTopologicalOrder() ([]K, error) {
+	order, err := d.TopologicalOrder()
+	if err != nil {
+		return nil, err
+	}
+	slices.Reverse(order)
+	return order, nil
+}
+
 func (d *DAG[K, T]) InReverseTopologicalOrder(fn func(T) error) error {
-	order, err := graph.TopologicalSort(d.Graph)
+	order, err := d.ReverseTopologicalOrder()
 	if err != nil {
 		return err
 	}
-	slices.Reverse(order)
 
 	for _, hash := range order {
 		v, _ := d.Vertex(hash)

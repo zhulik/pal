@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
-	"slices"
 	"strings"
 	"sync"
 
 	"github.com/zhulik/pal/pkg/pid"
 
-	"github.com/dominikbraun/graph"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/zhulik/pal/pkg/dag"
@@ -82,18 +80,12 @@ func (c *Container) Init(ctx context.Context) error {
 		}
 	}
 
-	adjMap, err := c.graph.AdjacencyMap()
+	order, err := c.graph.ReverseTopologicalOrder()
 	if err != nil {
 		return err
 	}
 
-	order, err := graph.TopologicalSort(c.graph)
-	if err != nil {
-		return err
-	}
-	slices.Reverse(order)
-
-	c.logger.Debug("Dependency tree is built", "tree", adjMap, "order", order)
+	c.logger.Debug("Dependency tree is built", "order", order)
 
 	err = c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
 		if err := service.Init(ctx); err != nil {
