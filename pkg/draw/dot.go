@@ -8,49 +8,84 @@ import (
 	"github.com/zhulik/pal/pkg/dag"
 )
 
-func sanitizeID(id string) string {
-	withoutStars := strings.ReplaceAll(id, "*", "")
-	return strings.ReplaceAll(withoutStars, ".", "_")
+type dorRenderer struct {
+	*strings.Builder
+
+	graph *dag.DAG[string, pal.ServiceDef]
 }
 
-func shape(vertex pal.ServiceDef) string {
-	if _, ok := vertex.Make().(pal.Runner); ok {
-		return "cds"
-	}
-	// if vertex.Arguments() == 0 {
-	// 	return "box"
-	// }
-	return "ellipse"
-}
-
-func renderVertex(builder *strings.Builder, vertex pal.ServiceDef) {
-	builder.WriteString(fmt.Sprintf(`%s [label="%s", shape="%s"]`, sanitizeID(vertex.Name()), vertex.Name(), shape(vertex)))
-	builder.WriteRune('\n')
-}
-
-func RenderDOT[ID comparable, T pal.ServiceDef](graph *dag.DAG[ID, T]) string {
-	builder := &strings.Builder{}
-
-	builder.WriteString(`
-	digraph G {
+func (r *dorRenderer) Render() []byte {
+	r.WriteString(`
+	digraph DependencyGraph {
 		fontname="Helvetica,Arial,sans-serif"
 		node [fontname="Helvetica,Arial,sans-serif"]
 		edge [fontname="Helvetica,Arial,sans-serif"]
 	`)
 
-	for _, vertex := range graph.TopologicalOrder() {
-		renderVertex(builder, vertex)
+	for _, vertex := range r.graph.TopologicalOrder() {
+		r.renderVertex(vertex)
 	}
 
-	for id, vertex := range graph.TopologicalOrder() {
-		for _, edge := range graph.OutEdges(id) {
-			edgeVertex, _ := graph.GetVertex(edge)
-			builder.WriteString(fmt.Sprintf(`%s -> %s`, sanitizeID(vertex.Name()), sanitizeID(edgeVertex.Name())))
-			builder.WriteRune('\n')
+	for id, vertex := range r.graph.TopologicalOrder() {
+		for _, edge := range r.graph.OutEdges(id) {
+			edgeVertex, _ := r.graph.GetVertex(edge)
+			r.renderEdge(vertex, edgeVertex)
 		}
 	}
 
-	builder.WriteString("}")
+	r.WriteString("}")
 
-	return builder.String()
+	return []byte(r.String())
+}
+
+func (r *dorRenderer) vertexShape(vertex pal.ServiceDef) string {
+	if _, ok := vertex.Make().(pal.Runner); ok {
+		return "cds"
+	}
+
+	if len(r.graph.OutEdges(vertex.Name())) == 0 {
+		return "house"
+	}
+
+	return "ellipse"
+}
+
+func (r *dorRenderer) edgeStyle(source, target pal.ServiceDef) string {
+	if strings.HasPrefix(target.Name(), "*") && strings.HasPrefix(source.Name(), "*") {
+		return "solid"
+	}
+
+	if strings.HasPrefix(target.Name(), "*") || strings.HasPrefix(source.Name(), "*") {
+		return "dashed"
+	}
+	return "dotted"
+}
+
+func (r *dorRenderer) vertexColor(vertex pal.ServiceDef) string {
+	_, runner := vertex.Make().(pal.Runner)
+	if !runner && len(r.graph.InEdges(vertex.Name())) == 0 {
+		return "indianred1"
+	}
+	return "transparent"
+}
+
+func (r *dorRenderer) renderVertex(vertex pal.ServiceDef) {
+	fmt.Fprintf(r, `%s [label="%s", shape="%s", fillcolor="%s", style="filled"]`, sanitizeID(vertex.Name()), vertex.Name(), r.vertexShape(vertex), r.vertexColor(vertex))
+	r.WriteRune('\n')
+}
+
+func (r *dorRenderer) renderEdge(source, target pal.ServiceDef) {
+	fmt.Fprintf(r, `%s -> %s [style="%s"]`, sanitizeID(source.Name()), sanitizeID(target.Name()), r.edgeStyle(source, target))
+	r.WriteRune('\n')
+}
+
+func RenderDOT(graph *dag.DAG[string, pal.ServiceDef]) []byte {
+	renderer := &dorRenderer{Builder: &strings.Builder{}, graph: graph}
+
+	return renderer.Render()
+}
+
+func sanitizeID(id string) string {
+	withoutStars := strings.ReplaceAll(id, "*", "")
+	return strings.ReplaceAll(withoutStars, ".", "_")
 }

@@ -122,6 +122,16 @@ func (d *DAG[ID, T]) OutEdges(vertex ID) []ID {
 	return slices.Collect(maps.Keys(d.edges[vertex]))
 }
 
+func (d *DAG[ID, T]) InEdges(vertex ID) []ID {
+	var result []ID
+	for key, edges := range d.edges {
+		if _, ok := edges[vertex]; ok {
+			result = append(result, key)
+		}
+	}
+	return result
+}
+
 func (d *DAG[ID, T]) TopologicalOrder() iter.Seq2[ID, T] {
 	// Create a copy of in-degree counts
 	inDegreeCopy := make(map[ID]int)
