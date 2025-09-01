@@ -258,7 +258,7 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 	c.graph.AddVertexIfNotExist(service.Name(), service)
 
 	if parent != nil {
-		if err := c.graph.AddEdge(parent.Name(), service.Name()); err != nil {
+		if err := c.graph.AddEdgeIfNotExist(parent.Name(), service.Name()); err != nil {
 			return err
 		}
 	}

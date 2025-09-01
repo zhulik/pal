@@ -111,6 +111,17 @@ func (d *DAG[ID, T]) AddEdge(source, target ID) error {
 	return nil
 }
 
+func (d *DAG[ID, T]) AddEdgeIfNotExist(source, target ID) error {
+	if d.EdgeExists(source, target) {
+		return nil
+	}
+	return d.AddEdge(source, target)
+}
+
+func (d *DAG[ID, T]) OutEdges(vertex ID) []ID {
+	return slices.Collect(maps.Keys(d.edges[vertex]))
+}
+
 func (d *DAG[ID, T]) TopologicalOrder() iter.Seq2[ID, T] {
 	// Create a copy of in-degree counts
 	inDegreeCopy := make(map[ID]int)
