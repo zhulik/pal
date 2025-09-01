@@ -1,7 +1,6 @@
 package dag
 
 import (
-	"cmp"
 	"errors"
 	"iter"
 	"maps"
@@ -14,13 +13,13 @@ var (
 	ErrVertexNotFound    = errors.New("vertex not found")
 )
 
-type DAG[ID cmp.Ordered, T any] struct {
+type DAG[ID comparable, T any] struct {
 	vertices map[ID]T
 	edges    map[ID]map[ID]bool // adjacency list: source -> set of targets
 	inDegree map[ID]int         // in-degree count for each vertex
 }
 
-func New[ID cmp.Ordered, T any]() *DAG[ID, T] {
+func New[ID comparable, T any]() *DAG[ID, T] {
 	return &DAG[ID, T]{
 		vertices: make(map[ID]T),
 		edges:    make(map[ID]map[ID]bool),
