@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
-	"slices"
 	"strings"
 	"sync"
 
 	"github.com/zhulik/pal/pkg/pid"
 
-	"github.com/dominikbraun/graph"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/zhulik/pal/pkg/dag"
@@ -44,7 +42,7 @@ func NewContainer(config *Config, services ...ServiceDef) *Container {
 	return &Container{
 		config:      config,
 		services:    index,
-		graph:       dag.New(serviceHash),
+		graph:       dag.New[string, ServiceDef](),
 		logger:      slog.With("palComponent", "Container"),
 		runnerTasks: pid.NewRunGroup(),
 	}
@@ -82,30 +80,11 @@ func (c *Container) Init(ctx context.Context) error {
 		}
 	}
 
-	adjMap, err := c.graph.AdjacencyMap()
-	if err != nil {
-		return err
-	}
-
-	order, err := graph.TopologicalSort(c.graph)
-	if err != nil {
-		return err
-	}
-	slices.Reverse(order)
-
-	c.logger.Debug("Dependency tree is built", "tree", adjMap, "order", order)
-
-	err = c.graph.InReverseTopologicalOrder(func(service ServiceDef) error {
+	for _, service := range c.graph.ReverseTopologicalOrder() {
 		if err := service.Init(ctx); err != nil {
+			c.logger.Error("Failed to initialize container", "error", err)
 			return err
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		c.logger.Error("Failed to initialize container", "error", err)
-		return err
 	}
 
 	c.logger.Debug("Container initialized")
@@ -182,14 +161,13 @@ func (c *Container) Shutdown(ctx context.Context) error {
 		c.logger.Error("Runners failed to shutdown", "error", err)
 	}
 
-	c.graph.InTopologicalOrder(func(service ServiceDef) error { // nolint:errcheck
+	for _, service := range c.graph.TopologicalOrder() {
 		err := service.Shutdown(ctx)
 		if err != nil {
 			errs = append(errs, err)
-			return nil
+			continue
 		}
-		return nil
-	})
+	}
 
 	err = errors.Join(errs...)
 	if err != nil {
@@ -206,7 +184,7 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 
 	c.logger.Debug("Healthchecking services")
 
-	c.graph.ForEachVertex(func(service ServiceDef) error { // nolint:errcheck
+	for _, service := range c.graph.TopologicalOrder() {
 		wg.Go(func() error {
 			// Do not check pal again, this leads to recursion
 			if service.Name() == "*pal.Pal" {
@@ -220,9 +198,7 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 
 			return nil
 		})
-
-		return nil
-	})
+	}
 
 	err := wg.Wait()
 	if err != nil {
@@ -279,12 +255,10 @@ func (c *Container) Graph() *dag.DAG[string, ServiceDef] {
 // If parent is not nil, it also adds an edge from parent to service in the graph.
 // This method is used during container initialization to build the complete dependency graph.
 func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) error {
-	if err := c.graph.AddVertexIfNotExist(service); err != nil {
-		return err
-	}
+	c.graph.AddVertexIfNotExist(service.Name(), service)
 
 	if parent != nil {
-		if err := c.graph.AddEdgeIfNotExist(parent.Name(), service.Name()); err != nil {
+		if err := c.graph.AddEdge(parent.Name(), service.Name()); err != nil {
 			return err
 		}
 	}
@@ -321,10 +295,4 @@ func (c *Container) injectLoggerIntoField(field reflect.Value, target any) {
 		logger = logger.With(name, value)
 	}
 	field.Set(reflect.ValueOf(logger))
-}
-
-// serviceHash returns a unique identifier for a service, which is its name.
-// This is used as the vertex identifier in the dependency graph.
-func serviceHash(service ServiceDef) string {
-	return service.Name()
 }

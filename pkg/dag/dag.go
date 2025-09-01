@@ -3,97 +3,199 @@ package dag
 import (
 	"cmp"
 	"errors"
+	"iter"
+	"maps"
 	"slices"
-
-	"github.com/dominikbraun/graph"
 )
 
-type DAG[K cmp.Ordered, T any] struct {
-	graph.Graph[K, T]
+var (
+	ErrEdgeAlreadyExists = errors.New("edge already exists")
+	ErrCycleDetected     = errors.New("cycle detected")
+	ErrVertexNotFound    = errors.New("vertex not found")
+)
+
+type DAG[ID cmp.Ordered, T any] struct {
+	vertices map[ID]T
+	edges    map[ID]map[ID]bool // adjacency list: source -> set of targets
+	inDegree map[ID]int         // in-degree count for each vertex
 }
 
-func New[K cmp.Ordered, T any](hash graph.Hash[K, T]) *DAG[K, T] {
-	return &DAG[K, T]{
-		graph.New(hash, graph.Directed(), graph.Acyclic(), graph.PreventCycles()),
+func New[ID cmp.Ordered, T any]() *DAG[ID, T] {
+	return &DAG[ID, T]{
+		vertices: make(map[ID]T),
+		edges:    make(map[ID]map[ID]bool),
+		inDegree: make(map[ID]int),
 	}
 }
 
-func (d *DAG[K, T]) AddVertexIfNotExist(v T) error {
-	err := d.AddVertex(v)
-	if errors.Is(err, graph.ErrVertexAlreadyExists) {
-		return nil
-	}
-	return err
+// VertexCount returns the total number of vertices in the DAG
+func (d *DAG[ID, T]) VertexCount() int {
+	return len(d.vertices)
 }
 
-func (d *DAG[K, T]) AddEdgeIfNotExist(sourceHash, targetHash K, options ...func(*graph.EdgeProperties)) error {
-	err := d.AddEdge(sourceHash, targetHash, options...)
-	if errors.Is(err, graph.ErrEdgeAlreadyExists) {
-		return nil
+// EdgeCount returns the total number of edges in the DAG
+func (d *DAG[ID, T]) EdgeCount() int {
+	count := 0
+	for _, targets := range d.edges {
+		count += len(targets)
 	}
-	return err
+	return count
 }
 
-func (d *DAG[K, T]) Vertices() []T {
-	// graph.Graph does not have a way to get the list of its vertices.
-	// https://github.com/dominikbraun/graph/pull/149
-
-	adjMap, _ := d.AdjacencyMap()
-
-	keys := make([]K, 0, len(adjMap))
-	for hash := range adjMap {
-		keys = append(keys, hash)
-	}
-
-	slices.Sort(keys)
-
-	vertices := make([]T, 0, len(adjMap))
-	for _, hash := range keys {
-		vertex, _ := d.Vertex(hash)
-		vertices = append(vertices, vertex)
-	}
-
-	return vertices
+// VertexExists checks if a vertex with the given ID exists
+func (d *DAG[ID, T]) VertexExists(id ID) bool {
+	_, exists := d.vertices[id]
+	return exists
 }
 
-func (d *DAG[K, T]) ForEachVertex(fn func(T) error) error {
-	for _, v := range d.Vertices() {
-		if err := fn(v); err != nil {
-			return err
-		}
+// EdgeExists checks if an edge from source to target exists
+func (d *DAG[ID, T]) EdgeExists(source, target ID) bool {
+	if !d.VertexExists(source) {
+		return false
 	}
+	return d.edges[source][target]
+}
+
+// GetVertex returns the vertex data for the given ID and whether it exists
+func (d *DAG[ID, T]) GetVertex(id ID) (T, bool) {
+	val, exists := d.vertices[id]
+	return val, exists
+}
+
+// GetInDegree returns the in-degree (number of incoming edges) for a vertex
+func (d *DAG[ID, T]) GetInDegree(id ID) int {
+	return d.inDegree[id]
+}
+
+// GetOutDegree returns the out-degree (number of outgoing edges) for a vertex
+func (d *DAG[ID, T]) GetOutDegree(id ID) int {
+	if !d.VertexExists(id) {
+		return 0
+	}
+	return len(d.edges[id])
+}
+
+func (d *DAG[ID, T]) AddVertexIfNotExist(id ID, v T) {
+	if _, exists := d.vertices[id]; !exists {
+		d.vertices[id] = v
+		d.edges[id] = make(map[ID]bool)
+		d.inDegree[id] = 0
+	}
+}
+
+func (d *DAG[ID, T]) AddEdge(source, target ID) error {
+	// Check if both vertices exist
+	if !d.VertexExists(source) {
+		return ErrVertexNotFound
+	}
+	if !d.VertexExists(target) {
+		return ErrVertexNotFound
+	}
+
+	// Check if edge already exists
+	if d.edges[source][target] {
+		return ErrEdgeAlreadyExists
+	}
+
+	// Add the edge
+	d.edges[source][target] = true
+	d.inDegree[target]++
+
+	// Check for cycles using DFS
+	if d.hasCycle() {
+		// Remove the edge if it creates a cycle
+		d.edges[source][target] = false
+		d.inDegree[target]--
+		return ErrCycleDetected
+	}
+
 	return nil
 }
 
-func (d *DAG[K, T]) InReverseTopologicalOrder(fn func(T) error) error {
-	order, err := graph.TopologicalSort(d.Graph)
-	if err != nil {
-		return err
-	}
-	slices.Reverse(order)
+func (d *DAG[ID, T]) TopologicalOrder() iter.Seq2[ID, T] {
+	// Create a copy of in-degree counts
+	inDegreeCopy := make(map[ID]int)
+	maps.Copy(inDegreeCopy, d.inDegree)
 
-	for _, hash := range order {
-		v, _ := d.Vertex(hash)
-
-		if err := fn(v); err != nil {
-			return err
+	// Find all vertices with in-degree 0
+	var queue []ID
+	for id, count := range inDegreeCopy {
+		if count == 0 {
+			queue = append(queue, id)
 		}
 	}
-	return nil
+
+	// Kahn's algorithm for topological sorting
+	return func(yield func(ID, T) bool) {
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
+
+			if !yield(current, d.vertices[current]) {
+				break
+			}
+
+			// Reduce in-degree of all neighbors
+			for neighbor := range d.edges[current] {
+				inDegreeCopy[neighbor]--
+				if inDegreeCopy[neighbor] == 0 {
+					queue = append(queue, neighbor)
+				}
+			}
+		}
+	}
 }
 
-func (d *DAG[K, T]) InTopologicalOrder(fn func(T) error) error {
-	order, err := graph.TopologicalSort(d.Graph)
-	if err != nil {
-		return err
+func (d *DAG[ID, T]) ReverseTopologicalOrder() iter.Seq2[ID, T] {
+	var result []ID
+	for id := range d.TopologicalOrder() {
+		result = append(result, id)
 	}
+	slices.Reverse(result)
 
-	for _, hash := range order {
-		v, _ := d.Vertex(hash)
-
-		if err := fn(v); err != nil {
-			return err
+	return func(yield func(ID, T) bool) {
+		for _, id := range result {
+			if !yield(id, d.vertices[id]) {
+				break
+			}
 		}
 	}
-	return nil
+}
+
+// Helper method to detect cycles using DFS
+func (d *DAG[ID, T]) hasCycle() bool {
+	visited := make(map[ID]bool)
+	recStack := make(map[ID]bool)
+
+	var dfs func(ID) bool
+	dfs = func(vertex ID) bool {
+		if recStack[vertex] {
+			return true // Back edge found, cycle detected
+		}
+		if visited[vertex] {
+			return false // Already processed
+		}
+
+		visited[vertex] = true
+		recStack[vertex] = true
+
+		for neighbor := range d.edges[vertex] {
+			if dfs(neighbor) {
+				return true
+			}
+		}
+
+		recStack[vertex] = false
+		return false
+	}
+
+	for vertex := range d.vertices {
+		if !visited[vertex] {
+			if dfs(vertex) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
