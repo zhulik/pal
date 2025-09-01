@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dominikbraun/graph/draw"
 	"github.com/goccy/go-graphviz"
 	"github.com/zhulik/pal"
+	"github.com/zhulik/pal/pkg/draw"
 )
 
 const (
@@ -85,20 +84,20 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(405)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
 	bytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	res, err := i.VM.RunString(string(bytes))
 
 	if err != nil {
-		w.WriteHeader(422)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 
 		w.Write([]byte(err.Error())) //nolint:errcheck
 		return
@@ -108,31 +107,28 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *Inspect) httpGraph(w http.ResponseWriter, r *http.Request) {
+	dot := draw.RenderDOT(i.P.Container().Graph())
+
 	if r.Header.Get("Accept") == gvContentType {
 		w.Header().Set("Content-Type", gvContentType)
-		_ = draw.DOT(i.P.Container().Graph().Graph, w)
-	}
-
-	buf := &bytes.Buffer{}
-
-	if err := draw.DOT(i.P.Container().Graph().Graph, buf); err != nil {
-		w.WriteHeader(500)
+		w.Write([]byte(dot)) //nolint:errcheck
 		return
 	}
 
-	graph, err := graphviz.ParseBytes(buf.Bytes())
+	graph, err := graphviz.ParseBytes([]byte(dot))
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error())) //nolint:errcheck
 		return
 	}
 
-	if r.Header.Get("Accept") == svgContentType {
-		w.Header().Set("Content-Type", svgContentType)
+	w.Header().Set("Content-Type", svgContentType)
 
-		err = i.GV.Render(r.Context(), graph, graphviz.SVG, w)
-		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
+	err = i.GV.Render(r.Context(), graph, graphviz.SVG, w)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error())) //nolint:errcheck
+		return
 	}
+	return
 }
