@@ -4,6 +4,8 @@ import (
 	"cmp"
 	"errors"
 	"iter"
+	"maps"
+	"slices"
 )
 
 var (
@@ -111,20 +113,9 @@ func (d *DAG[ID, T]) AddEdge(source, target ID) error {
 }
 
 func (d *DAG[ID, T]) TopologicalOrder() iter.Seq2[ID, T] {
-	return d.topologicalOrder(false)
-}
-
-func (d *DAG[ID, T]) ReverseTopologicalOrder() iter.Seq2[ID, T] {
-	return d.topologicalOrder(true)
-}
-
-// Helper method for topological ordering
-func (d *DAG[ID, T]) topologicalOrder(reverse bool) iter.Seq2[ID, T] {
 	// Create a copy of in-degree counts
 	inDegreeCopy := make(map[ID]int)
-	for id, count := range d.inDegree {
-		inDegreeCopy[id] = count
-	}
+	maps.Copy(inDegreeCopy, d.inDegree)
 
 	// Find all vertices with in-degree 0
 	var queue []ID
@@ -135,32 +126,32 @@ func (d *DAG[ID, T]) topologicalOrder(reverse bool) iter.Seq2[ID, T] {
 	}
 
 	// Kahn's algorithm for topological sorting
-	var result []ID
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-		result = append(result, current)
+	return func(yield func(ID, T) bool) {
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
 
-		// Reduce in-degree of all neighbors
-		for neighbor := range d.edges[current] {
-			inDegreeCopy[neighbor]--
-			if inDegreeCopy[neighbor] == 0 {
-				queue = append(queue, neighbor)
+			if !yield(current, d.vertices[current]) {
+				break
+			}
+
+			// Reduce in-degree of all neighbors
+			for neighbor := range d.edges[current] {
+				inDegreeCopy[neighbor]--
+				if inDegreeCopy[neighbor] == 0 {
+					queue = append(queue, neighbor)
+				}
 			}
 		}
 	}
+}
 
-	if len(result) != len(d.vertices) {
-		// this should never happen as we check for cycles before adding edges
-		panic("cycle detected")
+func (d *DAG[ID, T]) ReverseTopologicalOrder() iter.Seq2[ID, T] {
+	var result []ID
+	for id := range d.TopologicalOrder() {
+		result = append(result, id)
 	}
-
-	// Reverse the result if requested
-	if reverse {
-		for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
-			result[i], result[j] = result[j], result[i]
-		}
-	}
+	slices.Reverse(result)
 
 	return func(yield func(ID, T) bool) {
 		for _, id := range result {

@@ -1,6 +1,7 @@
 package dag_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -208,8 +209,15 @@ func TestTopologicalOrder(t *testing.T) {
 			result = append(result, id)
 		}
 
-		// Check that A comes before B, C, and D
-		assert.Equal(t, []string{"A", "B", "C", "D"}, result)
+		Ai := slices.Index(result, "A")
+		Bi := slices.Index(result, "B")
+		Ci := slices.Index(result, "C")
+		Di := slices.Index(result, "D")
+
+		assert.True(t, Ai < Bi)
+		assert.True(t, Ai < Ci)
+		assert.True(t, Bi < Di)
+		assert.True(t, Ci < Di)
 	})
 
 	t.Run("empty DAG", func(t *testing.T) {
