@@ -70,7 +70,9 @@ func (r *dorRenderer) vertexColor(vertex pal.ServiceDef) string {
 }
 
 func (r *dorRenderer) renderVertex(vertex pal.ServiceDef) {
-	fmt.Fprintf(r, `%s [label="%s", shape="%s", fillcolor="%s", style="filled"]`, sanitizeID(vertex.Name()), vertex.Name(), r.vertexShape(vertex), r.vertexColor(vertex))
+	fmt.Fprintf(r, `%s [label="%s", tooltip="%s", shape="%s", fillcolor="%s", style="filled"]`,
+		sanitizeID(vertex.Name()), simplifyName(vertex.Name()), vertex.Name(), r.vertexShape(vertex), r.vertexColor(vertex),
+	)
 	r.WriteRune('\n')
 }
 
@@ -86,6 +88,15 @@ func RenderDOT(graph *dag.DAG[string, pal.ServiceDef]) []byte {
 }
 
 func sanitizeID(id string) string {
-	withoutStars := strings.ReplaceAll(id, "*", "")
-	return strings.ReplaceAll(withoutStars, ".", "_")
+	result := strings.NewReplacer("*", "", ".", "_", "/", "_", "-", "_").Replace(id)
+	return result
+}
+
+func simplifyName(name string) string {
+	parts := strings.Split(name, "/")
+	last := parts[len(parts)-1]
+	if strings.HasPrefix(name, "*") {
+		return "*" + last
+	}
+	return last
 }
