@@ -17,6 +17,7 @@ type dorRenderer struct {
 func (r *dorRenderer) Render() []byte {
 	r.WriteString(`
 	digraph DependencyGraph {
+		graph [size="15,30"];
 		fontname="Helvetica,Arial,sans-serif"
 		node [fontname="Helvetica,Arial,sans-serif"]
 		edge [fontname="Helvetica,Arial,sans-serif"]
