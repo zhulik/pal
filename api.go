@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+
+	typetostring "github.com/samber/go-type-to-string"
 )
 
 // Provide registers a const as a service. `T` is used to generating service name.
@@ -71,7 +73,7 @@ func ProvideFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx 
 func ProvidePal(pal *Pal) *ServiceList {
 	services := make([]ServiceDef, 0, len(pal.Services()))
 	for _, v := range pal.Services() {
-		if v.Name() != "*pal.Pal" {
+		if v.Name() != "*github.com/zhulik/pal.Pal" {
 			services = append(services, v)
 		}
 	}
@@ -81,7 +83,7 @@ func ProvidePal(pal *Pal) *ServiceList {
 
 // Invoke retrieves or creates an instance of type T from the given Pal container.
 func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error) {
-	name := elem[T]().String()
+	name := typetostring.GetType[T]()
 
 	a, err := invoker.Invoke(ctx, name, args...)
 	if err != nil {

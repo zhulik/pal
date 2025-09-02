@@ -23,7 +23,7 @@ func TestProvide(t *testing.T) {
 		service := pal.Provide(&TestServiceStruct{})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "*pal_test.TestServiceStruct", service.Name())
+		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
 	})
 
 	t.Run("detects runner services", func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestProvide(t *testing.T) {
 			})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "*pal_test.RunnerServiceStruct", service.Name())
+		assert.Equal(t, "*github.com/zhulik/pal_test.RunnerServiceStruct", service.Name())
 	})
 
 	t.Run("makes sure the argument is a pointer to struct", func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestProvideFn(t *testing.T) {
 		})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+		assert.Equal(t, "github.com/zhulik/pal_test.TestServiceInterface", service.Name())
 	})
 }
 
@@ -80,7 +80,7 @@ func TestProvideFactory0(t *testing.T) {
 		})
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "pal_test.TestServiceInterface", service.Name())
+		assert.Equal(t, "github.com/zhulik/pal_test.TestServiceInterface", service.Name())
 	})
 }
 
@@ -95,7 +95,7 @@ func TestProvideConst(t *testing.T) {
 		service := pal.Provide(s)
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "*pal_test.TestServiceStruct", service.Name())
+		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
 
 		// Verify that the instance is the same
 		instance, err := service.Instance(context.Background())

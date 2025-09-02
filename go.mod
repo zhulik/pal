@@ -7,6 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/alphadose/haxmap v1.4.1
 	github.com/go-playground/validator/v10 v10.26.0
+	github.com/samber/go-type-to-string v1.8.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.13.0
 )

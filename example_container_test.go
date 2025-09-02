@@ -39,7 +39,7 @@ func Example_container() {
 	}
 
 	// Invoke the service
-	instance, err := p.Invoke(ctx, "pal_test.SimpleService")
+	instance, err := p.Invoke(ctx, "github.com/zhulik/pal_test.SimpleService")
 	if err != nil {
 		fmt.Printf("Failed to invoke service: %v\n", err)
 		return
