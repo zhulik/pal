@@ -23,7 +23,7 @@ func Test_New(t *testing.T) {
 		p := newPal()
 
 		assert.NotNil(t, p)
-		assert.Contains(t, p.Services(), "*pal.Pal")
+		assert.Contains(t, p.Services(), "*github.com/zhulik/pal.Pal")
 	})
 
 	t.Run("creates a new Pal instance with services", func(t *testing.T) {
@@ -41,7 +41,7 @@ func Test_New(t *testing.T) {
 		p = newPal(pal.ProvidePal(p))
 
 		assert.NoError(t, p.Init(t.Context()))
-		assert.Contains(t, p.Services(), "*pal_test.TestServiceStruct")
+		assert.Contains(t, p.Services(), "*github.com/zhulik/pal_test.TestServiceStruct")
 	})
 
 	t.Run("correctly initializes service lists", func(t *testing.T) {
@@ -194,8 +194,8 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.Contains(t, services, "*pal_test.TestServiceStruct")
-		assert.Contains(t, services, "*pal.Pal")
+		assert.Contains(t, services, "*github.com/zhulik/pal_test.TestServiceStruct")
+		assert.Contains(t, services, "*github.com/zhulik/pal.Pal")
 	})
 
 	t.Run("returns a slice with only pal for no services", func(t *testing.T) {
@@ -206,7 +206,7 @@ func TestPal_Services(t *testing.T) {
 
 		services := p.Services()
 
-		assert.Contains(t, services, "*pal.Pal")
+		assert.Contains(t, services, "*github.com/zhulik/pal.Pal")
 	})
 }
 
@@ -228,7 +228,7 @@ func TestPal_Invoke(t *testing.T) {
 
 		assert.NoError(t, p.Init(t.Context()))
 
-		instance, err := p.Invoke(t.Context(), "*pal_test.TestServiceStruct")
+		instance, err := p.Invoke(t.Context(), "*github.com/zhulik/pal_test.TestServiceStruct")
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
 	})

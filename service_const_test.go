@@ -17,7 +17,7 @@ func TestService_Name(t *testing.T) {
 
 		service := pal.Provide(&TestServiceStruct{})
 
-		assert.Equal(t, "*pal_test.TestServiceStruct", service.Name())
+		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
 	})
 }
 
