@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	typetostring "github.com/samber/go-type-to-string"
 	"github.com/zhulik/pal/pkg/pid"
 
 	"golang.org/x/sync/errgroup"
@@ -126,13 +127,15 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			continue
 		}
 
-		dependency, err := c.Invoke(ctx, fieldType.String())
+		typeName := typetostring.GetReflectType(fieldType)
+
+		dependency, err := c.Invoke(ctx, typeName)
 		if err != nil {
 			if errors.Is(err, ErrServiceNotFound) {
 				continue
 			}
 			if errors.Is(err, ErrServiceInvalidArgumentsCount) {
-				return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, fieldType.String(), err)
+				return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, typeName, err)
 			}
 			return err
 		}
@@ -187,7 +190,7 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	for _, service := range c.graph.TopologicalOrder() {
 		wg.Go(func() error {
 			// Do not check pal again, this leads to recursion
-			if service.Name() == "*pal.Pal" {
+			if service.Name() == "*github.com/zhulik/pal.Pal" {
 				return nil
 			}
 
@@ -277,7 +280,7 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
-		dependencyName := typ.Field(i).Type.String()
+		dependencyName := typetostring.GetReflectType(typ.Field(i).Type)
 		if childService, ok := c.services[dependencyName]; ok {
 			if err := c.addDependencyVertex(childService, service); err != nil {
 				return err
