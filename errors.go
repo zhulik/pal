@@ -26,4 +26,7 @@ var (
 
 	// ErrFactoryServiceDependency is returned when a service with a factory service dependency is invoked.
 	ErrFactoryServiceDependency = errors.New("factory service cannot be a dependency of another service")
+
+	// ErrServiceInvalidCast is returned when a service is cast to a different type.
+	ErrServiceInvalidCast = errors.New("failed to cast service to the expected type")
 )

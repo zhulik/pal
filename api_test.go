@@ -141,6 +141,31 @@ func TestInvoke(t *testing.T) {
 	})
 }
 
+func TestInvokeAs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invokes a service successfully", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal(pal.Provide[TestServiceInterface](&TestServiceStruct{}))
+
+		instance, err := pal.InvokeAs[TestServiceInterface, TestServiceStruct](t.Context(), p)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+	})
+
+	t.Run("returns error when service cannot be cast to the expected type", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal(pal.Provide[TestServiceInterface](&TestServiceStruct{}))
+
+		_, err := pal.InvokeAs[TestServiceInterface, string](t.Context(), p)
+
+		assert.ErrorIs(t, err, pal.ErrServiceInvalidCast)
+	})
+}
+
 // TestBuild tests the Build function
 func TestBuild(t *testing.T) {
 	t.Parallel()
