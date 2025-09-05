@@ -25,15 +25,6 @@ func runService(ctx context.Context, name string, instance any, p *Pal) error {
 	})()
 }
 
-func runConfig(instance any) *RunConfig {
-	configer, ok := instance.(RunConfiger)
-	if ok {
-		return configer.RunConfig()
-	}
-
-	return nil
-}
-
 func healthcheckService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
 	logger := p.logger.With("service", name)
 	if hook != nil {

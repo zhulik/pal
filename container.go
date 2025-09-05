@@ -232,7 +232,7 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	c.cancelMu.Unlock()
 
 	for _, service := range c.services {
-		runCfg := runConfigOrDefault(service.RunConfig())
+		runCfg := service.RunConfig()
 
 		c.runnerTasks.Go(ctx, runCfg.Wait, func(ctx context.Context) error {
 			return service.Run(ctx)
