@@ -15,8 +15,7 @@ func runService(ctx context.Context, name string, instance any, p *Pal) error {
 		logger.Debug("Running")
 		err := runner.Run(ctx)
 		if err != nil {
-			logger.Error("Runner exited with error, scheduling shutdown", "error", err)
-			FromContext(ctx).Shutdown(err)
+			logger.Error("Runner exited with error", "error", err)
 			return err
 		}
 
