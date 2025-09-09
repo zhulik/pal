@@ -236,7 +236,6 @@ func TestPal_Run(t *testing.T) {
 	t.Parallel()
 
 	t.Run("exists immediately when no runners given", func(t *testing.T) {
-		t.Skip("TODO: if not runners started, this will block forever, we should exit immediately if there are no runners")
 		t.Parallel()
 
 		err := newPal().
@@ -249,7 +248,6 @@ func TestPal_Run(t *testing.T) {
 	})
 
 	t.Run("exists after runners exist", func(t *testing.T) {
-		t.Skip("TODO: this test is not working as expected")
 		t.Parallel()
 
 		service := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
