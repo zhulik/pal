@@ -28,6 +28,16 @@ func New[ID cmp.Ordered, T any]() *DAG[ID, T] {
 	}
 }
 
+// Vertices returns the vertices of the DAG
+func (d *DAG[ID, T]) Vertices() map[ID]T {
+	return d.vertices
+}
+
+// Edges returns the edges of the DAG
+func (d *DAG[ID, T]) Edges() map[ID]map[ID]bool {
+	return d.edges
+}
+
 // VertexCount returns the total number of vertices in the DAG
 func (d *DAG[ID, T]) VertexCount() int {
 	return len(d.vertices)
@@ -110,6 +120,13 @@ func (d *DAG[ID, T]) AddEdge(source, target ID) error {
 	}
 
 	return nil
+}
+
+func (d *DAG[ID, T]) AddEdgeIfNotExist(source, target ID) error {
+	if d.EdgeExists(source, target) {
+		return nil
+	}
+	return d.AddEdge(source, target)
 }
 
 func (d *DAG[ID, T]) TopologicalOrder() iter.Seq2[ID, T] {
