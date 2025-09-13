@@ -39,7 +39,6 @@ type Pal struct {
 	container *Container
 
 	initialized *atomic.Bool
-	shutDown    *atomic.Bool
 
 	logger *slog.Logger
 }
@@ -49,7 +48,6 @@ func New(services ...ServiceDef) *Pal {
 	pal := &Pal{
 		config:      &Config{},
 		initialized: &atomic.Bool{},
-		shutDown:    &atomic.Bool{},
 		logger:      slog.With("palComponent", "Pal"),
 	}
 
@@ -177,22 +175,6 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
-// shutdown gracefully shuts down the app. If any errs given or an error occurs during services shutdown, Run()
-// will return them. If not initialized, the call is ignored.
-func (p *Pal) shutdown() error {
-	go func() {
-		// a watchdog to make sure to forcefully exit if shutdown times out
-		<-time.After(p.config.ShutdownTimeout)
-
-		panic("shutdown timed out")
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(float64(p.config.ShutdownTimeout)*0.9))
-	defer cancel()
-
-	return p.container.Shutdown(ctx)
-}
-
 // Run eagerly starts runners, then blocks until:
 // - context is canceled
 // - one of the runners fails
@@ -218,7 +200,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	go func() {
 		<-ctx.Done()
 
-		p.logger.Warn("Received signal, shutting down.")
+		p.logger.Warn("Received signal, shutting down. Send it again to exit immediately")
 
 		ctx, stop := signal.NotifyContext(context.Background(), signals...)
 		defer stop()
@@ -239,7 +221,17 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		p.logger.Error("One or more runners failed, trying to shutdown gracefully", "error", runErr)
 	}
 
-	return errors.Join(runErr, p.shutdown())
+	go func() {
+		// a watchdog to make sure to forcefully exit if shutdown times out
+		<-time.After(p.config.ShutdownTimeout)
+
+		panic("shutdown timed out")
+	}()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(float64(p.config.ShutdownTimeout)*0.9))
+	defer cancel()
+
+	return errors.Join(runErr, p.container.Shutdown(shutdownCtx))
 }
 
 // Services returns a map of all registered services in the container, keyed by their names.
