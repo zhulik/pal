@@ -1,7 +1,6 @@
 package dag
 
 import (
-	"cmp"
 	"errors"
 	"iter"
 	"maps"
@@ -14,13 +13,13 @@ var (
 	ErrVertexNotFound    = errors.New("vertex not found")
 )
 
-type DAG[ID cmp.Ordered, T any] struct {
+type DAG[ID comparable, T any] struct {
 	vertices map[ID]T
 	edges    map[ID]map[ID]bool // adjacency list: source -> set of targets
 	inDegree map[ID]int         // in-degree count for each vertex
 }
 
-func New[ID cmp.Ordered, T any]() *DAG[ID, T] {
+func New[ID comparable, T any]() *DAG[ID, T] {
 	return &DAG[ID, T]{
 		vertices: make(map[ID]T),
 		edges:    make(map[ID]map[ID]bool),
@@ -110,6 +109,27 @@ func (d *DAG[ID, T]) AddEdge(source, target ID) error {
 	}
 
 	return nil
+}
+
+func (d *DAG[ID, T]) AddEdgeIfNotExist(source, target ID) error {
+	if d.EdgeExists(source, target) {
+		return nil
+	}
+	return d.AddEdge(source, target)
+}
+
+func (d *DAG[ID, T]) OutEdges(vertex ID) []ID {
+	return slices.Collect(maps.Keys(d.edges[vertex]))
+}
+
+func (d *DAG[ID, T]) InEdges(vertex ID) []ID {
+	var result []ID
+	for key, edges := range d.edges {
+		if _, ok := edges[vertex]; ok {
+			result = append(result, key)
+		}
+	}
+	return result
 }
 
 func (d *DAG[ID, T]) TopologicalOrder() iter.Seq2[ID, T] {
