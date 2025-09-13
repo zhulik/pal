@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"strings"
 )
 
 func runService(ctx context.Context, name string, instance any, p *Pal) error {
@@ -99,4 +100,27 @@ func initService[T any](ctx context.Context, name string, instance T, hook Lifec
 		}
 	}
 	return nil
+}
+
+func flattenServices(services []ServiceDef) []ServiceDef {
+	seen := make(map[ServiceDef]bool)
+	var result []ServiceDef
+
+	var process func([]ServiceDef)
+	process = func(svcs []ServiceDef) {
+		for _, svc := range svcs {
+			if _, ok := seen[svc]; !ok {
+				seen[svc] = true
+
+				if !strings.HasPrefix(svc.Name(), "$") {
+					result = append(result, svc)
+				}
+
+				process(svc.Dependencies())
+			}
+		}
+	}
+
+	process(services)
+	return result
 }

@@ -8,7 +8,6 @@ import (
 	"maps"
 	"reflect"
 	"slices"
-	"strings"
 
 	typetostring "github.com/samber/go-type-to-string"
 
@@ -44,29 +43,6 @@ func NewContainer(config *Config, services ...ServiceDef) *Container {
 		logger:   slog.With("palComponent", "Container"),
 		runners:  &RunnerGroup{},
 	}
-}
-
-func flattenServices(services []ServiceDef) []ServiceDef {
-	seen := make(map[ServiceDef]bool)
-	var result []ServiceDef
-
-	var process func([]ServiceDef)
-	process = func(svcs []ServiceDef) {
-		for _, svc := range svcs {
-			if _, ok := seen[svc]; !ok {
-				seen[svc] = true
-
-				if !strings.HasPrefix(svc.Name(), "$") {
-					result = append(result, svc)
-				}
-
-				process(svc.Dependencies())
-			}
-		}
-	}
-
-	process(services)
-	return result
 }
 
 func (c *Container) Init(ctx context.Context) error {
