@@ -20,7 +20,11 @@ func (c *ServiceConst[T]) RunConfig() *RunConfig {
 		return configer.RunConfig()
 	}
 
-	return defaultRunConfig
+	if _, ok := any(c.instance).(Runner); ok {
+		return defaultRunConfig
+	}
+
+	return nil
 }
 
 // Run executes the service if it implements the Runner interface.

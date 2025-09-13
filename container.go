@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 
 	typetostring "github.com/samber/go-type-to-string"
@@ -23,10 +25,7 @@ type Container struct {
 	graph    *dag.DAG[string, ServiceDef]
 	logger   *slog.Logger
 
-	mainRunners      *errgroup.Group
-	secondaryRunners *errgroup.Group
-
-	cancel context.CancelCauseFunc
+	runners *RunnerGroup
 }
 
 // NewContainer creates a new Container instance
@@ -43,6 +42,7 @@ func NewContainer(config *Config, services ...ServiceDef) *Container {
 		services: index,
 		graph:    dag.New[string, ServiceDef](),
 		logger:   slog.With("palComponent", "Container"),
+		runners:  &RunnerGroup{},
 	}
 }
 
@@ -144,33 +144,19 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 
 func (c *Container) Shutdown(ctx context.Context) error {
 	c.logger.Debug("Shutting down all runners")
-	// Shutting down runners by cancelling their root context
-	if c.cancel != nil {
-		c.cancel(nil)
-	}
-
-	var err error
-
-	// Is started, await for runners to exit and save possible error.
-	if c.mainRunners != nil {
-		err = errors.Join(c.mainRunners.Wait(), c.secondaryRunners.Wait())
-	}
+	err := c.runners.Stop(ctx)
 
 	if err != nil {
-		c.logger.Error("Runners failed to shutdown", "error", err)
+		c.logger.Error("Runners failed to stop", "error", err)
+		return err
 	}
 
 	for _, service := range c.graph.TopologicalOrder() {
-		sErr := service.Shutdown(ctx)
-		if sErr != nil {
-			err = errors.Join(err, sErr)
-			continue
+		err = service.Shutdown(ctx)
+		if err != nil {
+			c.logger.Error("Failed to shutdown service. Shutdown sequence is interrupted", "service", service.Name(), "error", err)
+			return err
 		}
-	}
-
-	if err != nil {
-		c.logger.Error("Failed to shutdown container", "error", err)
-		return err
 	}
 
 	c.logger.Debug("Container shut down successfully")
@@ -219,51 +205,15 @@ func (c *Container) Services() map[string]ServiceDef {
 // It creates a cancellable context that will be canceled during shutdown.
 // Returns an error if any runner fails, though runners continue to execute independently.
 func (c *Container) StartRunners(ctx context.Context) error {
-	ctx, c.cancel = context.WithCancelCause(ctx)
-	defer c.cancel(nil)
-
-	mainRunners, mainCtx := errgroup.WithContext(ctx)
-	secondaryRunners, secondaryCtx := errgroup.WithContext(ctx)
-
-	c.mainRunners = mainRunners
-	c.secondaryRunners = secondaryRunners
-
-	go func() {
-		// Errgoup cancels the context when any of the tasks it manages returns an error.
-		// We want to stop if any of the runners fails no matter main or secondary and propagate
-		// the cause to the main context.
-		var canceledContext context.Context
-		select {
-		case <-mainCtx.Done():
-			canceledContext = mainCtx
-		case <-secondaryCtx.Done():
-			canceledContext = secondaryCtx
-		}
-		// propagate the cause to the main context
-		c.cancel(context.Cause(canceledContext))
-	}()
-
-	for _, service := range c.services {
-		runCfg := service.RunConfig()
-
-		fn := func() error {
-			return service.Run(ctx)
-		}
-
-		if runCfg.Wait {
-			c.mainRunners.Go(fn)
-		} else {
-			c.secondaryRunners.Go(fn)
-		}
-	}
-
-	<-ctx.Done()
-	err := context.Cause(ctx)
+	ok, err := c.runners.Run(ctx, slices.Collect(maps.Values(c.services)))
 	if err != nil {
-		c.logger.Error("Main runners finished with error", "error", err)
+		c.logger.Error("Starting runners failed", "error", err)
 		return err
 	}
-	c.logger.Debug("All main runners finished successfully")
+	if !ok {
+		c.logger.Debug("No main runners found, exiting")
+		return nil
+	}
 	return nil
 }
 
