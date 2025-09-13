@@ -48,24 +48,17 @@ func (t *TestServiceStruct) DoSomething() string {
 	return args.String(0)
 }
 
-// RunnerServiceStruct implements RunnerServiceInterface
+// RunnerServiceStruct is a test helper struct
 type RunnerServiceStruct struct {
-	mock.Mock
+	*MockRunner
+	*MockRunConfiger
 }
 
-func (r *RunnerServiceStruct) RunConfig() *pal.RunConfig {
-	args := r.Called()
-	return args.Get(0).(*pal.RunConfig)
-}
-
-func (r *RunnerServiceStruct) Run(ctx context.Context) error {
-	args := r.Called(ctx)
-	return args.Error(0)
-}
-
-func (r *RunnerServiceStruct) DoSomething() string {
-	args := r.Called()
-	return args.String(0)
+func NewMockRunnerServiceStruct(t *testing.T) *RunnerServiceStruct {
+	return &RunnerServiceStruct{
+		MockRunner:      NewMockRunner(t),
+		MockRunConfiger: NewMockRunConfiger(t),
+	}
 }
 
 // DependentStruct is a struct with a dependency on TestServiceInterface

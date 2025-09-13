@@ -28,15 +28,7 @@ func TestService_Instance(t *testing.T) {
 	t.Run("returns instance for singleton service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&RunnerServiceStruct{}).
-			ToInit(func(ctx context.Context, service *RunnerServiceStruct, _ *pal.Pal) error {
-				eventuallyAssertExpectations(t, service)
-
-				service.On("Init", ctx).Return(nil)
-
-				return nil
-			})
-
+		service := pal.Provide(NewMockRunnerServiceStruct(t))
 		p := newPal(service)
 
 		ctx := context.WithValue(t.Context(), pal.CtxValue, p)

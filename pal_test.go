@@ -237,10 +237,9 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
-			s := &RunnerServiceStruct{}
-			eventuallyAssertExpectations(t, s)
-			s.On("RunConfig").Return(&pal.RunConfig{Wait: true})
-			s.On("Run", mock.Anything).Return(nil)
+			s := NewMockRunnerServiceStruct(t)
+			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
 
@@ -278,7 +277,7 @@ func TestPal_Run(t *testing.T) {
 			})
 
 		// Create a runner that should not be started
-		runnerService := pal.Provide(&RunnerServiceStruct{})
+		runnerService := pal.Provide(NewMockRunnerServiceStruct(t))
 
 		// Run the application - this should fail because failingService fails to initialize
 		err := newPal(
@@ -308,23 +307,19 @@ func TestPal_Run(t *testing.T) {
 			return s, nil
 		})
 
-		// for a different name in the container
-		type errorRunnerInterface = TestServiceInterface
 		// Create a runner that will return an error
-		errorRunnerService := pal.ProvideFn(func(_ context.Context) (errorRunnerInterface, error) {
-			s := &RunnerServiceStruct{}
-			eventuallyAssertExpectations(t, s)
-			s.On("RunConfig").Return(&pal.RunConfig{Wait: true})
-			s.On("Run", mock.Anything).Return(errTest)
+		errorRunnerService := pal.ProvideFn(func(_ context.Context) (any, error) {
+			s := NewMockRunnerServiceStruct(t)
+			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest)
 			return s, nil
 		})
 
 		// Create a normal runner
 		runnerService := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
-			s := &RunnerServiceStruct{}
-			eventuallyAssertExpectations(t, s)
-			s.On("RunConfig").Return(&pal.RunConfig{Wait: true})
-			s.On("Run", mock.Anything).Return(nil)
+			s := NewMockRunnerServiceStruct(t)
+			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
 
