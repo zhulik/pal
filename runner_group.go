@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"errors"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -10,7 +11,7 @@ type RunnerGroup struct {
 	main      *errgroup.Group
 	secondary *errgroup.Group
 
-	cancel func(error)
+	cancel context.CancelFunc
 }
 
 // Run runs the services in 2 runner groups: main and secondary.
@@ -18,7 +19,7 @@ type RunnerGroup struct {
 // If no main runners among the services, it returns false and no error and does nothing.
 // if any of the runners fail, the error is returned and and all other runners are stopped
 // by cancelling the context.
-func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, error) {
+func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) error {
 	mainRunners := []ServiceDef{}
 	secondaryRunners := []ServiceDef{}
 
@@ -38,11 +39,11 @@ func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, err
 	}
 
 	if len(mainRunners) == 0 {
-		return false, nil
+		return errNoMainRunners
 	}
 
-	ctx, r.cancel = context.WithCancelCause(ctx)
-	defer r.cancel(nil)
+	ctx, r.cancel = context.WithCancel(ctx)
+	defer r.cancel()
 
 	var mainCtx context.Context
 	r.main, mainCtx = errgroup.WithContext(ctx)
@@ -52,7 +53,7 @@ func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, err
 		// the cause to the main context.
 		<-mainCtx.Done()
 		// propagate the cause to the main context
-		r.cancel(context.Cause(mainCtx))
+		r.cancel()
 	}()
 
 	for _, service := range mainRunners {
@@ -66,7 +67,7 @@ func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, err
 		r.secondary, secondaryCtx = errgroup.WithContext(ctx)
 		go func() {
 			<-secondaryCtx.Done()
-			r.cancel(context.Cause(secondaryCtx))
+			r.cancel()
 		}()
 	}
 
@@ -76,14 +77,11 @@ func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, err
 		})
 	}
 
-	<-ctx.Done()
-
-	return true, context.Cause(ctx)
-}
-
-func (r *RunnerGroup) Stop(ctx context.Context) error {
-	if r.cancel == nil {
-		return nil
+	// block until all main and secondary(if any) runners finish
+	err := r.main.Wait()
+	if r.secondary != nil {
+		err = errors.Join(err, r.secondary.Wait())
 	}
-	return r.main.Wait()
+
+	return err
 }

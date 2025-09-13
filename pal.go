@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -36,10 +37,6 @@ var defaultAttrSetters = []SlogAttributeSetter{
 type Pal struct {
 	config    *Config
 	container *Container
-
-	// a cancel function that will be used to propagate the shutdown cause and all shutdown errors from
-	// Shutdown() to Run()
-	cancel context.CancelCauseFunc
 
 	initialized *atomic.Bool
 	shutDown    *atomic.Bool
@@ -180,22 +177,11 @@ func (p *Pal) Init(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown gracefully shuts down the app. If any errs given or an error occurs during services shutdown, Run()
+// shutdown gracefully shuts down the app. If any errs given or an error occurs during services shutdown, Run()
 // will return them. If not initialized, the call is ignored.
-// Only the first call is effective.
-func (p *Pal) Shutdown() error {
-	if !p.initialized.Load() {
-		return nil
-	}
-
-	if !p.shutDown.CompareAndSwap(false, true) {
-		return nil
-	}
-
-	p.logger.Warn("Shutdown requested")
-
+func (p *Pal) shutdown() error {
 	go func() {
-		// make sure to forcefully exit if shutdown times out
+		// a watchdog to make sure to forcefully exit if shutdown times out
 		<-time.After(p.config.ShutdownTimeout)
 
 		panic("shutdown timed out")
@@ -204,55 +190,56 @@ func (p *Pal) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(float64(p.config.ShutdownTimeout)*0.9))
 	defer cancel()
 
-	err := p.container.Shutdown(ctx)
-
-	if p.cancel != nil {
-		p.cancel(err)
-	}
-
-	return err
+	return p.container.Shutdown(ctx)
 }
 
 // Run eagerly starts runners, then blocks until:
-// - one of the given signals is received, if a signal is received again, the app will exit immediately
+// - context is canceled
+// - one of the runners fails
+// - one of the given signals is received, if a signal is received again, the app will exit immediately without graceful shutdown
 // - all runners finish their work
-// - the shutdown is requested manually with Shutdown()
 // Not goroutine safe, must only be called once.
+// After one of the events above occurs, the app will be gracefully shot down.
+// Errors returned from runners and during shutdown are collected and returned from Run().
 func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	if len(signals) == 0 {
 		signals = DefaultShutdownSignals
 	}
 
-	ctx, cancel := context.WithCancelCause(ctx)
-	p.cancel = cancel
 	ctx = context.WithValue(ctx, CtxValue, p)
+
+	ctx, stop := signal.NotifyContext(ctx, signals...)
+	defer stop()
 
 	if err := p.Init(ctx); err != nil {
 		return err
 	}
 
 	go func() {
-		ctx, stop := signal.NotifyContext(ctx, signals...)
-		defer stop()
-
 		<-ctx.Done()
 
 		p.logger.Warn("Received signal, shutting down.")
 
-		go func() {
-			ctx, stop := signal.NotifyContext(context.Background(), signals...)
-			defer stop()
+		ctx, stop := signal.NotifyContext(context.Background(), signals...)
+		defer stop()
 
-			<-ctx.Done()
-			p.logger.Error("Signal received again, exiting immediately")
-			os.Exit(1)
-		}()
-
-		p.Shutdown()
+		<-ctx.Done()
+		p.logger.Error("Signal received again, exiting immediately")
+		os.Exit(1)
 	}()
 
 	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
-	return p.container.StartRunners(ctx)
+	runErr := p.container.StartRunners(ctx)
+
+	if errors.Is(runErr, context.Canceled) || errors.Is(runErr, errNoMainRunners) {
+		runErr = nil
+	}
+
+	if runErr != nil {
+		p.logger.Error("One or more runners failed, trying to shutdown gracefully", "error", runErr)
+	}
+
+	return errors.Join(runErr, p.shutdown())
 }
 
 // Services returns a map of all registered services in the container, keyed by their names.

@@ -144,17 +144,11 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 
 func (c *Container) Shutdown(ctx context.Context) error {
 	c.logger.Debug("Shutting down all runners")
-	err := c.runners.Stop(ctx)
-
-	if err != nil {
-		c.logger.Error("Runners failed to stop", "error", err)
-		return err
-	}
 
 	for _, service := range c.graph.TopologicalOrder() {
-		err = service.Shutdown(ctx)
+		err := service.Shutdown(ctx)
 		if err != nil {
-			c.logger.Error("Failed to shutdown service. Shutdown sequence is interrupted", "service", service.Name(), "error", err)
+			c.logger.Error("Failed to shutdown service. Exiting immediately", "service", service.Name(), "error", err)
 			return err
 		}
 	}
@@ -206,16 +200,7 @@ func (c *Container) Services() map[string]ServiceDef {
 // Returns an error if any runner fails, though runners continue to execute independently.
 func (c *Container) StartRunners(ctx context.Context) error {
 	services := slices.Collect(maps.Values(c.services))
-	ok, err := c.runners.Run(ctx, services)
-	if err != nil {
-		c.logger.Error("Starting runners failed", "error", err)
-		return err
-	}
-	if !ok {
-		c.logger.Debug("No main runners found, exiting")
-		return nil
-	}
-	return nil
+	return c.runners.Run(ctx, services)
 }
 
 // Graph returns the dependency graph of services.
