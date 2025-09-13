@@ -103,7 +103,8 @@ Pal provides several functions for registering services:
 
 Pal also provides functions for retrieving services:
 
-- `Invoke[T](ctx, invoker)` - Retrieves or creates an instance of type `T` from the container.
+- `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require argumens
+- `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Inoke`, castes invoked service to specified `C`, returns an error if casging fails.
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves its dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
 

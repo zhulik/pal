@@ -201,8 +201,6 @@ func TestHookPriority_ToShutdown(t *testing.T) {
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		// Shutdown
-		p.Shutdown()
 		err = p.Run(t.Context())
 		assert.NoError(t, err)
 
@@ -230,8 +228,6 @@ func TestHookPriority_ToShutdown(t *testing.T) {
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		// Shutdown
-		p.Shutdown()
 		err = p.Run(t.Context())
 		assert.ErrorIs(t, err, expectedErr, "ToShutdown hook error should be propagated")
 	})
@@ -248,8 +244,6 @@ func TestHookPriority_ToShutdown(t *testing.T) {
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
 
-		// Shutdown
-		p.Shutdown()
 		err = p.Run(t.Context())
 		assert.NoError(t, err)
 
@@ -298,8 +292,6 @@ func TestHookPriority_MultipleHooks(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, healthCheckHookCalled, "ToHealthCheck hook should have been called")
 
-		// Shutdown
-		p.Shutdown()
 		err = p.Run(t.Context())
 		assert.NoError(t, err)
 		assert.True(t, shutdownHookCalled, "ToShutdown hook should have been called")

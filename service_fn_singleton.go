@@ -15,6 +15,19 @@ type ServiceFnSingleton[T any] struct {
 	instance T
 }
 
+func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
+	configer, ok := any(c.instance).(RunConfiger)
+	if ok {
+		return configer.RunConfig()
+	}
+
+	if _, ok := c.Make().(Runner); ok {
+		return defaultRunConfig
+	}
+
+	return nil
+}
+
 // Run executes the service if it implements the Runner interface.
 func (c *ServiceFnSingleton[T]) Run(ctx context.Context) error {
 	return runService(ctx, c.Name(), c.instance, c.P)

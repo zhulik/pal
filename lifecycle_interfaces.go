@@ -26,7 +26,7 @@ type Shutdowner interface {
 	// If all the services shutdown successfully, Pal.Run will return nil.
 	//
 	// The shutdown process works as follows:
-	// 1. When Pal.Shutdown() is called or a termination signal is received, Pal initiates the shutdown sequence. Services
+	// 1. Whena termination signal is received or the context passed to Pal.Run() is canceled, Pal initiates the shutdown sequence. Services
 	// 	  are shutdown in dependency order.
 	// 2. Pal cancels the context for all running services (Runners) and awaits for runners to finish.
 	// 3. Pal calls Shutdown() on all services that implement this interface in reverse dependency order

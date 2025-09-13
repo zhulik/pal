@@ -103,6 +103,28 @@ func MustInvoke[T any](ctx context.Context, invoker Invoker) T {
 	return must(Invoke[T](ctx, invoker))
 }
 
+// InvokeAs invokes a service and casts it to the expected type. It returns an error if the cast fails.
+// May be useful when invoking a service with an interface type and you want to cast it to a concrete type.
+func InvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) (*C, error) {
+	service, err := Invoke[T](ctx, invoker, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	casted, ok := any(service).(*C)
+	if !ok {
+		var c *C
+		return nil, fmt.Errorf("%w: %T cannot be cast to %T", ErrServiceInvalidCast, service, c)
+	}
+
+	return casted, nil
+}
+
+// MustInvokeAs is like InvokeAs but panics if an error occurs.
+func MustInvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) *C {
+	return must(InvokeAs[T, C](ctx, invoker, args...))
+}
+
 // Build resolves dependencies for a struct of type T using the provided context and Invoker.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
