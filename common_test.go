@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/zhulik/pal"
 )
@@ -67,7 +68,7 @@ func eventuallyAssertExpectations(t *testing.T, instance any) {
 	t.Helper()
 
 	m := instance.(interface{ AssertExpectations(t mock.TestingT) bool })
-	m.AssertExpectations(t)
+	assert.True(t, m.AssertExpectations(t))
 }
 
 func newPal(services ...pal.ServiceDef) *pal.Pal {

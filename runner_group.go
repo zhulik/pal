@@ -56,10 +56,9 @@ func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, err
 	}()
 
 	for _, service := range mainRunners {
-		fn := func() error {
+		r.main.Go(func() error {
 			return service.Run(ctx)
-		}
-		r.main.Go(fn)
+		})
 	}
 
 	if len(secondaryRunners) > 0 {
@@ -72,10 +71,9 @@ func (r *RunnerGroup) Run(ctx context.Context, services []ServiceDef) (bool, err
 	}
 
 	for _, service := range secondaryRunners {
-		fn := func() error {
+		r.secondary.Go(func() error {
 			return service.Run(ctx)
-		}
-		r.secondary.Go(fn)
+		})
 	}
 
 	<-ctx.Done()

@@ -205,7 +205,8 @@ func (c *Container) Services() map[string]ServiceDef {
 // It creates a cancellable context that will be canceled during shutdown.
 // Returns an error if any runner fails, though runners continue to execute independently.
 func (c *Container) StartRunners(ctx context.Context) error {
-	ok, err := c.runners.Run(ctx, slices.Collect(maps.Values(c.services)))
+	services := slices.Collect(maps.Values(c.services))
+	ok, err := c.runners.Run(ctx, services)
 	if err != nil {
 		c.logger.Error("Starting runners failed", "error", err)
 		return err
