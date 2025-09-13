@@ -15,7 +15,16 @@ type ServiceConst[T any] struct {
 }
 
 func (c *ServiceConst[T]) RunConfig() *RunConfig {
-	return runConfig(c.instance)
+	configer, ok := any(c.instance).(RunConfiger)
+	if ok {
+		return configer.RunConfig()
+	}
+
+	if _, ok := any(c.instance).(Runner); ok {
+		return defaultRunConfig
+	}
+
+	return nil
 }
 
 // Run executes the service if it implements the Runner interface.

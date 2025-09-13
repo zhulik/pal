@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"reflect"
-	"strings"
-	"sync"
+	"slices"
 
 	typetostring "github.com/samber/go-type-to-string"
-	"github.com/zhulik/pal/pkg/pid"
 
 	"golang.org/x/sync/errgroup"
 
@@ -24,11 +23,6 @@ type Container struct {
 	services map[string]ServiceDef
 	graph    *dag.DAG[string, ServiceDef]
 	logger   *slog.Logger
-
-	runnerTasks *pid.RunGroup
-
-	cancelMu sync.RWMutex
-	cancel   context.CancelFunc
 }
 
 // NewContainer creates a new Container instance
@@ -41,35 +35,11 @@ func NewContainer(config *Config, services ...ServiceDef) *Container {
 	}
 
 	return &Container{
-		config:      config,
-		services:    index,
-		graph:       dag.New[string, ServiceDef](),
-		logger:      slog.With("palComponent", "Container"),
-		runnerTasks: pid.NewRunGroup(),
+		config:   config,
+		services: index,
+		graph:    dag.New[string, ServiceDef](),
+		logger:   slog.With("palComponent", "Container"),
 	}
-}
-
-func flattenServices(services []ServiceDef) []ServiceDef {
-	seen := make(map[ServiceDef]bool)
-	var result []ServiceDef
-
-	var process func([]ServiceDef)
-	process = func(svcs []ServiceDef) {
-		for _, svc := range svcs {
-			if _, ok := seen[svc]; !ok {
-				seen[svc] = true
-
-				if !strings.HasPrefix(svc.Name(), "$") {
-					result = append(result, svc)
-				}
-
-				process(svc.Dependencies())
-			}
-		}
-	}
-
-	process(services)
-	return result
 }
 
 func (c *Container) Init(ctx context.Context) error {
@@ -146,36 +116,14 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 }
 
 func (c *Container) Shutdown(ctx context.Context) error {
-	var errs []error
-
-	c.logger.Debug("Shutting down runners")
-	// Shutting down runners by cancelling their root context
-	c.cancelMu.RLock()
-	if c.cancel != nil {
-		c.cancel()
-	}
-	c.cancelMu.RUnlock()
-
-	errs = append(errs, c.runnerTasks.Wait())
-	// Await for runners to exit and save possible error.
-	err := errors.Join(errs...)
-
-	if err != nil {
-		c.logger.Error("Runners failed to shutdown", "error", err)
-	}
+	c.logger.Debug("Shutting down all runners")
 
 	for _, service := range c.graph.TopologicalOrder() {
 		err := service.Shutdown(ctx)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			c.logger.Error("Failed to shutdown service. Exiting immediately", "service", service.Name(), "error", err)
+			return err
 		}
-	}
-
-	err = errors.Join(errs...)
-	if err != nil {
-		c.logger.Error("Failed to shutdown container", "error", err)
-		return err
 	}
 
 	c.logger.Debug("Container shut down successfully")
@@ -224,28 +172,8 @@ func (c *Container) Services() map[string]ServiceDef {
 // It creates a cancellable context that will be canceled during shutdown.
 // Returns an error if any runner fails, though runners continue to execute independently.
 func (c *Container) StartRunners(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	c.cancelMu.Lock()
-	c.cancel = cancel
-	c.cancelMu.Unlock()
-
-	for _, service := range c.services {
-		runCfg := runConfigOrDefault(service.RunConfig())
-
-		c.runnerTasks.Go(ctx, runCfg.Wait, func(ctx context.Context) error {
-			return service.Run(ctx)
-		})
-	}
-
-	err := c.runnerTasks.Wait()
-	if err != nil {
-		c.logger.Error("Runners finished with error", "error", err)
-		return nil
-	}
-	c.logger.Debug("All runners finished successfully")
-	return nil
+	services := slices.Collect(maps.Values(c.services))
+	return RunServices(ctx, services)
 }
 
 // Graph returns the dependency graph of services.

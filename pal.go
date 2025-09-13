@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -37,13 +38,7 @@ type Pal struct {
 	config    *Config
 	container *Container
 
-	// stopChan is used to initiate the shutdown of the app.
-	stopChan chan error
-
-	// shutdownChan is used to wait for the graceful shutdown of the app.
-	shutdownChan chan error
-
-	initialized bool
+	initialized *atomic.Bool
 
 	logger *slog.Logger
 }
@@ -51,10 +46,9 @@ type Pal struct {
 // New creates and returns a new instance of Pal with the provided Services
 func New(services ...ServiceDef) *Pal {
 	pal := &Pal{
-		config:       &Config{},
-		stopChan:     make(chan error, 1),
-		shutdownChan: make(chan error, 1),
-		logger:       slog.With("palComponent", "Pal"),
+		config:      &Config{},
+		initialized: &atomic.Bool{},
+		logger:      slog.With("palComponent", "Pal"),
 	}
 
 	services = append(services, Provide(pal))
@@ -154,63 +148,12 @@ func (p *Pal) HealthCheck(ctx context.Context) error {
 	return p.container.HealthCheck(ctx)
 }
 
-// Shutdown schedules graceful Shutdown of the app. If any errs given - Run() will return them. Only the first call is effective.
-// The later calls are ignored.
-func (p *Pal) Shutdown(errs ...error) {
-	err := errors.Join(errs...)
-
-	select {
-	case p.stopChan <- err:
-	default:
-		if err != nil {
-			p.logger.Error("Shutdown already scheduled", "error", err)
-		}
-	}
-}
-
-// Run eagerly starts runners, then blocks until one of the given signals is received or all runners
-// finish their work. If any error occurs during initialization, runner operation or Shutdown - Run() will return it.
-func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
-	if len(signals) == 0 {
-		signals = DefaultShutdownSignals
-	}
-
-	ctx = context.WithValue(ctx, CtxValue, p)
-	ctx, stop := signal.NotifyContext(ctx, signals...)
-	defer stop()
-
-	if err := p.Init(ctx); err != nil {
-		return err
-	}
-
-	go func() {
-		p.Shutdown(p.container.StartRunners(ctx))
-	}()
-
-	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
-
-	select {
-	case <-ctx.Done():
-		p.logger.Warn("Received signal, shutting down.")
-
-		p.Shutdown()
-		go func() {
-			ctx, stop := signal.NotifyContext(context.Background(), signals...)
-			defer stop()
-
-			<-ctx.Done()
-			p.logger.Error("Signal received again, exiting immediately")
-			os.Exit(1)
-		}()
-		return <-p.shutdownChan
-	case err := <-p.shutdownChan:
-		return err
-	}
-}
-
 // Init initializes Pal. Validates config, creates and initializes all singleton services.
+// If any error occurs during initialization, it will return it and
+// will not try to gracefully shutdown already initialized services.
+// Only first call is effective.
 func (p *Pal) Init(ctx context.Context) error {
-	if p.initialized {
+	if !p.initialized.CompareAndSwap(false, true) {
 		return nil
 	}
 
@@ -224,32 +167,71 @@ func (p *Pal) Init(ctx context.Context) error {
 	defer cancel()
 
 	if err := p.container.Init(initCtx); err != nil {
-		p.Shutdown(err)
 		return err
 	}
-
-	p.initialized = true
-
-	go func() {
-		err := <-p.stopChan
-
-		p.logger.Warn("Shutdown requested", "error", err)
-
-		go func() {
-			<-time.After(p.config.ShutdownTimeout)
-
-			panic("shutdown timed out")
-		}()
-
-		shutCt, cancel := context.WithTimeout(ctx, time.Duration(float64(p.config.ShutdownTimeout)*0.9))
-		defer cancel()
-
-		p.shutdownChan <- errors.Join(err, p.container.Shutdown(shutCt))
-	}()
 
 	p.logger.Debug("Pal initialized")
 
 	return nil
+}
+
+// Run eagerly starts runners, then blocks until:
+// - context is canceled
+// - one of the runners fails
+// - one of the given signals is received, if a signal is received again, the app will exit immediately without graceful shutdown
+// - all runners finish their work
+// Not goroutine safe, must only be called once.
+// After one of the events above occurs, the app will be gracefully shot down.
+// Errors returned from runners and during shutdown are collected and returned from Run().
+func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
+	if len(signals) == 0 {
+		signals = DefaultShutdownSignals
+	}
+
+	ctx = context.WithValue(ctx, CtxValue, p)
+
+	ctx, stop := signal.NotifyContext(ctx, signals...)
+	defer stop()
+
+	if err := p.Init(ctx); err != nil {
+		return err
+	}
+
+	go func() {
+		<-ctx.Done()
+
+		p.logger.Warn("Received signal, shutting down. Send it again to exit immediately")
+
+		ctx, stop := signal.NotifyContext(context.Background(), signals...)
+		defer stop()
+
+		<-ctx.Done()
+		p.logger.Error("Signal received again, exiting immediately")
+		os.Exit(1)
+	}()
+
+	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
+	runErr := p.container.StartRunners(ctx)
+
+	if errors.Is(runErr, context.Canceled) || errors.Is(runErr, ErrNoMainRunners) {
+		runErr = nil
+	}
+
+	if runErr != nil {
+		p.logger.Error("One or more runners failed, trying to shutdown gracefully", "error", runErr)
+	}
+
+	go func() {
+		// a watchdog to make sure to forcefully exit if shutdown times out
+		<-time.After(p.config.ShutdownTimeout)
+
+		panic("shutdown timed out")
+	}()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(float64(p.config.ShutdownTimeout)*0.9))
+	defer cancel()
+
+	return errors.Join(runErr, p.container.Shutdown(shutdownCtx))
 }
 
 // Services returns a map of all registered services in the container, keyed by their names.

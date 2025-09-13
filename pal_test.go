@@ -147,33 +147,6 @@ func TestPal_HealthCheck(t *testing.T) {
 	// TODO: health check times out
 }
 
-// TestPal_Shutdown tests the Shutdown method
-func TestPal_Shutdown(t *testing.T) {
-	t.Parallel()
-
-	t.Run("schedules shutdown with no errors", func(t *testing.T) {
-		t.Parallel()
-
-		p := newPal()
-
-		// This is a non-blocking call
-		p.Shutdown()
-
-		// No way to directly test the effect, but we can verify it doesn't panic
-	})
-
-	t.Run("schedules shutdown with errors", func(t *testing.T) {
-		t.Parallel()
-
-		p := newPal()
-
-		// This is a non-blocking call
-		p.Shutdown(errTest)
-
-		// No way to directly test the effect, but we can verify it doesn't panic
-	})
-}
-
 // TestPal_Services tests the Services method
 func TestPal_Services(t *testing.T) {
 	t.Parallel()
@@ -266,6 +239,7 @@ func TestPal_Run(t *testing.T) {
 		service := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := &RunnerServiceStruct{}
 			eventuallyAssertExpectations(t, s)
+			s.On("RunConfig").Return(&pal.RunConfig{Wait: true})
 			s.On("Run", mock.Anything).Return(nil)
 			return s, nil
 		})
@@ -283,13 +257,6 @@ func TestPal_Run(t *testing.T) {
 		runner, err := service.Instance(t.Context())
 		assert.NoError(t, err)
 		assert.NotNil(t, runner)
-
-		i, _ := service.Instance(t.Context())
-
-		m := i.(*RunnerServiceStruct)
-		m.AssertExpectations(t)
-
-		// assert.True(t, runner.(*RunnerServiceStruct).RunCalled)
 	})
 
 	t.Run("errors during init - services are gracefully shut down", func(t *testing.T) {
@@ -344,9 +311,10 @@ func TestPal_Run(t *testing.T) {
 		// for a different name in the container
 		type errorRunnerInterface = TestServiceInterface
 		// Create a runner that will return an error
-		errorRunnerService := pal.ProvideFn[errorRunnerInterface](func(_ context.Context) (errorRunnerInterface, error) {
+		errorRunnerService := pal.ProvideFn(func(_ context.Context) (errorRunnerInterface, error) {
 			s := &RunnerServiceStruct{}
 			eventuallyAssertExpectations(t, s)
+			s.On("RunConfig").Return(&pal.RunConfig{Wait: true})
 			s.On("Run", mock.Anything).Return(errTest)
 			return s, nil
 		})
@@ -355,6 +323,7 @@ func TestPal_Run(t *testing.T) {
 		runnerService := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := &RunnerServiceStruct{}
 			eventuallyAssertExpectations(t, s)
+			s.On("RunConfig").Return(&pal.RunConfig{Wait: true})
 			s.On("Run", mock.Anything).Return(nil)
 			return s, nil
 		})

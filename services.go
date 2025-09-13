@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"strings"
 )
 
 func runService(ctx context.Context, name string, instance any, p *Pal) error {
@@ -15,23 +16,13 @@ func runService(ctx context.Context, name string, instance any, p *Pal) error {
 		logger.Debug("Running")
 		err := runner.Run(ctx)
 		if err != nil {
-			logger.Error("Runner exited with error, scheduling shutdown", "error", err)
-			FromContext(ctx).Shutdown(err)
+			logger.Error("Runner exited with error", "error", err)
 			return err
 		}
 
 		logger.Debug("Runner finished successfully")
 		return nil
 	})()
-}
-
-func runConfig(instance any) *RunConfig {
-	configer, ok := instance.(RunConfiger)
-	if ok {
-		return configer.RunConfig()
-	}
-
-	return nil
 }
 
 func healthcheckService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
@@ -109,4 +100,49 @@ func initService[T any](ctx context.Context, name string, instance T, hook Lifec
 		}
 	}
 	return nil
+}
+
+func flattenServices(services []ServiceDef) []ServiceDef {
+	seen := make(map[ServiceDef]bool)
+	var result []ServiceDef
+
+	var process func([]ServiceDef)
+	process = func(svcs []ServiceDef) {
+		for _, svc := range svcs {
+			if _, ok := seen[svc]; !ok {
+				seen[svc] = true
+
+				if !strings.HasPrefix(svc.Name(), "$") {
+					result = append(result, svc)
+				}
+
+				process(svc.Dependencies())
+			}
+		}
+	}
+
+	process(services)
+	return result
+}
+
+func getRunners(services []ServiceDef) ([]ServiceDef, []ServiceDef) {
+	mainRunners := []ServiceDef{}
+	secondaryRunners := []ServiceDef{}
+
+	for _, service := range services {
+		runCfg := service.RunConfig()
+
+		// run config is nil if the service is not a runner
+		if runCfg == nil {
+			continue
+		}
+
+		if runCfg.Wait {
+			mainRunners = append(mainRunners, service)
+		} else {
+			secondaryRunners = append(secondaryRunners, service)
+		}
+	}
+
+	return mainRunners, secondaryRunners
 }
