@@ -2,9 +2,9 @@ version: '3'
 tasks:
   default:
     desc: Run tests and linting
-    cmds:
-      - task: lint-fix
-      - task: test
+    deps:
+      - lint-fix
+      - test
 
   check:
     deps:
