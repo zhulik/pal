@@ -31,9 +31,8 @@ func Test_New(t *testing.T) {
 
 		p := newPal(
 			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-				s := &TestServiceStruct{}
-				eventuallyAssertExpectations(t, s)
-				s.On("Init", ctx).Return(nil)
+				s := NewMockTestServiceStruct(t)
+				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
 			}),
 		)
@@ -51,9 +50,8 @@ func Test_New(t *testing.T) {
 			pal.ProvideList(
 				pal.ProvideList(
 					pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-						s := &TestServiceStruct{}
-						eventuallyAssertExpectations(t, s)
-						s.On("Init", ctx).Return(nil)
+						s := NewMockTestServiceStruct(t)
+						s.MockIniter.EXPECT().Init(ctx).Return(nil)
 						return s, nil
 					}),
 				),
@@ -136,7 +134,7 @@ func TestPal_HealthCheck(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that implements HealthChecker
-		service := pal.Provide(&TestServiceStruct{})
+		service := pal.Provide(NewMockTestServiceStruct(t))
 		p := newPal(service)
 
 		err := p.HealthCheck(t.Context())
@@ -155,9 +153,8 @@ func TestPal_Services(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-			s := &TestServiceStruct{}
-			eventuallyAssertExpectations(t, s)
-			s.On("Init", ctx).Return(nil)
+			s := NewMockTestServiceStruct(t)
+			s.MockIniter.EXPECT().Init(ctx).Return(nil)
 			return s, nil
 		})
 
@@ -192,9 +189,8 @@ func TestPal_Invoke(t *testing.T) {
 
 		p := newPal(
 			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-				s := &TestServiceStruct{}
-				eventuallyAssertExpectations(t, s)
-				s.On("Init", ctx).Return(nil)
+				s := NewMockTestServiceStruct(t)
+				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
 			}),
 		)
@@ -263,15 +259,14 @@ func TestPal_Run(t *testing.T) {
 
 		// Create a service that will be initialized successfully
 		shutdownService := pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-			s := &TestServiceStruct{}
-			eventuallyAssertExpectations(t, s)
-			s.On("Init", ctx).Return(nil)
-			s.On("Shutdown", ctx).Return(nil)
+			s := NewMockTestServiceStruct(t)
+			s.MockIniter.EXPECT().Init(ctx).Return(nil)
+			s.MockShutdowner.EXPECT().Shutdown(ctx).Return(nil)
 			return s, nil
 		})
 
 		// Create a service that will fail during initialization
-		failingService := pal.Provide(&TestServiceStruct{}).
+		failingService := pal.Provide(NewMockTestServiceStruct(t)).
 			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
 				return errTest
 			})
@@ -299,11 +294,10 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that will track if it was shut down
-		shutdownService := pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-			s := &TestServiceStruct{}
-			eventuallyAssertExpectations(t, s)
-			s.On("Init", ctx).Return(nil)
-			s.On("Shutdown", mock.Anything).Return(nil)
+		shutdownService := pal.ProvideFn(func(context.Context) (*TestServiceStruct, error) {
+			s := NewMockTestServiceStruct(t)
+			s.MockIniter.EXPECT().Init(mock.Anything).Return(nil)
+			s.MockShutdowner.EXPECT().Shutdown(mock.Anything).Return(nil)
 			return s, nil
 		})
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/zhulik/pal"
 )
 
@@ -15,7 +16,7 @@ func TestService_Name(t *testing.T) {
 	t.Run("returns correct name for interface type", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&TestServiceStruct{})
+		service := pal.Provide(NewMockTestServiceStruct(t))
 
 		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
 	})
@@ -56,11 +57,10 @@ func TestService_ToInit(t *testing.T) {
 	t.Run("hook is called when set", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&TestServiceStruct{}).
-			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
-
+		var hookCalled bool
+		service := pal.Provide(NewMockTestServiceStruct(t)).
+			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
+				hookCalled = true
 				return nil
 			})
 		p := newPal(service)
@@ -73,18 +73,17 @@ func TestService_ToInit(t *testing.T) {
 		instance, err := service.Instance(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
+
+		assert.True(t, hookCalled)
 	})
 
 	t.Run("no error when hook is not set", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&TestServiceStruct{}).
-			ToInit(func(ctx context.Context, service *TestServiceStruct, _ *pal.Pal) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Init", ctx).Return(nil)
+		s := NewMockTestServiceStruct(t)
+		s.MockIniter.EXPECT().Init(mock.Anything).Return(nil)
 
-				return nil
-			})
+		service := pal.Provide[any](s)
 		p := newPal(service)
 
 		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
@@ -100,7 +99,7 @@ func TestService_ToInit(t *testing.T) {
 	t.Run("propagates error from hook", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&TestServiceStruct{}).
+		service := pal.Provide(NewMockTestServiceStruct(t)).
 			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
 				return errTest
 			})

@@ -40,6 +40,12 @@ func (c *ServiceFnSingleton[T]) Init(ctx context.Context) error {
 		return err
 	}
 
+	if initer, ok := any(instance).(Initer); ok {
+		if err := initer.Init(ctx); err != nil {
+			return err
+		}
+	}
+
 	c.instance = instance
 
 	return nil
