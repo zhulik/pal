@@ -6,6 +6,11 @@ tasks:
       - lint-fix
       - test
 
+  generate:
+    desc: Generate code
+    cmds:
+      - go generate ./...
+
   check:
     deps:
       - lint

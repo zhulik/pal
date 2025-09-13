@@ -1,0 +1,9 @@
+dir: '{{.InterfaceDir}}'
+filename: mocks_test.go
+structname: '{{.Mock}}{{.InterfaceName}}'
+pkgname: '{{.SrcPackageName}}_test'
+template: testify
+packages:
+  github.com/zhulik/pal:
+    interfaces:
+      ServiceDef:
