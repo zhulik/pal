@@ -124,3 +124,25 @@ func flattenServices(services []ServiceDef) []ServiceDef {
 	process(services)
 	return result
 }
+
+func getRunners(services []ServiceDef) ([]ServiceDef, []ServiceDef) {
+	mainRunners := []ServiceDef{}
+	secondaryRunners := []ServiceDef{}
+
+	for _, service := range services {
+		runCfg := service.RunConfig()
+
+		// run config is nil if the service is not a runner
+		if runCfg == nil {
+			continue
+		}
+
+		if runCfg.Wait {
+			mainRunners = append(mainRunners, service)
+		} else {
+			secondaryRunners = append(secondaryRunners, service)
+		}
+	}
+
+	return mainRunners, secondaryRunners
+}

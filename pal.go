@@ -213,7 +213,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	p.logger.Info("Running until signal is received or until job is done", "signals", signals)
 	runErr := p.container.StartRunners(ctx)
 
-	if errors.Is(runErr, context.Canceled) || errors.Is(runErr, errNoMainRunners) {
+	if errors.Is(runErr, context.Canceled) || errors.Is(runErr, ErrNoMainRunners) {
 		runErr = nil
 	}
 

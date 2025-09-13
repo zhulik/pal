@@ -29,7 +29,4 @@ var (
 
 	// ErrServiceInvalidCast is returned when a service is cast to a different type.
 	ErrServiceInvalidCast = errors.New("failed to cast service to the expected type")
-
-	// ErrNoMainRunners is returned when no main runners are found.
-	errNoMainRunners = errors.New("no main runners found")
 )

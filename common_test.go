@@ -12,13 +12,17 @@ import (
 )
 
 var (
-	errTest = errors.New("test error")
+	errTest  = errors.New("test error")
+	errTest2 = errors.New("test error 2")
 )
 
 // TestServiceInterface is a simple interface for testing
 type TestServiceInterface interface {
 	DoSomething() string
 }
+
+// RunnerServiceInterface is a simple interface for testing
+type RunnerServiceInterface interface{}
 
 // TestServiceStruct implements TestServiceInterface
 type TestServiceStruct struct {
@@ -47,6 +51,11 @@ func (t *TestServiceStruct) DoSomething() string {
 // RunnerServiceStruct implements RunnerServiceInterface
 type RunnerServiceStruct struct {
 	mock.Mock
+}
+
+func (r *RunnerServiceStruct) RunConfig() *pal.RunConfig {
+	args := r.Called()
+	return args.Get(0).(*pal.RunConfig)
 }
 
 func (r *RunnerServiceStruct) Run(ctx context.Context) error {

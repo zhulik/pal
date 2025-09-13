@@ -23,8 +23,6 @@ type Container struct {
 	services map[string]ServiceDef
 	graph    *dag.DAG[string, ServiceDef]
 	logger   *slog.Logger
-
-	runners *RunnerGroup
 }
 
 // NewContainer creates a new Container instance
@@ -41,7 +39,6 @@ func NewContainer(config *Config, services ...ServiceDef) *Container {
 		services: index,
 		graph:    dag.New[string, ServiceDef](),
 		logger:   slog.With("palComponent", "Container"),
-		runners:  &RunnerGroup{},
 	}
 }
 
@@ -176,7 +173,7 @@ func (c *Container) Services() map[string]ServiceDef {
 // Returns an error if any runner fails, though runners continue to execute independently.
 func (c *Container) StartRunners(ctx context.Context) error {
 	services := slices.Collect(maps.Values(c.services))
-	return c.runners.Run(ctx, services)
+	return RunServices(ctx, services)
 }
 
 // Graph returns the dependency graph of services.
