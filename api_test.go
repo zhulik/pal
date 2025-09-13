@@ -20,7 +20,7 @@ func TestProvide(t *testing.T) {
 	t.Run("creates a singleton service", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&TestServiceStruct{})
+		service := pal.Provide(NewMockTestServiceStruct(t))
 
 		assert.NotNil(t, service)
 		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
@@ -29,10 +29,9 @@ func TestProvide(t *testing.T) {
 	t.Run("detects runner services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.Provide(&RunnerServiceStruct{}).
+		service := pal.Provide(NewMockRunnerServiceStruct(t)).
 			ToInit(func(ctx context.Context, service *RunnerServiceStruct, _ *pal.Pal) error {
-				eventuallyAssertExpectations(t, service)
-				service.On("Run", ctx).Return(nil)
+				service.MockRunner.EXPECT().Run(ctx).Return(nil)
 
 				return nil
 			})
@@ -58,8 +57,8 @@ func TestProvideFn(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFn(func(ctx context.Context) (TestServiceInterface, error) {
-			s := &TestServiceStruct{}
-			s.On("Init", ctx).Return(nil)
+			s := NewMockTestServiceStruct(t)
+			s.MockIniter.EXPECT().Init(ctx).Return(nil)
 			return s, nil
 		})
 
@@ -76,7 +75,7 @@ func TestProvideFactory0(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFactory0(func(_ context.Context) (TestServiceInterface, error) {
-			return &TestServiceStruct{}, nil
+			return NewMockTestServiceStruct(t), nil
 		})
 
 		assert.NotNil(t, service)
@@ -91,7 +90,7 @@ func TestProvideConst(t *testing.T) {
 	t.Run("creates a const service", func(t *testing.T) {
 		t.Parallel()
 
-		s := &TestServiceStruct{}
+		s := NewMockTestServiceStruct(t)
 		service := pal.Provide(s)
 
 		assert.NotNil(t, service)
@@ -113,9 +112,8 @@ func TestInvoke(t *testing.T) {
 
 		p := newPal(
 			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-				s := &TestServiceStruct{}
-				eventuallyAssertExpectations(t, s)
-				s.On("Init", ctx).Return(nil)
+				s := NewMockTestServiceStruct(t)
+				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
 			}),
 		)
@@ -147,7 +145,7 @@ func TestInvokeAs(t *testing.T) {
 	t.Run("invokes a service successfully", func(t *testing.T) {
 		t.Parallel()
 
-		p := newPal(pal.Provide[TestServiceInterface](&TestServiceStruct{}))
+		p := newPal(pal.Provide[TestServiceInterface](NewMockTestServiceStruct(t)))
 
 		instance, err := pal.InvokeAs[TestServiceInterface, TestServiceStruct](t.Context(), p)
 
@@ -158,7 +156,7 @@ func TestInvokeAs(t *testing.T) {
 	t.Run("returns error when service cannot be cast to the expected type", func(t *testing.T) {
 		t.Parallel()
 
-		p := newPal(pal.Provide[TestServiceInterface](&TestServiceStruct{}))
+		p := newPal(pal.Provide[TestServiceInterface](NewMockTestServiceStruct(t)))
 
 		_, err := pal.InvokeAs[TestServiceInterface, string](t.Context(), p)
 
@@ -175,9 +173,8 @@ func TestBuild(t *testing.T) {
 
 		p := newPal(
 			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-				s := &TestServiceStruct{}
-				eventuallyAssertExpectations(t, s)
-				s.On("Init", ctx).Return(nil)
+				s := NewMockTestServiceStruct(t)
+				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
 			}),
 		)
@@ -233,7 +230,7 @@ func TestBuild(t *testing.T) {
 		}
 
 		// Create a Pal instance with our test service
-		p := newPal(pal.Provide(&TestServiceStruct{}))
+		p := newPal(pal.Provide(NewMockTestServiceStruct(t)))
 
 		// No need to initialize Pal for this test
 
@@ -255,9 +252,8 @@ func TestInjectInto(t *testing.T) {
 
 		p := newPal(
 			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
-				s := &TestServiceStruct{}
-				eventuallyAssertExpectations(t, s)
-				s.On("Init", ctx).Return(nil)
+				s := NewMockTestServiceStruct(t)
+				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
 			}),
 		)
@@ -318,7 +314,7 @@ func TestInjectInto(t *testing.T) {
 		}
 
 		// Create a Pal instance with our test service
-		p := newPal(pal.Provide(&TestServiceStruct{}))
+		p := newPal(pal.Provide(NewMockTestServiceStruct(t)))
 
 		// Create a struct instance to inject dependencies into
 		instance := &StructWithUnexportedField{}
@@ -337,8 +333,8 @@ func TestInjectInto(t *testing.T) {
 		instance := &DependentStruct{}
 
 		// Create a mock invoker that returns an error
-		mockInvoker := &MockInvoker{}
-		mockInvoker.On("InjectInto", mock.Anything, instance).Return(errTest)
+		mockInvoker := NewMockInvoker(t)
+		mockInvoker.EXPECT().InjectInto(mock.Anything, instance).Return(errTest)
 
 		// Inject dependencies
 		err := pal.InjectInto(t.Context(), mockInvoker, instance)

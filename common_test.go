@@ -1,13 +1,10 @@
 package pal_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/zhulik/pal"
 )
 
@@ -17,55 +14,34 @@ var (
 )
 
 // TestServiceInterface is a simple interface for testing
-type TestServiceInterface interface {
-	DoSomething() string
-}
+type TestServiceInterface any
 
-// RunnerServiceInterface is a simple interface for testing
-type RunnerServiceInterface interface{}
-
-// TestServiceStruct implements TestServiceInterface
+// TestServiceStruct is a test helper struct
 type TestServiceStruct struct {
-	mock.Mock
+	*MockHealthChecker
+	*MockIniter
+	*MockShutdowner
 }
 
-func (t *TestServiceStruct) HealthCheck(ctx context.Context) error {
-	args := t.Called(ctx)
-	return args.Error(0)
-}
-func (t *TestServiceStruct) Init(ctx context.Context) error {
-	args := t.Called(ctx)
-	return args.Error(0)
-}
-
-func (t *TestServiceStruct) Shutdown(ctx context.Context) error {
-	args := t.Called(ctx)
-	return args.Error(0)
+func NewMockTestServiceStruct(t *testing.T) *TestServiceStruct {
+	return &TestServiceStruct{
+		MockHealthChecker: NewMockHealthChecker(t),
+		MockIniter:        NewMockIniter(t),
+		MockShutdowner:    NewMockShutdowner(t),
+	}
 }
 
-func (t *TestServiceStruct) DoSomething() string {
-	args := t.Called()
-	return args.String(0)
-}
-
-// RunnerServiceStruct implements RunnerServiceInterface
+// RunnerServiceStruct is a test helper struct
 type RunnerServiceStruct struct {
-	mock.Mock
+	*MockRunner
+	*MockRunConfiger
 }
 
-func (r *RunnerServiceStruct) RunConfig() *pal.RunConfig {
-	args := r.Called()
-	return args.Get(0).(*pal.RunConfig)
-}
-
-func (r *RunnerServiceStruct) Run(ctx context.Context) error {
-	args := r.Called(ctx)
-	return args.Error(0)
-}
-
-func (r *RunnerServiceStruct) DoSomething() string {
-	args := r.Called()
-	return args.String(0)
+func NewMockRunnerServiceStruct(t *testing.T) *RunnerServiceStruct {
+	return &RunnerServiceStruct{
+		MockRunner:      NewMockRunner(t),
+		MockRunConfiger: NewMockRunConfiger(t),
+	}
 }
 
 // DependentStruct is a struct with a dependency on TestServiceInterface
@@ -73,31 +49,9 @@ type DependentStruct struct {
 	Dependency *TestServiceStruct
 }
 
-func eventuallyAssertExpectations(t *testing.T, instance any) {
-	t.Helper()
-
-	m := instance.(interface{ AssertExpectations(t mock.TestingT) bool })
-	assert.True(t, m.AssertExpectations(t))
-}
-
 func newPal(services ...pal.ServiceDef) *pal.Pal {
 	return pal.New(services...).
 		InitTimeout(time.Second).
 		HealthCheckTimeout(time.Second).
 		ShutdownTimeout(3 * time.Second)
-}
-
-// MockInvoker is a mock implementation of the Invoker interface
-type MockInvoker struct {
-	mock.Mock
-}
-
-func (m *MockInvoker) InjectInto(ctx context.Context, target any) error {
-	args := m.Called(ctx, target)
-	return args.Error(0)
-}
-
-func (m *MockInvoker) Invoke(ctx context.Context, name string, iargs ...any) (any, error) {
-	args := m.Called(ctx, name, iargs)
-	return args.Get(0), args.Error(1)
 }

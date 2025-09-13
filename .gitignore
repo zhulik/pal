@@ -1,3 +1,4 @@
 *.svg
 *.gv
 coverage/
+mocks_test.go

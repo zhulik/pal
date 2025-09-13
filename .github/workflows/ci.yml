@@ -23,7 +23,10 @@ jobs:
           go-version-file: ${{ format('{0}/go.mod', matrix.module) }}
           cache: true
 
-      - name: Install golangci-lint
+      - name: Run generate
+        run: go generate ./...
+
+      - name: Run linter
         uses: golangci/golangci-lint-action@v7
         with:
           version: latest
@@ -45,6 +48,9 @@ jobs:
         with:
           go-version-file: ${{ format('{0}/go.mod', matrix.module) }}
           cache: true
+
+      - name: Run generate
+        run: go generate ./...
 
       - name: Run tests
         run: cd ${{ matrix.module }} && go test -race ./...
