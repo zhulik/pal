@@ -337,8 +337,8 @@ func TestInjectInto(t *testing.T) {
 		instance := &DependentStruct{}
 
 		// Create a mock invoker that returns an error
-		mockInvoker := &MockInvoker{}
-		mockInvoker.On("InjectInto", mock.Anything, instance).Return(errTest)
+		mockInvoker := NewMockInvoker(t)
+		mockInvoker.EXPECT().InjectInto(mock.Anything, instance).Return(errTest)
 
 		// Inject dependencies
 		err := pal.InjectInto(t.Context(), mockInvoker, instance)

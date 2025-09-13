@@ -7,3 +7,4 @@ packages:
   github.com/zhulik/pal:
     interfaces:
       ServiceDef:
+      Invoker:
