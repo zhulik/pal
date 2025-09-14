@@ -14,3 +14,36 @@ body {
     border: 1px solid lightgray;
     box-sizing: border-box;
 }
+
+#options-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 25vw;
+    height: 100vh;
+    background: white;
+    border-left: 1px solid #ccc;
+    padding: 10px;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+#options-panel label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+#options-textarea {
+    width: 100%;
+    height: calc(100vh - 60px);
+    font-family: monospace;
+    font-size: 15px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 5px;
+    resize: none;
+    box-sizing: border-box;
+}
