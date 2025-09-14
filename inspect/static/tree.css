@@ -47,3 +47,24 @@ body {
     resize: none;
     box-sizing: border-box;
 }
+
+/* Node table styles */
+#node-table-template {
+    display: none;
+}
+
+.node-table {
+    border-collapse: collapse;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.node-table td {
+    border: 1px solid #ccc;
+    padding: 4px;
+}
+
+.node-table-header {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}

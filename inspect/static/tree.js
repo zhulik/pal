@@ -2,12 +2,20 @@ import * as vis from "https://unpkg.com/vis-network/standalone/esm/vis-network.m
 
 const defaultVisOptions = {
     "physics": {
-        "enabled": true,
+        "enabled": false
     },
     "layout": {
         "randomSeed": 1,
         "hierarchical": {
-            "levelSeparation": 80
+            "enabled": true,
+            "levelSeparation": 150,
+            "nodeSpacing": 200,
+            "treeSpacing": 300,
+            "blockShifting": false,
+            "edgeMinimization": false,
+            "parentCentralization": false,
+            "direction": "UD",
+            "sortMethod": "directed"
         }
     },
     "edges": {
@@ -68,21 +76,65 @@ function updateOptions(nodes, edges) {
     renderTree(parsedOptions, nodes, edges);
 }
 
-(async () => {
-    const { nodes, edges } = await fetch("/pal/tree.json").then(res => res.json());
+async function fetchTree() {
+    return await fetch("/pal/tree.json").then(res => res.json());
+}
 
+function sortNodes(nodes) {
     nodes.sort((a, b) => a.inDegree - b.inDegree);
     nodes.sort((a, b) => a.id.localeCompare(b.id));
+}
 
-    nodes.forEach(node => {
-        if (node.runner) {
-            node.shape = "box";
-        }
-    });
+function createNodeTitleTable(node) {
+       // Create HTML table for node tooltip using template
+       const template = document.getElementById("node-table-template");
+       const tableClone = template.content.cloneNode(true);
 
+       const setValue = (selector, value) => tableClone.querySelector(selector).textContent = value;
+
+       // Fill in the table with node properties
+       setValue(".node-id", node.id);
+       setValue(".node-in-degree", node.inDegree);
+       setValue(".node-out-degree", node.outDegree);
+       setValue(".node-initer", node.initer);
+       setValue(".node-runner", node.runner);
+       setValue(".node-health-checker", node.healthChecker);
+       setValue(".node-shutdowner", node.shutdowner);
+
+       // Convert the cloned content to HTML string for the title
+       const tempDiv = document.createElement('div');
+       tempDiv.appendChild(tableClone);
+       return tempDiv;
+}
+
+function applyNodeStyle(node) {
+    node.title = createNodeTitleTable(node);
+
+    if (node.runner) {
+        node.shape = "box";
+    }
+
+    if (!node.runner && node.inDegree === 0) {
+        node.color = "red";
+    }
+
+    // make pal components less visible
+    if (node.id.includes("github.com/zhulik/pal")) {
+        node.opacity = 0.5;
+    }
+
+}
+
+(async () => {
     // Initialize textarea with default options
     const textarea = document.getElementById("options-textarea");
     textarea.value = JSON.stringify(defaultVisOptions, null, 2);
+
+    const { nodes, edges } = await fetchTree();
+
+    sortNodes(nodes);
+
+    nodes.forEach(applyNodeStyle);
 
     // Set up event listener for textarea changes
     textarea.addEventListener('input', () => updateOptions(nodes, edges));

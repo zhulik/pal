@@ -14,9 +14,10 @@ type DAGJSON struct {
 }
 
 type NodeJSON struct {
-	ID       string `json:"id"`
-	Label    string `json:"label"`
-	InDegree int    `json:"inDegree"`
+	ID        string `json:"id"`
+	Label     string `json:"label"`
+	InDegree  int    `json:"inDegree"`
+	OutDegree int    `json:"outDegree"`
 
 	Initer        bool `json:"initer"`
 	Runner        bool `json:"runner"`
@@ -29,7 +30,7 @@ type EdgeJSON struct {
 	To   string `json:"to"`
 }
 
-func serviceToJSON(id string, idDegree int, service pal.ServiceDef) NodeJSON {
+func serviceToJSON(id string, inDegree int, outDegree int, service pal.ServiceDef) NodeJSON {
 	var initer, runner, healthChecker, shutdowner bool
 
 	if _, ok := service.Make().(pal.Initer); ok {
@@ -56,9 +57,10 @@ func serviceToJSON(id string, idDegree int, service pal.ServiceDef) NodeJSON {
 	}
 
 	return NodeJSON{
-		ID:       id,
-		Label:    label,
-		InDegree: idDegree,
+		ID:        id,
+		Label:     label,
+		InDegree:  inDegree,
+		OutDegree: outDegree,
 
 		Initer:        initer,
 		Runner:        runner,
@@ -73,7 +75,7 @@ func DAGToJSON(d *dag.DAG[string, pal.ServiceDef]) ([]byte, error) {
 
 	// Convert all vertices to NodeJSON
 	for id, service := range d.Vertices() {
-		nodes = append(nodes, serviceToJSON(id, len(d.Edges()[id]), service))
+		nodes = append(nodes, serviceToJSON(id, d.GetInDegree(id), len(d.Edges()[id]), service))
 	}
 
 	// Convert all edges to EdgeJSON

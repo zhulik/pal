@@ -13,5 +13,43 @@
     <label for="options-textarea">Graph Options (JSON):</label>
     <textarea id="options-textarea" placeholder="Edit graph options here..."></textarea>
   </div>
+
+  <!-- Hidden table template for node tooltips -->
+  <template id="node-table-template">
+    <table class="node-table">
+      <tr>
+        <td class="node-table-header">Property</td>
+        <td class="node-table-header">Value</td>
+      </tr>
+      <tr>
+        <td>ID</td>
+        <td class="node-id"></td>
+      </tr>
+      <tr>
+        <td>In Degree</td>
+        <td class="node-in-degree"></td>
+      </tr>
+      <tr>
+        <td>Out Degree</td>
+        <td class="node-out-degree"></td>
+      </tr>
+      <tr>
+        <td>Initer</td>
+        <td class="node-initer"></td>
+      </tr>
+      <tr>
+        <td>Runner</td>
+        <td class="node-runner"></td>
+      </tr>
+      <tr>
+        <td>Health Checker</td>
+        <td class="node-health-checker"></td>
+      </tr>
+      <tr>
+        <td>Shutdowner</td>
+        <td class="node-shutdowner"></td>
+      </tr>
+    </table>
+  </template>
 </body>
 </html>
