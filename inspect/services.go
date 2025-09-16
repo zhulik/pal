@@ -3,7 +3,6 @@ package inspect
 import (
 	"context"
 
-	"github.com/goccy/go-graphviz"
 	"github.com/zhulik/pal"
 )
 
@@ -13,11 +12,6 @@ func ProvideBase() pal.ServiceDef {
 		pal.ProvideFactory0(func(context.Context) (*VM, error) {
 			return &VM{}, nil
 		}),
-
-		pal.ProvideFn(graphviz.New).
-			ToShutdown(func(_ context.Context, g *graphviz.Graphviz, _ *pal.Pal) error {
-				return g.Close()
-			}),
 	)
 }
 

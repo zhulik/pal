@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,23 +9,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dominikbraun/graph/draw"
-	"github.com/goccy/go-graphviz"
 	"github.com/zhulik/pal"
 )
 
 const (
 	inspectPort = 24242
 
-	gvContentType = "text/vnd.graphviz"
-	// svg mime type
-	svgContentType = "image/svg+xml"
+	jsonContentType = "application/json"
+	htmlContentType = "text/html"
 )
 
 type Inspect struct {
 	P  *pal.Pal
 	VM *VM
-	GV *graphviz.Graphviz
 
 	server *http.Server
 }
@@ -51,7 +46,12 @@ func (i *Inspect) Init(_ context.Context) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/pal/eval", i.httpEval)
-	mux.HandleFunc("/pal/graph", i.httpGraph)
+	mux.HandleFunc("/pal/tree.json", i.httpTreeJSON)
+	mux.HandleFunc("/pal/tree", i.httpTree)
+
+	staticServer := http.FileServerFS(StaticFS)
+
+	mux.Handle("/pal/", http.StripPrefix("/pal/", staticServer))
 
 	i.server.Handler = mux
 
@@ -107,32 +107,32 @@ func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(res.String())) //nolint:errcheck
 }
 
-func (i *Inspect) httpGraph(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Accept") == gvContentType {
-		w.Header().Set("Content-Type", gvContentType)
-		_ = draw.DOT(i.P.Container().Graph().Graph, w)
-	}
+func (i *Inspect) httpTreeJSON(w http.ResponseWriter, r *http.Request) {
 
-	buf := &bytes.Buffer{}
-
-	if err := draw.DOT(i.P.Container().Graph().Graph, buf); err != nil {
-		w.WriteHeader(500)
-		return
-	}
-
-	graph, err := graphviz.ParseBytes(buf.Bytes())
+	w.Header().Set("Content-Type", jsonContentType)
+	json, err := DAGToJSON(i.P.Container().Graph())
 	if err != nil {
 		w.WriteHeader(500)
 		return
 	}
 
-	if r.Header.Get("Accept") == svgContentType {
-		w.Header().Set("Content-Type", svgContentType)
+	_, err = w.Write(json)
+	if err != nil {
+		panic(err)
+	}
+}
 
-		err = i.GV.Render(r.Context(), graph, graphviz.SVG, w)
-		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
+func (i *Inspect) httpTree(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", htmlContentType)
+
+	treeHtml, err := StaticFS.ReadFile("static/tree.html")
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	_, err = w.Write(treeHtml)
+	if err != nil {
+		panic(err)
 	}
 }
