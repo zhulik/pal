@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"time"
@@ -13,30 +12,21 @@ import (
 )
 
 const (
-	inspectPort = 24242
-
 	jsonContentType = "application/json"
 	htmlContentType = "text/html"
 )
 
 type Inspect struct {
-	P  *pal.Pal
-	VM *VM
+	P *pal.Pal
+
+	port int
 
 	server *http.Server
 }
 
-func (i *Inspect) Shutdown(ctx context.Context) error {
-	err := i.VM.Shutdown(ctx)
-	if err != nil {
-		return nil
-	}
-	return i.server.Shutdown(ctx)
-}
-
 func (i *Inspect) Init(_ context.Context) error {
 	i.server = &http.Server{
-		Addr:              fmt.Sprintf(":%d", inspectPort),
+		Addr:              fmt.Sprintf(":%d", i.port),
 		ReadHeaderTimeout: time.Second,
 		WriteTimeout:      time.Second,
 		ReadTimeout:       time.Second,
@@ -45,7 +35,6 @@ func (i *Inspect) Init(_ context.Context) error {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/pal/eval", i.httpEval)
 	mux.HandleFunc("/pal/tree.json", i.httpTreeJSON)
 	mux.HandleFunc("/pal/tree", i.httpTree)
 
@@ -56,6 +45,12 @@ func (i *Inspect) Init(_ context.Context) error {
 	i.server.Handler = mux
 
 	return nil
+}
+
+func (i *Inspect) RunConfig() *pal.RunConfig {
+	return &pal.RunConfig{
+		Wait: false,
+	}
 }
 
 func (i *Inspect) Run(ctx context.Context) error {
@@ -81,38 +76,11 @@ func (i *Inspect) Run(ctx context.Context) error {
 	return nil
 }
 
-func (i *Inspect) httpEval(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-
-	if r.Method != http.MethodPost {
-		w.WriteHeader(405)
-		return
-	}
-
-	bytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(500)
-		return
-	}
-
-	res, err := i.VM.RunString(string(bytes))
-
-	if err != nil {
-		w.WriteHeader(422)
-
-		w.Write([]byte(err.Error())) //nolint:errcheck
-		return
-	}
-
-	w.Write([]byte(res.String())) //nolint:errcheck
-}
-
-func (i *Inspect) httpTreeJSON(w http.ResponseWriter, r *http.Request) {
-
+func (i *Inspect) httpTreeJSON(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", jsonContentType)
 	json, err := DAGToJSON(i.P.Container().Graph())
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -122,16 +90,16 @@ func (i *Inspect) httpTreeJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (i *Inspect) httpTree(w http.ResponseWriter, r *http.Request) {
+func (i *Inspect) httpTree(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", htmlContentType)
 
-	treeHtml, err := StaticFS.ReadFile("static/tree.html")
+	treeHTML, err := StaticFS.ReadFile("static/tree.html")
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	_, err = w.Write(treeHtml)
+	_, err = w.Write(treeHTML)
 	if err != nil {
 		panic(err)
 	}

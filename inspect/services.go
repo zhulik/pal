@@ -1,24 +1,20 @@
 package inspect
 
 import (
-	"context"
-
 	"github.com/zhulik/pal"
 )
 
-func ProvideBase() pal.ServiceDef {
+const (
+	defaultPort = 24242
+)
+
+func Provide(port ...int) pal.ServiceDef {
+	p := defaultPort
+	if len(port) > 0 {
+		p = port[0]
+	}
+
 	return pal.ProvideList(
-		pal.Provide(&Inspect{}),
-		pal.ProvideFactory0(func(context.Context) (*VM, error) {
-			return &VM{}, nil
-		}),
+		pal.Provide(&Inspect{port: p}),
 	)
-}
-
-func ProvideRemoteConsole() pal.ServiceDef {
-	return pal.ProvideRunner(RemoteConsole)
-}
-
-func ProvideConsole() pal.ServiceDef {
-	return pal.Provide(&Console{})
 }
