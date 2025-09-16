@@ -97,11 +97,11 @@ func (p *Pal) RunHealthCheckServer(addr, path string) *Pal {
 		panic("RunHealthCheckServer can only be called before Init")
 	}
 
-	p.config.HealthCheckAddr = addr
-	p.config.HealthCheckPath = path
-
 	p.container.addService(
-		Provide[palHealthCheckServer](&healthCheckServer{}),
+		Provide[palHealthCheckServer](&healthCheckServer{
+			addr: addr,
+			path: path,
+		}),
 	)
 
 	return p
