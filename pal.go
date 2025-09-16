@@ -93,6 +93,10 @@ func (p *Pal) InjectSlog(configs ...SlogAttributeSetter) *Pal {
 
 // RunHealthCheckServer enables the default health check server.
 func (p *Pal) RunHealthCheckServer(addr, path string) *Pal {
+	if p.initialized.Load() {
+		panic("RunHealthCheckServer can only be called before Init")
+	}
+
 	p.config.HealthCheckAddr = addr
 	p.config.HealthCheckPath = path
 
