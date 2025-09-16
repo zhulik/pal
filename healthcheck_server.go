@@ -13,6 +13,9 @@ type palHealthCheckServer interface {
 type healthCheckServer struct {
 	Pal *Pal
 
+	addr string
+	path string
+
 	server *http.Server
 }
 
@@ -24,7 +27,7 @@ func (h *healthCheckServer) RunConfig() *RunConfig {
 
 func (h *healthCheckServer) Init(_ context.Context) error {
 	h.server = &http.Server{
-		Addr:              h.Pal.config.HealthCheckAddr,
+		Addr:              h.addr,
 		Handler:           http.HandlerFunc(h.handle),
 		ReadHeaderTimeout: time.Second,
 	}
@@ -38,7 +41,7 @@ func (h healthCheckServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != h.Pal.config.HealthCheckPath {
+	if r.URL.Path != h.path {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
