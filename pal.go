@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"reflect"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -53,45 +52,9 @@ func New(services ...ServiceDef) *Pal {
 
 	services = append(services, Provide(pal))
 
-	for _, s := range services {
-		setPalField(reflect.ValueOf(s), pal)
-	}
-
-	pal.container = NewContainer(pal.config, services...)
+	pal.container = NewContainer(pal, services...)
 
 	return pal
-}
-
-func setPalField(v reflect.Value, pal *Pal) {
-	if v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-
-	if v.Kind() == reflect.Pointer {
-		v = v.Elem()
-	}
-
-	if v.Kind() != reflect.Struct {
-		return
-	}
-
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		if field.CanSet() && field.Type() == reflect.TypeOf(pal) {
-			field.Set(reflect.ValueOf(pal))
-		}
-
-		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Pointer && !field.IsNil()) {
-			setPalField(field, pal)
-		}
-
-		if field.Kind() == reflect.Array || field.Kind() == reflect.Slice {
-			for i := 0; i < field.Len(); i++ {
-				item := field.Index(i)
-				setPalField(item, pal)
-			}
-		}
-	}
 }
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
@@ -133,9 +96,9 @@ func (p *Pal) RunHealthCheckServer(addr, path string) *Pal {
 	p.config.HealthCheckAddr = addr
 	p.config.HealthCheckPath = path
 
-	server := Provide[palHealthCheckServer](&healthCheckServer{})
-	setPalField(reflect.ValueOf(server), p)
-	p.container.services[server.Name()] = server
+	p.container.addService(
+		Provide[palHealthCheckServer](&healthCheckServer{}),
+	)
 
 	return p
 }

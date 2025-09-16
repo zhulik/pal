@@ -28,7 +28,7 @@ func TestContainer_New(t *testing.T) {
 		t.Parallel()
 
 		c := pal.NewContainer(
-			&pal.Config{},
+			&pal.Pal{},
 			NewMockService(t, "service1"),
 			NewMockService(t, "service2"),
 		)
@@ -39,7 +39,7 @@ func TestContainer_New(t *testing.T) {
 	t.Run("creates a new Container with empty services", func(t *testing.T) {
 		t.Parallel()
 
-		c := pal.NewContainer(&pal.Config{})
+		c := pal.NewContainer(&pal.Pal{})
 
 		assert.NotNil(t, c)
 		// We can verify it works with nil services by checking that Services() returns empty
@@ -62,7 +62,7 @@ func TestContainer_Init(t *testing.T) {
 		service2.EXPECT().Init(t.Context()).Return(nil)
 		service3.EXPECT().Init(t.Context()).Return(nil)
 
-		c := pal.NewContainer(&pal.Config{}, service1, service2, service3)
+		c := pal.NewContainer(&pal.Pal{}, service1, service2, service3)
 
 		err := c.Init(t.Context())
 
@@ -78,7 +78,7 @@ func TestContainer_Init(t *testing.T) {
 		service1.EXPECT().Init(t.Context()).Return(nil).Maybe() // Init order is not guaranteed
 		service2.EXPECT().Init(t.Context()).Return(errTest).Once()
 
-		c := pal.NewContainer(&pal.Config{}, service1, service2)
+		c := pal.NewContainer(&pal.Pal{}, service1, service2)
 
 		err := c.Init(t.Context())
 
@@ -99,7 +99,7 @@ func TestContainer_Invoke(t *testing.T) {
 		service.EXPECT().Init(t.Context()).Return(nil)
 		service.EXPECT().Instance(t.Context()).Return(expectedInstance, nil)
 
-		c := pal.NewContainer(&pal.Config{}, service)
+		c := pal.NewContainer(&pal.Pal{}, service)
 		require.NoError(t, c.Init(t.Context()))
 
 		instance, err := c.Invoke(t.Context(), "service1")
@@ -111,7 +111,7 @@ func TestContainer_Invoke(t *testing.T) {
 	t.Run("returns error when service not found", func(t *testing.T) {
 		t.Parallel()
 
-		c := pal.NewContainer(&pal.Config{})
+		c := pal.NewContainer(&pal.Pal{})
 
 		_, err := c.Invoke(t.Context(), "nonexistent")
 
@@ -125,7 +125,7 @@ func TestContainer_Invoke(t *testing.T) {
 		service.EXPECT().Init(t.Context()).Return(nil)
 		service.EXPECT().Instance(t.Context()).Return(nil, errTest)
 
-		c := pal.NewContainer(&pal.Config{}, service)
+		c := pal.NewContainer(&pal.Pal{}, service)
 		require.NoError(t, c.Init(t.Context()))
 
 		_, err := c.Invoke(t.Context(), "service1")
@@ -153,7 +153,7 @@ func TestContainer_Shutdown(t *testing.T) {
 		service2.EXPECT().Shutdown(t.Context()).Return(nil)
 		service3.EXPECT().Shutdown(t.Context()).Return(nil)
 
-		c := pal.NewContainer(&pal.Config{}, service1, service2, service3)
+		c := pal.NewContainer(&pal.Pal{}, service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.Shutdown(t.Context())
@@ -168,7 +168,7 @@ func TestContainer_Shutdown(t *testing.T) {
 		service.EXPECT().Init(t.Context()).Return(nil)
 		service.EXPECT().Shutdown(t.Context()).Return(errTest)
 
-		c := pal.NewContainer(&pal.Config{}, service)
+		c := pal.NewContainer(&pal.Pal{}, service)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.Shutdown(t.Context())
@@ -196,7 +196,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		service2.EXPECT().HealthCheck(t.Context()).Return(nil)
 		service3.EXPECT().HealthCheck(t.Context()).Return(nil)
 
-		c := pal.NewContainer(&pal.Config{}, service1, service2, service3)
+		c := pal.NewContainer(&pal.Pal{}, service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.HealthCheck(t.Context())
@@ -211,7 +211,7 @@ func TestContainer_HealthCheck(t *testing.T) {
 		service.EXPECT().Init(t.Context()).Return(nil)
 		service.EXPECT().HealthCheck(t.Context()).Return(errTest)
 
-		c := pal.NewContainer(&pal.Config{}, service)
+		c := pal.NewContainer(&pal.Pal{}, service)
 		require.NoError(t, c.Init(t.Context()))
 
 		err := c.HealthCheck(t.Context())
@@ -233,7 +233,7 @@ func TestContainer_Services(t *testing.T) {
 		service1.EXPECT().Init(t.Context()).Return(nil)
 		service2.EXPECT().Init(t.Context()).Return(nil)
 
-		c := pal.NewContainer(&pal.Config{}, service1, service2)
+		c := pal.NewContainer(&pal.Pal{}, service1, service2)
 		require.NoError(t, c.Init(t.Context()))
 
 		result := c.Services()
@@ -246,7 +246,7 @@ func TestContainer_Services(t *testing.T) {
 	t.Run("returns empty map for empty container", func(t *testing.T) {
 		t.Parallel()
 
-		c := pal.NewContainer(&pal.Config{})
+		c := pal.NewContainer(&pal.Pal{})
 
 		result := c.Services()
 

@@ -18,7 +18,7 @@ import (
 
 // Container is responsible for storing services, instances and the dependency graph
 type Container struct {
-	config *Config
+	pal *Pal
 
 	services map[string]ServiceDef
 	graph    *dag.DAG[string, ServiceDef]
@@ -26,20 +26,21 @@ type Container struct {
 }
 
 // NewContainer creates a new Container instance
-func NewContainer(config *Config, services ...ServiceDef) *Container {
+func NewContainer(pal *Pal, services ...ServiceDef) *Container {
 	services = flattenServices(services)
-	index := make(map[string]ServiceDef)
 
-	for _, service := range services {
-		index[service.Name()] = service
-	}
-
-	return &Container{
-		config:   config,
-		services: index,
+	container := &Container{
+		pal:      pal,
+		services: map[string]ServiceDef{},
 		graph:    dag.New[string, ServiceDef](),
 		logger:   slog.With("palComponent", "Container"),
 	}
+
+	for _, service := range services {
+		container.addService(service)
+	}
+
+	return container
 }
 
 func (c *Container) Init(ctx context.Context) error {
@@ -92,7 +93,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		}
 
 		fieldType := t.Field(i).Type
-		if fieldType == reflect.TypeOf((*slog.Logger)(nil)) && c.config.AttrSetters != nil {
+		if fieldType == reflect.TypeOf((*slog.Logger)(nil)) && c.pal.config.AttrSetters != nil {
 			c.injectLoggerIntoField(field, target)
 			continue
 		}
@@ -182,6 +183,11 @@ func (c *Container) Graph() *dag.DAG[string, ServiceDef] {
 	return c.graph
 }
 
+func (c *Container) addService(service ServiceDef) {
+	setPalField(reflect.ValueOf(service), c.pal, map[reflect.Value]bool{})
+	c.services[service.Name()] = service
+}
+
 // addDependencyVertex adds a service to the dependency graph and recursively adds its dependencies.
 // If parent is not nil, it also adds an edge from parent to service in the graph.
 // This method is used during container initialization to build the complete dependency graph.
@@ -221,9 +227,46 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 
 func (c *Container) injectLoggerIntoField(field reflect.Value, target any) {
 	logger := slog.Default()
-	for _, attrSetter := range c.config.AttrSetters {
+	for _, attrSetter := range c.pal.config.AttrSetters {
 		name, value := attrSetter(target)
 		logger = logger.With(name, value)
 	}
 	field.Set(reflect.ValueOf(logger))
+}
+
+func setPalField(v reflect.Value, pal *Pal, visited map[reflect.Value]bool) {
+	if visited[v] {
+		return
+	}
+	visited[v] = true
+
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.CanSet() && field.Type() == reflect.TypeOf(pal) {
+			field.Set(reflect.ValueOf(pal))
+		}
+
+		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Pointer && !field.IsNil()) {
+			setPalField(field, pal, visited)
+		}
+
+		if field.Kind() == reflect.Array || field.Kind() == reflect.Slice {
+			for i := 0; i < field.Len(); i++ {
+				item := field.Index(i)
+				setPalField(item, pal, visited)
+			}
+		}
+	}
 }
