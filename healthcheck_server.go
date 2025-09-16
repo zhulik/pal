@@ -56,7 +56,11 @@ func (h healthCheckServer) handle(w http.ResponseWriter, r *http.Request) {
 func (h *healthCheckServer) Run(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
-		h.server.Shutdown(context.Background()) //nolint:errcheck
+
+		// create a new context as the one passed to Run is already canceled
+		ctx, cancel := context.WithTimeout(context.Background(), h.Pal.Config().ShutdownTimeout)
+		defer cancel()
+		h.server.Shutdown(ctx) //nolint:errcheck
 	}()
 
 	err := h.server.ListenAndServe()

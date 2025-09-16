@@ -63,6 +63,7 @@ func (i *Inspect) Run(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 
+		// create a new context as the one passed to Run is already canceled
 		ctx, cancel := context.WithTimeout(context.Background(), i.P.Config().ShutdownTimeout)
 		defer cancel()
 
