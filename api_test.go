@@ -97,7 +97,7 @@ func TestProvideConst(t *testing.T) {
 		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
 
 		// Verify that the instance is the same
-		instance, err := service.Instance(context.Background())
+		instance, err := service.Instance(t.Context())
 		assert.NoError(t, err)
 		assert.Same(t, s, instance)
 	})

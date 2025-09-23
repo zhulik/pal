@@ -309,6 +309,32 @@ beyound the default ones. It may return one of 4 status codes:
 - **405** - wrong HTTP method is used
 - **500** - one or more services are unhealthy
 
+### Service dependency inspection
+
+Pal includes a built-in inspection module that provides a web interface to visualize your service dependency graph. This is useful for understanding the structure of your application and debugging dependency issues.
+
+To enable the inspection server, register the inspect service:
+
+```go
+import "github.com/zhulik/pal/inspect"
+
+// Register with default port (24242)
+pal.ProvideList(inspect.Provide())
+
+// Or specify a custom port
+pal.ProvideList(inspect.Provide(8080))
+```
+
+The inspection server provides two endpoints:
+
+- **`/pal/tree`** - Interactive HTML visualization of the dependency graph
+- **`/pal/tree.json`** - JSON representation of the dependency graph for programmatic access
+
+The visualization shows:
+- Service nodes with their types (singleton, factory)
+- Dependency relationships between services
+- Service capabilities (Initer, Runner, HealthChecker, Shutdowner)
+
 
 ## Best practices
 

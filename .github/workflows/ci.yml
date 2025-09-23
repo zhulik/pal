@@ -3,16 +3,11 @@ name: CI
 on:
   push:
     branches: [ "**" ]
-  pull_request:
-    branches: [ "**" ]
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        module: [ ".", "inspect" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +15,6 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: ${{ format('{0}/go.mod', matrix.module) }}
           cache: true
 
       - name: Run generate
@@ -30,15 +24,11 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: latest
-          working-directory: ${{ matrix.module }}
           args: --timeout=2m
 
   test:
     name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        module: [ ".", "inspect" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -46,14 +36,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: ${{ format('{0}/go.mod', matrix.module) }}
           cache: true
 
       - name: Run generate
         run: go generate ./...
 
       - name: Run tests
-        run: cd ${{ matrix.module }} && go test -race ./...
+        run: go test -race ./...
 
   ci:
     name: CI
