@@ -119,7 +119,7 @@ func TestHookPriority_ToHealthCheck(t *testing.T) {
 			})
 
 		p := newPal(palService)
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
 		// Initialize first
 		err := p.Init(t.Context())
@@ -280,7 +280,7 @@ func TestHookPriority_MultipleHooks(t *testing.T) {
 			})
 
 		p := newPal(palService)
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
 		// Initialize
 		err := p.Init(t.Context())

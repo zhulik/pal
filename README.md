@@ -103,10 +103,14 @@ Pal provides several functions for registering services:
 
 Pal also provides functions for retrieving services:
 
-- `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require argumens
+- `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require argumens.
 - `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Inoke`, castes invoked service to specified `C`, returns an error if casging fails.
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves its dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
+
+All these functions accept nil as invoker, in this case, a Pal instance will be extracted from the context.
+Pal automatilly adds itself into contexts paseed to `Init`, `Shutdown` and `Run` under `pal.CtxValue` key.
+You can extract it manually with `pal.FromContext`
 
 ## Service Types
 
