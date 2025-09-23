@@ -99,8 +99,8 @@ func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error)
 }
 
 // MustInvoke is like Invoke but panics if an error occurs.
-func MustInvoke[T any](ctx context.Context, invoker Invoker) T {
-	return must(Invoke[T](ctx, invoker))
+func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
+	return must(Invoke[T](ctx, invoker, args...))
 }
 
 // InvokeAs invokes a service and casts it to the expected type. It returns an error if the cast fails.
