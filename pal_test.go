@@ -70,9 +70,10 @@ func Test_FromContext(t *testing.T) {
 		t.Parallel()
 
 		p := newPal()
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
-		result := pal.FromContext(ctx)
+		result, err := pal.FromContext(ctx)
+		assert.NoError(t, err)
 
 		assert.Same(t, p, result)
 	})

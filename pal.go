@@ -58,9 +58,22 @@ func New(services ...ServiceDef) *Pal {
 }
 
 // FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
-// Panics if ctx misses the value.
-func FromContext(ctx context.Context) *Pal {
-	return ctx.Value(CtxValue).(*Pal)
+func FromContext(ctx context.Context) (*Pal, error) {
+	invoker, ok := ctx.Value(CtxValue).(*Pal)
+	if !ok {
+		return nil, ErrInvokerIsNotInContext
+	}
+
+	return invoker, nil
+}
+
+// MustFromContext is like FromContext but panics if an error occurs.
+func MustFromContext(ctx context.Context) *Pal {
+	return must(FromContext(ctx))
+}
+
+func WithPal(ctx context.Context, pal *Pal) context.Context {
+	return context.WithValue(ctx, CtxValue, pal)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -124,7 +137,7 @@ func (p *Pal) Init(ctx context.Context) error {
 		return nil
 	}
 
-	ctx = context.WithValue(ctx, CtxValue, p)
+	ctx = WithPal(ctx, p)
 
 	if err := p.config.Validate(ctx); err != nil {
 		return err
@@ -155,7 +168,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		signals = DefaultShutdownSignals
 	}
 
-	ctx = context.WithValue(ctx, CtxValue, p)
+	ctx = WithPal(ctx, p)
 
 	ctx, stop := signal.NotifyContext(ctx, signals...)
 	defer stop()
@@ -196,6 +209,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 	}()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(float64(p.config.ShutdownTimeout)*0.9))
+	shutdownCtx = WithPal(shutdownCtx, p)
 	defer cancel()
 
 	return errors.Join(runErr, p.container.Shutdown(shutdownCtx))
@@ -211,7 +225,7 @@ func (p *Pal) Services() map[string]ServiceDef {
 // It implements the Invoker interface.
 // The context is enriched with the Pal instance before being passed to the container.
 func (p *Pal) Invoke(ctx context.Context, name string, args ...any) (any, error) {
-	ctx = context.WithValue(ctx, CtxValue, p)
+	ctx = WithPal(ctx, p)
 
 	return p.container.Invoke(ctx, name, args...)
 }
@@ -220,7 +234,7 @@ func (p *Pal) Invoke(ctx context.Context, name string, args ...any) (any, error)
 // It implements the Invoker interface.
 // The context is enriched with the Pal instance before being passed to the container.
 func (p *Pal) InjectInto(ctx context.Context, target any) error {
-	ctx = context.WithValue(ctx, CtxValue, p)
+	ctx = WithPal(ctx, p)
 
 	return p.container.InjectInto(ctx, target)
 }

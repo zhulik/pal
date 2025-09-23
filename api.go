@@ -82,8 +82,17 @@ func ProvidePal(pal *Pal) *ServiceList {
 }
 
 // Invoke retrieves or creates an instance of type T from the given Pal container.
+// Invoker may be nil, in this case an instance of Pal will be extracted from the context,
+// if the context does not contain a Pal instance, an error will be returned.
 func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error) {
 	name := typetostring.GetType[T]()
+	if invoker == nil {
+		var err error
+		invoker, err = FromContext(ctx)
+		if err != nil {
+			return empty[T](), err
+		}
+	}
 
 	a, err := invoker.Invoke(ctx, name, args...)
 	if err != nil {
@@ -105,6 +114,8 @@ func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
 
 // InvokeAs invokes a service and casts it to the expected type. It returns an error if the cast fails.
 // May be useful when invoking a service with an interface type and you want to cast it to a concrete type.
+// Invoker may be nil, in this case an instance of Pal will be extracted from the context,
+// if the context does not contain a Pal instance, an error will be returned.
 func InvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) (*C, error) {
 	service, err := Invoke[T](ctx, invoker, args...)
 	if err != nil {
@@ -128,6 +139,8 @@ func MustInvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...an
 // Build resolves dependencies for a struct of type T using the provided context and Invoker.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
+// Invoker may be nil, in this case an instance of Pal will be extracted from the context,
+// if the context does not contain a Pal instance, an error will be returned.
 func Build[T any](ctx context.Context, invoker Invoker) (*T, error) {
 	s := new(T)
 
@@ -148,6 +161,13 @@ func MustBuild[T any](ctx context.Context, invoker Invoker) *T {
 // It only sets fields that are exported and match a resolvable dependency, skipping fields when ErrServiceNotFound occurs.
 // Returns an error if dependency invocation fails or other unrecoverable errors occur during injection.
 func InjectInto[T any](ctx context.Context, invoker Invoker, s *T) error {
+	if invoker == nil {
+		var err error
+		invoker, err = FromContext(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	return invoker.InjectInto(ctx, s)
 }
 

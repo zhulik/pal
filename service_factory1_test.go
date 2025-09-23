@@ -28,7 +28,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		})
 		p := newPal(service)
 
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		})
 		p := newPal(service)
 
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
@@ -75,7 +75,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		})
 		p := newPal(service)
 
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)
@@ -93,7 +93,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		})
 		p := newPal(service)
 
-		ctx := context.WithValue(t.Context(), pal.CtxValue, p)
+		ctx := pal.WithPal(t.Context(), p)
 
 		err := p.Init(t.Context())
 		assert.NoError(t, err)

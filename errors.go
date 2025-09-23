@@ -29,4 +29,7 @@ var (
 
 	// ErrServiceInvalidCast is returned when a service is cast to a different type.
 	ErrServiceInvalidCast = errors.New("failed to cast service to the expected type")
+
+	// ErrInvokerIsNotInContext is returned when a context passed to Invoke does not contain a Pal instance.
+	ErrInvokerIsNotInContext = errors.New("invoker is not in context")
 )
