@@ -136,7 +136,7 @@ pal.ProvideFn[MyService](func(ctx context.Context) (MyService, error) {
 ```
 
 ### Factory Services
-Factory services create a new instance every time they are invoked. They may accept up to 5 arguments arguments, those which accept any
+Factory services create a new instance every time they are invoked. They may accept up to 5 arguments, those which accept any
 argument cannot be explicitdependencies of other services. They are perfect for:
 - Stateless components
 - Request-scoped objects
