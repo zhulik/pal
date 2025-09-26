@@ -115,11 +115,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		if err != nil {
 			return err
 		}
-		if _, ok := tags[TagSkip]; ok {
-			continue
-		}
-
-		if !field.CanSet() {
+		if _, ok := tags[TagSkip]; ok || !field.CanSet() {
 			continue
 		}
 
@@ -129,21 +125,30 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			continue
 		}
 
-		typeName := typetostring.GetReflectType(fieldType)
-
-		dependency, err := c.Invoke(ctx, typeName)
+		err = c.injectByName(ctx, field, fieldType)
 		if err != nil {
-			if errors.Is(err, ErrServiceNotFound) {
-				continue
-			}
-			if errors.Is(err, ErrServiceInvalidArgumentsCount) {
-				return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, typeName, err)
-			}
 			return err
 		}
-
-		field.Set(reflect.ValueOf(dependency))
 	}
+	return nil
+}
+
+func (c *Container) injectByName(ctx context.Context, field reflect.Value, fieldType reflect.Type) error {
+	typeName := typetostring.GetReflectType(fieldType)
+
+	dependency, err := c.Invoke(ctx, typeName)
+	if err != nil {
+		if errors.Is(err, ErrServiceNotFound) {
+			return nil
+		}
+		if errors.Is(err, ErrServiceInvalidArgumentsCount) {
+			return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, typeName, err)
+		}
+		return err
+	}
+
+	field.Set(reflect.ValueOf(dependency))
+
 	return nil
 }
 
