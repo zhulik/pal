@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"reflect"
 )
 
 // RunConfiger is an optional interface that can be implemented by a runner to tell Pal how to handle it.
@@ -47,6 +48,10 @@ type Invoker interface {
 	// Invoke retrieves a service by name from the container.
 	// Returns the service instance or an error if the service is not found or cannot be initialized.
 	Invoke(ctx context.Context, name string, args ...any) (any, error)
+
+	// InvokeByInterface retrieves a service by interface from the container.
+	// Returns the service instance or an error if the service is not found or cannot be initialized.
+	InvokeByInterface(ctx context.Context, iface reflect.Type, args ...any) (any, error)
 
 	// InjectInto injects services into the fields of the target struct.
 	// It looks at each field's type and tries to find a matching service in the container.

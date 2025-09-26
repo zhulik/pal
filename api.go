@@ -136,6 +136,27 @@ func MustInvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...an
 	return must(InvokeAs[T, C](ctx, invoker, args...))
 }
 
+// InvokeByInterface invokes a service by interface.
+// It iterates over all services and returns the only one that implements the interface.
+// If no service implements the interface, or multiple services implement the interface, or given I is not an interface
+// an error will be returned.
+// Invoker may be nil, in this case an instance of Pal will be extracted from the context,
+// if the context does not contain a Pal instance, an error will be returned.
+func InvokeByInterface[I any](ctx context.Context, invoker Invoker, args ...any) (I, error) {
+	iface := reflect.TypeOf((*I)(nil)).Elem()
+
+	instance, err := invoker.InvokeByInterface(ctx, iface, args...)
+	if err != nil {
+		return empty[I](), err
+	}
+	return instance.(I), nil
+}
+
+// MustInvokeByInterface is like InvokeByInterface but panics if an error occurs.
+func MustInvokeByInterface[I any](ctx context.Context, invoker Invoker, args ...any) I {
+	return must(InvokeByInterface[I](ctx, invoker, args...))
+}
+
 // Build resolves dependencies for a struct of type T using the provided context and Invoker.
 // It initializes the struct's fields by injecting appropriate dependencies based on the field types.
 // Returns the fully initialized struct or an error if dependency resolution fails.
