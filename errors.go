@@ -32,4 +32,7 @@ var (
 
 	// ErrInvokerIsNotInContext is returned when a context passed to Invoke does not contain a Pal instance.
 	ErrInvokerIsNotInContext = errors.New("invoker is not in context")
+
+	// ErrInvalidTag is returned when a tag is invalid.
+	ErrInvalidTag = errors.New("invalid tag")
 )
