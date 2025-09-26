@@ -70,17 +70,6 @@ func TestParseTag(t *testing.T) {
 		}, tags)
 	})
 
-	t.Run("parses tag with empty value", func(t *testing.T) {
-		t.Parallel()
-
-		tags, err := pal.ParseTag("name=")
-
-		assert.NoError(t, err)
-		assert.Equal(t, map[pal.Tag]string{
-			pal.TagName: "",
-		}, tags)
-	})
-
 	t.Run("handles empty input as unsupported tag", func(t *testing.T) {
 		t.Parallel()
 
@@ -141,10 +130,18 @@ func TestParseTag(t *testing.T) {
 		assert.Contains(t, err.Error(), "tag unsupported ")
 	})
 
-	t.Run("handles tag with multiple equals and no value correctly", func(t *testing.T) {
+	t.Run("handles tag with multiple equals", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := pal.ParseTag("name==")
+
+		assert.ErrorIs(t, err, pal.ErrInvalidTag)
+	})
+
+	t.Run("handles tag with no value correctly", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := pal.ParseTag("name=")
 
 		assert.ErrorIs(t, err, pal.ErrInvalidTag)
 	})

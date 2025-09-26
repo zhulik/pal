@@ -415,14 +415,50 @@ func TestInjectInto(t *testing.T) {
 		assert.Equal(t, instance.Pinger, pinger)
 	})
 
-	t.Run("returns an error if service is not provided", func(t *testing.T) {
+	t.Run("returns an error if service that should be matched by interface is not provided", func(t *testing.T) {
 		t.Parallel()
 
 		type StructWithSkipField struct {
 			Pinger Pinger `pal:"match_interface"`
 		}
 
+		p := newPal()
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
+	})
+
+	t.Run("injects service by name if service is provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"name=*github.com/zhulik/pal_test.Pinger1"`
+		}
+
+		pinger := &Pinger1{}
 		// Provide by pointer
+		p := newPal(pal.Provide(pinger))
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.NoError(t, err)
+
+		// The field was matched by name
+		assert.Equal(t, instance.Pinger, pinger)
+	})
+
+	t.Run("returns an error if service that should be matched by name is not provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"name=*github.com/zhulik/pal_test.Pinger1"`
+		}
+
 		p := newPal()
 
 		instance := &StructWithSkipField{}

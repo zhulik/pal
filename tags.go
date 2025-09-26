@@ -35,6 +35,9 @@ func ParseTag(tags string) (map[Tag]string, error) {
 		}
 		switch len(parts) {
 		case 2:
+			if parts[1] == "" {
+				return nil, fmt.Errorf("%w: tag is malformed %s", ErrInvalidTag, tag)
+			}
 			tagMap[Tag(tagName)] = parts[1]
 		case 1:
 			tagMap[Tag(tagName)] = ""

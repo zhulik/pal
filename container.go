@@ -133,11 +133,21 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			continue
 		}
 
-		err = c.injectByName(ctx, field, fieldType)
+		typeName, mustInject := tags[TagName]
+
+		if typeName == "" {
+			typeName = typetostring.GetReflectType(fieldType)
+		}
+
+		err = c.injectByName(ctx, typeName, field)
 		if err != nil {
+			if errors.Is(err, ErrServiceNotFound) && !mustInject {
+				return nil
+			}
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -152,16 +162,11 @@ func (c *Container) injectByInterface(ctx context.Context, field reflect.Value, 
 	return nil
 }
 
-func (c *Container) injectByName(ctx context.Context, field reflect.Value, fieldType reflect.Type) error {
-	typeName := typetostring.GetReflectType(fieldType)
-
-	dependency, err := c.Invoke(ctx, typeName)
+func (c *Container) injectByName(ctx context.Context, name string, field reflect.Value) error {
+	dependency, err := c.Invoke(ctx, name)
 	if err != nil {
-		if errors.Is(err, ErrServiceNotFound) {
-			return nil
-		}
 		if errors.Is(err, ErrServiceInvalidArgumentsCount) {
-			return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, typeName, err)
+			return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, name, err)
 		}
 		return err
 	}
