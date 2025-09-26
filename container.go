@@ -125,11 +125,30 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			continue
 		}
 
+		if _, ok := tags[TagMatchInterface]; ok {
+			err = c.injectByInterface(ctx, field, fieldType)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		err = c.injectByName(ctx, field, fieldType)
 		if err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (c *Container) injectByInterface(ctx context.Context, field reflect.Value, fieldType reflect.Type) error {
+	dependency, err := c.InvokeByInterface(ctx, fieldType)
+	if err != nil {
+		return err
+	}
+
+	field.Set(reflect.ValueOf(dependency))
+
 	return nil
 }
 

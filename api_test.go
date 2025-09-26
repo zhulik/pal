@@ -393,6 +393,45 @@ func TestInjectInto(t *testing.T) {
 		assert.Nil(t, instance.Dependency) // Field is skipped, so it's not set
 	})
 
+	t.Run("injects dependencies by interface if service is provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"match_interface"`
+		}
+
+		pinger := &Pinger1{}
+
+		// Provide by pointer
+		p := newPal(pal.Provide(pinger))
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.NoError(t, err)
+
+		// The field was matched by interface
+		assert.Equal(t, instance.Pinger, pinger)
+	})
+
+	t.Run("returns an error if service is not provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"match_interface"`
+		}
+
+		// Provide by pointer
+		p := newPal()
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
+	})
+
 	t.Run("returns error when service invocation fails", func(t *testing.T) {
 		t.Parallel()
 
