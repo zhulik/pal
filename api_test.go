@@ -326,6 +326,23 @@ func TestInjectInto(t *testing.T) {
 		assert.Nil(t, instance.dependency) // Field is unexported, so it's not set
 	})
 
+	t.Run("skips fields with skip tag", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Dependency *TestServiceStruct `pal:"skip"`
+		}
+
+		p := newPal(pal.Provide(NewMockTestServiceStruct(t)))
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.NoError(t, err)
+		assert.Nil(t, instance.Dependency) // Field is skipped, so it's not set
+	})
+
 	t.Run("returns error when service invocation fails", func(t *testing.T) {
 		t.Parallel()
 

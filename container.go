@@ -88,6 +88,14 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 	for i := 0; i < t.NumField(); i++ {
 		field := v.Field(i)
 
+		tags, err := ParseTag(t.Field(i).Tag.Get("pal"))
+		if err != nil {
+			return err
+		}
+		if _, ok := tags[TagSkip]; ok {
+			continue
+		}
+
 		if !field.CanSet() {
 			continue
 		}
