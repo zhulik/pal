@@ -16,27 +16,35 @@ import (
 func Provide[T any](value T) *ServiceConst[T] {
 	validatePointerToStruct(value)
 
-	return &ServiceConst[T]{instance: value}
+	return ProvideNamed(typetostring.GetType[T](), value)
+}
+
+// ProvideNamed registers a const as a service with a given name. Acts like Provide but allows to specify a name.
+func ProvideNamed[T any](name string, value T) *ServiceConst[T] {
+	validatePointerToStruct(value)
+
+	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: name}}
 }
 
 // ProvideFn registers a singleton built with a given function.
 func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
+	return ProvideNamedFn(typetostring.GetType[T](), fn)
+}
+
+// ProvideFn registers a singleton built with a given function.
+func ProvideNamedFn[T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
 	return &ServiceFnSingleton[T]{
-		fn: fn,
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
 	}
 }
 
-// ProvideFactory0 registers a factory service that is build with a given function with no arguments.
-func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
-	return &ServiceFactory0[T]{
-		fn: fn,
-	}
-}
-
-// ProvideRunner turns the given function into a runner. It will run in the background, and the passed context will
+// ProvideRunner turns the given function into an anounumous runner. It will run in the background, and the passed context will
 // be canceled on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
-	return &ServiceRunner{fn: fn}
+	return &ServiceRunner{
+		fn: fn,
+	}
 }
 
 // ProvideList registers a list of given services.
@@ -44,29 +52,82 @@ func ProvideList(services ...ServiceDef) *ServiceList {
 	return &ServiceList{Services: services}
 }
 
+// ProvideFactory0 registers a factory service that is build with a given function with no arguments.
+func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
+	return ProvideNamedFactory0(typetostring.GetType[T](), fn)
+}
+
 // ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
 func ProvideFactory1[T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
-	return &ServiceFactory1[T, P1]{fn: fn}
+	return ProvideNamedFactory1(typetostring.GetType[T](), fn)
 }
 
 // ProvideFactory2 registers a factory service that is built in runtime with a given function that takes two arguments.
 func ProvideFactory2[T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[T, P1, P2] {
-	return &ServiceFactory2[T, P1, P2]{fn: fn}
+	return ProvideNamedFactory2(typetostring.GetType[T](), fn)
 }
 
 // ProvideFactory3 registers a factory service that is built in runtime with a given function that takes three arguments.
 func ProvideFactory3[T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[T, P1, P2, P3] {
-	return &ServiceFactory3[T, P1, P2, P3]{fn: fn}
+	return ProvideNamedFactory3(typetostring.GetType[T](), fn)
 }
 
 // ProvideFactory4 registers a factory service that is built in runtime with a given function that takes four arguments.
 func ProvideFactory4[T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[T, P1, P2, P3, P4] {
-	return &ServiceFactory4[T, P1, P2, P3, P4]{fn: fn}
+	return ProvideNamedFactory4(typetostring.GetType[T](), fn)
 }
 
 // ProvideFactory5 registers a factory service that is built in runtime with a given function that takes five arguments.
 func ProvideFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[T, P1, P2, P3, P4, P5] {
-	return &ServiceFactory5[T, P1, P2, P3, P4, P5]{fn: fn}
+	return ProvideNamedFactory5(typetostring.GetType[T](), fn)
+}
+
+// ProvideNamedFactory0 is like ProvideFactory0 but allows to specify a name.
+func ProvideNamedFactory0[T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
+	return &ServiceFactory0[T]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
+	}
+}
+
+// ProvideNamedFactory1 is like ProvideFactory1 but allows to specify a name.
+func ProvideNamedFactory1[T any, P1 any](name string, fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
+	return &ServiceFactory1[T, P1]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
+	}
+}
+
+// ProvideNamedFactory2 is like ProvideFactory2 but allows to specify a name.
+func ProvideNamedFactory2[T any, P1 any, P2 any](name string, fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[T, P1, P2] {
+	return &ServiceFactory2[T, P1, P2]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
+	}
+}
+
+// ProvideNamedFactory3 is like ProvideFactory3 but allows to specify a name.
+func ProvideNamedFactory3[T any, P1 any, P2 any, P3 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[T, P1, P2, P3] {
+	return &ServiceFactory3[T, P1, P2, P3]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
+	}
+}
+
+// ProvideNamedFactory4 is like ProvideFactory4 but allows to specify a name.
+func ProvideNamedFactory4[T any, P1 any, P2 any, P3 any, P4 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[T, P1, P2, P3, P4] {
+	return &ServiceFactory4[T, P1, P2, P3, P4]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
+	}
+}
+
+// ProvideNamedFactory5 is like ProvideFactory5 but allows to specify a name.
+func ProvideNamedFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[T, P1, P2, P3, P4, P5] {
+	return &ServiceFactory5[T, P1, P2, P3, P4, P5]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: name},
+	}
 }
 
 // ProvidePal registers all services for the given pal instance
@@ -86,6 +147,16 @@ func ProvidePal(pal *Pal) *ServiceList {
 // if the context does not contain a Pal instance, an error will be returned.
 func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error) {
 	name := typetostring.GetType[T]()
+	return InvokeNamed[T](ctx, invoker, name, args...)
+}
+
+// MustInvoke is like Invoke but panics if an error occurs.
+func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
+	return must(Invoke[T](ctx, invoker, args...))
+}
+
+// InvokeNamed is like Invoke but allows to specify a name.
+func InvokeNamed[T any](ctx context.Context, invoker Invoker, name string, args ...any) (T, error) {
 	if invoker == nil {
 		var err error
 		invoker, err = FromContext(ctx)
@@ -107,9 +178,9 @@ func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error)
 	return casted, nil
 }
 
-// MustInvoke is like Invoke but panics if an error occurs.
-func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
-	return must(Invoke[T](ctx, invoker, args...))
+// MustInvokeNamed is like InvokeNamed but panics if an error occurs.
+func MustInvokeNamed[T any](ctx context.Context, invoker Invoker, name string, args ...any) T {
+	return must(InvokeNamed[T](ctx, invoker, name, args...))
 }
 
 // InvokeAs invokes a service and casts it to the expected type. It returns an error if the cast fails.
@@ -117,11 +188,16 @@ func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
 // Invoker may be nil, in this case an instance of Pal will be extracted from the context,
 // if the context does not contain a Pal instance, an error will be returned.
 func InvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) (*C, error) {
-	service, err := Invoke[T](ctx, invoker, args...)
+	name := typetostring.GetType[T]()
+	return InvokeNamedAs[T, C](ctx, invoker, name, args...)
+}
+
+// InvokeNamedAs is like InvokeAs but allows to specify a name.
+func InvokeNamedAs[T any, C any](ctx context.Context, invoker Invoker, name string, args ...any) (*C, error) {
+	service, err := InvokeNamed[T](ctx, invoker, name, args...)
 	if err != nil {
 		return nil, err
 	}
-
 	casted, ok := any(service).(*C)
 	if !ok {
 		var c *C
@@ -129,6 +205,11 @@ func InvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) (
 	}
 
 	return casted, nil
+}
+
+// MustInvokeNamedAs is like InvokeNamedAs but panics if an error occurs.
+func MustInvokeNamedAs[T any, C any](ctx context.Context, invoker Invoker, name string, args ...any) *C {
+	return must(InvokeNamedAs[T, C](ctx, invoker, name, args...))
 }
 
 // MustInvokeAs is like InvokeAs but panics if an error occurs.
