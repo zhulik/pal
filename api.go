@@ -224,6 +224,13 @@ func MustInvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...an
 // Invoker may be nil, in this case an instance of Pal will be extracted from the context,
 // if the context does not contain a Pal instance, an error will be returned.
 func InvokeByInterface[I any](ctx context.Context, invoker Invoker, args ...any) (I, error) {
+	if invoker == nil {
+		var err error
+		invoker, err = FromContext(ctx)
+		if err != nil {
+			return empty[I](), err
+		}
+	}
 	iface := reflect.TypeOf((*I)(nil)).Elem()
 
 	instance, err := invoker.InvokeByInterface(ctx, iface, args...)
