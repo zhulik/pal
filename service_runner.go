@@ -13,6 +13,10 @@ type ServiceRunner struct {
 	fn func(ctx context.Context) error
 }
 
+func (c *ServiceRunner) RunConfig() *RunConfig {
+	return defaultRunConfig
+}
+
 func (c *ServiceRunner) Run(ctx context.Context) error {
 	return c.fn(ctx)
 }

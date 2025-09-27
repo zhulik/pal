@@ -2,7 +2,6 @@ package pal
 
 import (
 	"context"
-	"strings"
 )
 
 func runService(ctx context.Context, name string, instance any, p *Pal) error {
@@ -112,7 +111,7 @@ func flattenServices(services []ServiceDef) []ServiceDef {
 			if _, ok := seen[svc]; !ok {
 				seen[svc] = true
 
-				if !strings.HasPrefix(svc.Name(), "$") {
+				if _, ok := svc.(*ServiceList); !ok {
 					result = append(result, svc)
 				}
 
