@@ -28,21 +28,18 @@ func ProvideNamed[T any](name string, value T) *ServiceConst[T] {
 
 // ProvideFn registers a singleton built with a given function.
 func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
+	return ProvideNamedFn(typetostring.GetType[T](), fn)
+}
+
+// ProvideFn registers a singleton built with a given function.
+func ProvideNamedFn[T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
 	return &ServiceFnSingleton[T]{
 		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+		ServiceTyped: ServiceTyped[T]{name: name},
 	}
 }
 
-// ProvideFactory0 registers a factory service that is build with a given function with no arguments.
-func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
-	return &ServiceFactory0[T]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
-	}
-}
-
-// ProvideRunner turns the given function into a runner. It will run in the background, and the passed context will
+// ProvideRunner turns the given function into an anounumous runner. It will run in the background, and the passed context will
 // be canceled on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
 	return &ServiceRunner{
@@ -53,6 +50,14 @@ func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
 // ProvideList registers a list of given services.
 func ProvideList(services ...ServiceDef) *ServiceList {
 	return &ServiceList{Services: services}
+}
+
+// ProvideFactory0 registers a factory service that is build with a given function with no arguments.
+func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
+	return &ServiceFactory0[T]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+	}
 }
 
 // ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
@@ -143,16 +148,26 @@ func InvokeNamed[T any](ctx context.Context, invoker Invoker, name string, args 
 	return casted, nil
 }
 
+// MustInvokeNamed is like InvokeNamed but panics if an error occurs.
+func MustInvokeNamed[T any](ctx context.Context, invoker Invoker, name string, args ...any) T {
+	return must(InvokeNamed[T](ctx, invoker, name, args...))
+}
+
 // InvokeAs invokes a service and casts it to the expected type. It returns an error if the cast fails.
 // May be useful when invoking a service with an interface type and you want to cast it to a concrete type.
 // Invoker may be nil, in this case an instance of Pal will be extracted from the context,
 // if the context does not contain a Pal instance, an error will be returned.
 func InvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) (*C, error) {
-	service, err := Invoke[T](ctx, invoker, args...)
+	name := typetostring.GetType[T]()
+	return InvokeNamedAs[T, C](ctx, invoker, name, args...)
+}
+
+// InvokeNamedAs is like InvokeAs but allows to specify a name.
+func InvokeNamedAs[T any, C any](ctx context.Context, invoker Invoker, name string, args ...any) (*C, error) {
+	service, err := InvokeNamed[T](ctx, invoker, name, args...)
 	if err != nil {
 		return nil, err
 	}
-
 	casted, ok := any(service).(*C)
 	if !ok {
 		var c *C
@@ -160,6 +175,11 @@ func InvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...any) (
 	}
 
 	return casted, nil
+}
+
+// MustInvokeNamedAs is like InvokeNamedAs but panics if an error occurs.
+func MustInvokeNamedAs[T any, C any](ctx context.Context, invoker Invoker, name string, args ...any) *C {
+	return must(InvokeNamedAs[T, C](ctx, invoker, name, args...))
 }
 
 // MustInvokeAs is like InvokeAs but panics if an error occurs.
