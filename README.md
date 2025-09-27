@@ -197,6 +197,13 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 }
 ```
 
+## Tags
+
+Pal support 3 struct tags:
+- `pal:"skip"` - fields marked with this tag won't be injected.
+- `pal:"match_interface"` - `InvokeByInterface` will be used to inject this dependency
+- `pal:"name=<name>"` - a service will be invoked by it's explicit name.
+
 ## Lifecycle Hooks
 
 Pal provides lifecycle hooks that allow you to customize service behavior without implementing the full lifecycle interfaces. Hooks take precedence over interface methods and are useful for:
