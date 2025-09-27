@@ -13,6 +13,18 @@ var (
 	errTest2 = errors.New("test error 2")
 )
 
+type Pinger interface {
+	Ping()
+}
+
+type Pinger1 struct{}
+
+func (p *Pinger1) Ping() {}
+
+type Pinger2 struct{}
+
+func (p *Pinger2) Ping() {}
+
 // TestServiceInterface is a simple interface for testing
 type TestServiceInterface any
 

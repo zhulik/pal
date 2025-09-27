@@ -164,6 +164,56 @@ func TestInvokeAs(t *testing.T) {
 	})
 }
 
+func TestInvokeByInterface(t *testing.T) {
+	t.Parallel()
+
+	t.Run("when there is only one service that implements the interface, it returns the service", func(t *testing.T) {
+		t.Parallel()
+
+		pinger := &Pinger1{}
+
+		p := newPal(pal.Provide(pinger))
+
+		instance, err := pal.InvokeByInterface[Pinger](t.Context(), p)
+
+		assert.NoError(t, err)
+		assert.Equal(t, pinger, instance)
+	})
+
+	t.Run("when there is no service implementing the interface, it returns an error", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal()
+
+		_, err := pal.InvokeByInterface[Pinger](t.Context(), p)
+
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
+	})
+
+	t.Run("when there is multiple services implementing the interface, it returns an error", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal(
+			pal.Provide(&Pinger1{}),
+			pal.Provide(&Pinger2{}),
+		)
+
+		_, err := pal.InvokeByInterface[Pinger](t.Context(), p)
+
+		assert.ErrorIs(t, err, pal.ErrMultipleServicesFoundByInterface)
+	})
+
+	t.Run("when the interface is not an interface, it returns an error", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal()
+
+		_, err := pal.InvokeByInterface[string](t.Context(), p)
+
+		assert.ErrorIs(t, err, pal.ErrNotAnInterface)
+	})
+}
+
 // TestBuild tests the Build function
 func TestBuild(t *testing.T) {
 	t.Parallel()
@@ -324,6 +374,98 @@ func TestInjectInto(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, instance.dependency) // Field is unexported, so it's not set
+	})
+
+	t.Run("skips fields with skip tag", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Dependency *TestServiceStruct `pal:"skip"`
+		}
+
+		p := newPal(pal.Provide(NewMockTestServiceStruct(t)))
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.NoError(t, err)
+		assert.Nil(t, instance.Dependency) // Field is skipped, so it's not set
+	})
+
+	t.Run("injects dependencies by interface if service is provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"match_interface"`
+		}
+
+		pinger := &Pinger1{}
+
+		// Provide by pointer
+		p := newPal(pal.Provide(pinger))
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.NoError(t, err)
+
+		// The field was matched by interface
+		assert.Equal(t, instance.Pinger, pinger)
+	})
+
+	t.Run("returns an error if service that should be matched by interface is not provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"match_interface"`
+		}
+
+		p := newPal()
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
+	})
+
+	t.Run("injects service by name if service is provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"name=*github.com/zhulik/pal_test.Pinger1"`
+		}
+
+		pinger := &Pinger1{}
+		// Provide by pointer
+		p := newPal(pal.Provide(pinger))
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.NoError(t, err)
+
+		// The field was matched by name
+		assert.Equal(t, instance.Pinger, pinger)
+	})
+
+	t.Run("returns an error if service that should be matched by name is not provided", func(t *testing.T) {
+		t.Parallel()
+
+		type StructWithSkipField struct {
+			Pinger Pinger `pal:"name=*github.com/zhulik/pal_test.Pinger1"`
+		}
+
+		p := newPal()
+
+		instance := &StructWithSkipField{}
+
+		err := pal.InjectInto(t.Context(), p, instance)
+
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
 	})
 
 	t.Run("returns error when service invocation fails", func(t *testing.T) {

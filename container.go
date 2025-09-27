@@ -81,6 +81,29 @@ func (c *Container) Invoke(ctx context.Context, name string, args ...any) (any, 
 	return instance, nil
 }
 
+func (c *Container) InvokeByInterface(ctx context.Context, iface reflect.Type, args ...any) (any, error) {
+	if iface.Kind() != reflect.Interface {
+		return nil, fmt.Errorf("%w: must be an interface, got %s", ErrNotAnInterface, iface.String())
+	}
+
+	matches := []ServiceDef{}
+	for _, service := range c.services {
+		instance := service.Make()
+		if reflect.TypeOf(instance).Implements(iface) {
+			matches = append(matches, service)
+		}
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("%w: no implementations of %s found", ErrServiceNotFound, iface.String())
+	}
+
+	if len(matches) == 1 {
+		return matches[0].Instance(ctx, args...)
+	}
+
+	return nil, fmt.Errorf("%w: found %d services for interface %s", ErrMultipleServicesFoundByInterface, len(matches), iface.String())
+}
+
 func (c *Container) InjectInto(ctx context.Context, target any) error {
 	v := reflect.ValueOf(target).Elem()
 	t := v.Type()
@@ -88,7 +111,11 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 	for i := 0; i < t.NumField(); i++ {
 		field := v.Field(i)
 
-		if !field.CanSet() {
+		tags, err := ParseTag(t.Field(i).Tag.Get("pal"))
+		if err != nil {
+			return err
+		}
+		if _, ok := tags[TagSkip]; ok || !field.CanSet() {
 			continue
 		}
 
@@ -98,21 +125,54 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			continue
 		}
 
-		typeName := typetostring.GetReflectType(fieldType)
-
-		dependency, err := c.Invoke(ctx, typeName)
-		if err != nil {
-			if errors.Is(err, ErrServiceNotFound) {
-				continue
+		if _, ok := tags[TagMatchInterface]; ok {
+			err = c.injectByInterface(ctx, field, fieldType)
+			if err != nil {
+				return err
 			}
-			if errors.Is(err, ErrServiceInvalidArgumentsCount) {
-				return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, typeName, err)
+			continue
+		}
+
+		typeName, mustInject := tags[TagName]
+
+		if typeName == "" {
+			typeName = typetostring.GetReflectType(fieldType)
+		}
+
+		err = c.injectByName(ctx, typeName, field)
+		if err != nil {
+			if errors.Is(err, ErrServiceNotFound) && !mustInject {
+				return nil
 			}
 			return err
 		}
-
-		field.Set(reflect.ValueOf(dependency))
 	}
+
+	return nil
+}
+
+func (c *Container) injectByInterface(ctx context.Context, field reflect.Value, fieldType reflect.Type) error {
+	dependency, err := c.InvokeByInterface(ctx, fieldType)
+	if err != nil {
+		return err
+	}
+
+	field.Set(reflect.ValueOf(dependency))
+
+	return nil
+}
+
+func (c *Container) injectByName(ctx context.Context, name string, field reflect.Value) error {
+	dependency, err := c.Invoke(ctx, name)
+	if err != nil {
+		if errors.Is(err, ErrServiceInvalidArgumentsCount) {
+			return fmt.Errorf("%w: '%s': %w", ErrFactoryServiceDependency, name, err)
+		}
+		return err
+	}
+
+	field.Set(reflect.ValueOf(dependency))
+
 	return nil
 }
 

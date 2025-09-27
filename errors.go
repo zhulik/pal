@@ -10,6 +10,9 @@ var (
 	// This typically happens when trying to Invoke a service that hasn't been registered.
 	ErrServiceNotFound = errors.New("service not found")
 
+	// ErrMultipleServicesFoundByInterface is returned when multiple services are found in the container by interface.
+	ErrMultipleServicesFoundByInterface = errors.New("multiple services found by interface")
+
 	// ErrServiceInitFailed is returned when a service fails to initialize.
 	// This can happen during container initialization if a service's Init method returns an error.
 	ErrServiceInitFailed = errors.New("service initialization failed")
@@ -32,4 +35,10 @@ var (
 
 	// ErrInvokerIsNotInContext is returned when a context passed to Invoke does not contain a Pal instance.
 	ErrInvokerIsNotInContext = errors.New("invoker is not in context")
+
+	// ErrInvalidTag is returned when a tag is invalid.
+	ErrInvalidTag = errors.New("invalid tag")
+
+	// ErrNotAnInterface is returned when a type is not an interface.
+	ErrNotAnInterface = errors.New("not an interface")
 )
