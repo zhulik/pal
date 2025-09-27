@@ -2,12 +2,11 @@ package pal
 
 import (
 	"context"
-
-	typetostring "github.com/samber/go-type-to-string"
 )
 
 type ServiceTyped[T any] struct {
-	P *Pal
+	P    *Pal
+	name string
 }
 
 func (c *ServiceTyped[T]) Dependencies() []ServiceDef {
@@ -46,7 +45,7 @@ func (c *ServiceTyped[T]) Make() any {
 
 // Name returns the name of the service, which is the type name of T.
 func (c *ServiceTyped[T]) Name() string {
-	return typetostring.GetType[T]()
+	return c.name
 }
 
 func (c *ServiceTyped[T]) Arguments() int {

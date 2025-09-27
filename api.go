@@ -16,27 +16,31 @@ import (
 func Provide[T any](value T) *ServiceConst[T] {
 	validatePointerToStruct(value)
 
-	return &ServiceConst[T]{instance: value}
+	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()}}
 }
 
 // ProvideFn registers a singleton built with a given function.
 func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
 	return &ServiceFnSingleton[T]{
-		fn: fn,
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
 	}
 }
 
 // ProvideFactory0 registers a factory service that is build with a given function with no arguments.
 func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
 	return &ServiceFactory0[T]{
-		fn: fn,
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
 	}
 }
 
 // ProvideRunner turns the given function into a runner. It will run in the background, and the passed context will
 // be canceled on app shutdown.
 func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
-	return &ServiceRunner{fn: fn}
+	return &ServiceRunner{
+		fn: fn,
+	}
 }
 
 // ProvideList registers a list of given services.
@@ -46,27 +50,42 @@ func ProvideList(services ...ServiceDef) *ServiceList {
 
 // ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
 func ProvideFactory1[T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
-	return &ServiceFactory1[T, P1]{fn: fn}
+	return &ServiceFactory1[T, P1]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+	}
 }
 
 // ProvideFactory2 registers a factory service that is built in runtime with a given function that takes two arguments.
 func ProvideFactory2[T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[T, P1, P2] {
-	return &ServiceFactory2[T, P1, P2]{fn: fn}
+	return &ServiceFactory2[T, P1, P2]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+	}
 }
 
 // ProvideFactory3 registers a factory service that is built in runtime with a given function that takes three arguments.
 func ProvideFactory3[T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[T, P1, P2, P3] {
-	return &ServiceFactory3[T, P1, P2, P3]{fn: fn}
+	return &ServiceFactory3[T, P1, P2, P3]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+	}
 }
 
 // ProvideFactory4 registers a factory service that is built in runtime with a given function that takes four arguments.
 func ProvideFactory4[T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[T, P1, P2, P3, P4] {
-	return &ServiceFactory4[T, P1, P2, P3, P4]{fn: fn}
+	return &ServiceFactory4[T, P1, P2, P3, P4]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+	}
 }
 
 // ProvideFactory5 registers a factory service that is built in runtime with a given function that takes five arguments.
 func ProvideFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[T, P1, P2, P3, P4, P5] {
-	return &ServiceFactory5[T, P1, P2, P3, P4, P5]{fn: fn}
+	return &ServiceFactory5[T, P1, P2, P3, P4, P5]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()},
+	}
 }
 
 // ProvidePal registers all services for the given pal instance
