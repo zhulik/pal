@@ -16,7 +16,14 @@ import (
 func Provide[T any](value T) *ServiceConst[T] {
 	validatePointerToStruct(value)
 
-	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: typetostring.GetType[T]()}}
+	return ProvideNamed(typetostring.GetType[T](), value)
+}
+
+// ProvideNamed registers a const as a service with a given name. Acts like Provide but allows to specify a name.
+func ProvideNamed[T any](name string, value T) *ServiceConst[T] {
+	validatePointerToStruct(value)
+
+	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: name}}
 }
 
 // ProvideFn registers a singleton built with a given function.
@@ -105,6 +112,16 @@ func ProvidePal(pal *Pal) *ServiceList {
 // if the context does not contain a Pal instance, an error will be returned.
 func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error) {
 	name := typetostring.GetType[T]()
+	return InvokeNamed[T](ctx, invoker, name, args...)
+}
+
+// MustInvoke is like Invoke but panics if an error occurs.
+func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
+	return must(Invoke[T](ctx, invoker, args...))
+}
+
+// InvokeNamed is like Invoke but allows to specify a name.
+func InvokeNamed[T any](ctx context.Context, invoker Invoker, name string, args ...any) (T, error) {
 	if invoker == nil {
 		var err error
 		invoker, err = FromContext(ctx)
@@ -124,11 +141,6 @@ func Invoke[T any](ctx context.Context, invoker Invoker, args ...any) (T, error)
 	}
 
 	return casted, nil
-}
-
-// MustInvoke is like Invoke but panics if an error occurs.
-func MustInvoke[T any](ctx context.Context, invoker Invoker, args ...any) T {
-	return must(Invoke[T](ctx, invoker, args...))
 }
 
 // InvokeAs invokes a service and casts it to the expected type. It returns an error if the cast fails.

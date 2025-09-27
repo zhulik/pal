@@ -83,23 +83,17 @@ func TestProvideFactory0(t *testing.T) {
 	})
 }
 
-// TestProvideConst tests the ProvideConst function
-func TestProvideConst(t *testing.T) {
+// TestProvideNamed tests the ProvideNamed function
+func TestProvideNamed(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates a const service", func(t *testing.T) {
+	t.Run("creates a const service with a given name", func(t *testing.T) {
 		t.Parallel()
 
-		s := NewMockTestServiceStruct(t)
-		service := pal.Provide(s)
+		service := pal.ProvideNamed("test", NewMockTestServiceStruct(t))
 
 		assert.NotNil(t, service)
-		assert.Equal(t, "*github.com/zhulik/pal_test.TestServiceStruct", service.Name())
-
-		// Verify that the instance is the same
-		instance, err := service.Instance(t.Context())
-		assert.NoError(t, err)
-		assert.Same(t, s, instance)
+		assert.Equal(t, "test", service.Name())
 	})
 }
 
@@ -134,6 +128,31 @@ func TestInvoke(t *testing.T) {
 
 		// Try to invoke a non-existent service
 		_, err := pal.Invoke[TestServiceInterface](t.Context(), p)
+
+		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
+	})
+}
+
+func TestInvokeNamed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invokes a service successfully with a given name", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal(pal.ProvideNamed("test", NewMockTestServiceStruct(t)))
+
+		instance, err := pal.InvokeNamed[TestServiceInterface](t.Context(), p, "test")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, instance)
+	})
+
+	t.Run("returns error when service not found", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPal()
+
+		_, err := pal.InvokeNamed[TestServiceInterface](t.Context(), p, "test")
 
 		assert.ErrorIs(t, err, pal.ErrServiceNotFound)
 	})
