@@ -100,16 +100,18 @@ Pal provides several functions for registering services:
 - `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
 - `ProvideFactory{0-5}[T any, {0-5}P any](fn func(ctx context.Context, {0-5}P args) (T, error)))` - Registers a factory service created using the provided function with given amount of arguments.
 - `ProvideList(...ServiceDef)` - Registers multiple services at once, useful when splitting apps into modules, see [example](./examples/web)
+- There are also `Named` versions of `Provide` functions, they can be used along with `name` tag and `Named` versions `Invoke` functions if you want to give your services explicit names.
 
 Pal also provides functions for retrieving services:
 
-- `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require argumens.
+- `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require arguments.
 - `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Inoke`, castes invoked service to specified `C`, returns an error if casging fails.
 - `InvokeByInterface[I](ctx, invoker, args...)` - Retrieves the only service that implements the given interface `I`.
   Returns an error if there are zero or more than one service implementing the interface or if `I` is not an interface.
   **Note:** do not overuse this function as it gets slower the more services you have.
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves its dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
+- There are `Named` version of `Invoke` functions which allow to retries service by their names.
 
 All these functions accept nil as invoker, in this case, a Pal instance will be extracted from the context.
 Pal automatilly adds itself into contexts paseed to `Init`, `Shutdown` and `Run` under `pal.CtxValue` key.
