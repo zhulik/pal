@@ -105,6 +105,9 @@ Pal also provides functions for retrieving services:
 
 - `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require argumens.
 - `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Inoke`, castes invoked service to specified `C`, returns an error if casging fails.
+- `InvokeByInterface[I](ctx, invoker, args...)` - Retrieves the only service that implements the given interface `I`.
+  Returns an error if there are zero or more than one service implementing the interface or if `I` is not an interface.
+  **Note:** do not overuse this function as it gets slower the more services you have.
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves its dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
 
