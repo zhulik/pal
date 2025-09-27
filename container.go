@@ -89,6 +89,9 @@ func (c *Container) InvokeByInterface(ctx context.Context, iface reflect.Type, a
 	matches := []ServiceDef{}
 	for _, service := range c.services {
 		instance := service.Make()
+		if instance == nil {
+			continue
+		}
 		if reflect.TypeOf(instance).Implements(iface) {
 			matches = append(matches, service)
 		}
