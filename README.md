@@ -98,7 +98,7 @@ Pal provides several functions for registering services:
 
 - `Provide[T any](value T)` - Registers an instance of service.
 - `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
-- `ProvideFactory{0-5}[T any, {0-5}P any](fn func(ctx context.Context, {0-5}P args) (T, error)))` - Registers a factory service created using the provided function with given amount of arguments.
+- `ProvideFactory{0-5}[I any, T any, {0-5}P any](fn func(ctx context.Context, {0-5}P args) (T, error)))` - Registers a factory service created using the provided function with given amount of arguments.
 - `ProvideList(...ServiceDef)` - Registers multiple services at once, useful when splitting apps into modules, see [example](./examples/web)
 - There are also `Named` versions of `Provide` functions, they can be used along with `name` tag and `Named` versions `Invoke` functions if you want to give your services explicit names.
 
@@ -151,21 +151,39 @@ argument cannot be explicitdependencies of other services. They are perfect for:
 **Registration:**
 ```go
 // Register a factory service with no arguments
-pal.ProvideFactory0[MyService](func(ctx context.Context) (MyService, error) {
+pal.ProvideFactory0[MyService](func(ctx context.Context) (*MyServiceImpl, error) {
     return &MyServiceImpl{}, nil
 })
 
 // Register a factory service with arguments
-pal.ProvideFactory2[MyService](func(ctx context.Context, url string, timeout time.Duration) (MyService, error) {
+pal.ProvideFactory2[MyService](func(ctx context.Context, url string, timeout time.Duration) (*MyServiceImpl, error) {
     return &MyServiceImpl{URL: url, Timeout: timeout}, nil
 })
 ```
 
 **Invocation**
 
-```go
-pal.Invoke[MyService](ctx, p, "https://exmaple.com", timeout)
-```
+There are 2 ways to invoke a factory service:
+
+- manual invocation: 
+  ```go
+  pal.Invoke[MyService](ctx, p, "https://exmaple.com", timeout)
+  ```
+  this way **must never** be using during initialization as Pal does know that your service depends on a factory service and the factory service
+  may not be yet initialized.
+- ivocation using injected factory function:
+  ```go
+    type SomeService struct {
+      ...
+      // parameters of a factory function must match the parameters of the function passed to pal.ProvideFactory
+      // but the return value must match the first type argument pal.ProvideFactory
+      CreateMyService(ctx context.Context, url string, timeout time.Duration) (MyService, error) 
+      ...
+    }
+  ```
+
+  This way pal can see that `SomeService` depends on `MyService` and adjust the intitialization process accordingly. 
+  It is safe to call `CreateMyService` from `MyService.Init()`.
 
 ### Const Services
 Const services wrap existing instances. They are useful for:
@@ -241,13 +259,6 @@ pal.ProvideConst[MyService](existingInstance).
     ToHealthCheck(func(ctx context.Context, service MyService, pal *pal.Pal) error {
         // Custom health check logic
         return service.Ping()
-    })
-
-// With factory services
-pal.ProvideFactory[MyService](&MyServiceImpl{}).
-    ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {
-        // Each factory instance will be initialized with this hook
-        return service.Setup()
     })
 
 // With function-based services
