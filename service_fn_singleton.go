@@ -6,8 +6,8 @@ import (
 
 // ServiceFnSingleton is a singleton service that is created using a function.
 // It is created during initialization and reused for the lifetime of the application.
-type ServiceFnSingleton[T any] struct {
-	ServiceTyped[T]
+type ServiceFnSingleton[I, T any] struct {
+	ServiceFactory[I, T]
 	fn func(ctx context.Context) (T, error)
 
 	hooks LifecycleHooks[T]
@@ -15,7 +15,7 @@ type ServiceFnSingleton[T any] struct {
 	instance T
 }
 
-func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
+func (c *ServiceFnSingleton[I, T]) RunConfig() *RunConfig {
 	configer, ok := any(c.instance).(RunConfiger)
 	if ok {
 		return configer.RunConfig()
@@ -29,12 +29,12 @@ func (c *ServiceFnSingleton[T]) RunConfig() *RunConfig {
 }
 
 // Run executes the service if it implements the Runner interface.
-func (c *ServiceFnSingleton[T]) Run(ctx context.Context) error {
+func (c *ServiceFnSingleton[I, T]) Run(ctx context.Context) error {
 	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
 // Init initializes the service by calling the provided function to create the instance.
-func (c *ServiceFnSingleton[T]) Init(ctx context.Context) error {
+func (c *ServiceFnSingleton[I, T]) Init(ctx context.Context) error {
 	instance, err := c.fn(ctx)
 	if err != nil {
 		return err
@@ -52,21 +52,21 @@ func (c *ServiceFnSingleton[T]) Init(ctx context.Context) error {
 }
 
 // HealthCheck performs a health check on the service if it implements the HealthChecker interface.
-func (c *ServiceFnSingleton[T]) HealthCheck(ctx context.Context) error {
+func (c *ServiceFnSingleton[I, T]) HealthCheck(ctx context.Context) error {
 	return healthcheckService(ctx, c.Name(), c.instance, c.hooks.HealthCheck, c.P)
 }
 
 // Shutdown gracefully shuts down the service if it implements the Shutdowner interface.
-func (c *ServiceFnSingleton[T]) Shutdown(ctx context.Context) error {
+func (c *ServiceFnSingleton[I, T]) Shutdown(ctx context.Context) error {
 	return shutdownService(ctx, c.Name(), c.instance, c.hooks.Shutdown, c.P)
 }
 
 // Instance returns the singleton instance of the service.
-func (c *ServiceFnSingleton[T]) Instance(_ context.Context, _ ...any) (any, error) {
+func (c *ServiceFnSingleton[I, T]) Instance(_ context.Context, _ ...any) (any, error) {
 	return c.instance, nil
 }
 
-func (c *ServiceFnSingleton[T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
+func (c *ServiceFnSingleton[I, T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[I, T] {
 	c.hooks.Shutdown = hook
 	return c
 }
@@ -74,7 +74,7 @@ func (c *ServiceFnSingleton[T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSing
 // ToHealthCheck registers a hook function that will be called to perform a health check on the service.
 // If the service implements the HealthChecker interface, the HealthCheck() method is not called,
 // the hook has higher priority.
-func (c *ServiceFnSingleton[T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceFnSingleton[T] {
+func (c *ServiceFnSingleton[I, T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceFnSingleton[I, T] {
 	c.hooks.HealthCheck = hook
 	return c
 }

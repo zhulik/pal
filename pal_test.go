@@ -30,7 +30,7 @@ func Test_New(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+			pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 				s := NewMockTestServiceStruct(t)
 				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
@@ -49,7 +49,7 @@ func Test_New(t *testing.T) {
 		p := newPal(
 			pal.ProvideList(
 				pal.ProvideList(
-					pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+					pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 						s := NewMockTestServiceStruct(t)
 						s.MockIniter.EXPECT().Init(ctx).Return(nil)
 						return s, nil
@@ -153,7 +153,7 @@ func TestPal_Services(t *testing.T) {
 	t.Run("returns all services", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+		service := pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 			s := NewMockTestServiceStruct(t)
 			s.MockIniter.EXPECT().Init(ctx).Return(nil)
 			return s, nil
@@ -189,7 +189,7 @@ func TestPal_Invoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+			pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 				s := NewMockTestServiceStruct(t)
 				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
@@ -233,7 +233,7 @@ func TestPal_Run(t *testing.T) {
 	t.Run("exists after runners exist", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
+		service := pal.ProvideFn[*RunnerServiceStruct](func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
 			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
@@ -259,7 +259,7 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that will be initialized successfully
-		shutdownService := pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+		shutdownService := pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 			s := NewMockTestServiceStruct(t)
 			s.MockIniter.EXPECT().Init(ctx).Return(nil)
 			s.MockShutdowner.EXPECT().Shutdown(ctx).Return(nil)
@@ -295,7 +295,7 @@ func TestPal_Run(t *testing.T) {
 		t.Parallel()
 
 		// Create a service that will track if it was shut down
-		shutdownService := pal.ProvideFn(func(context.Context) (*TestServiceStruct, error) {
+		shutdownService := pal.ProvideFn[*TestServiceStruct](func(context.Context) (*TestServiceStruct, error) {
 			s := NewMockTestServiceStruct(t)
 			s.MockIniter.EXPECT().Init(mock.Anything).Return(nil)
 			s.MockShutdowner.EXPECT().Shutdown(mock.Anything).Return(nil)
@@ -303,7 +303,7 @@ func TestPal_Run(t *testing.T) {
 		})
 
 		// Create a runner that will return an error
-		errorRunnerService := pal.ProvideFn(func(_ context.Context) (any, error) {
+		errorRunnerService := pal.ProvideFn[MainRunner](func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
 			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest)
@@ -311,7 +311,7 @@ func TestPal_Run(t *testing.T) {
 		})
 
 		// Create a normal runner
-		runnerService := pal.ProvideFn(func(_ context.Context) (*RunnerServiceStruct, error) {
+		runnerService := pal.ProvideFn[*RunnerServiceStruct](func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
 			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)

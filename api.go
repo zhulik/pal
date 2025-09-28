@@ -14,28 +14,30 @@ import (
 // - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
 // If the passed value implements Initer, Init() will be called.
 func Provide[T any](value T) *ServiceConst[T] {
-	validatePointerToStruct(value)
+	validateNonNilPointer(value)
 
 	return ProvideNamed(typetostring.GetType[T](), value)
 }
 
 // ProvideNamed registers a const as a service with a given name. Acts like Provide but allows to specify a name.
 func ProvideNamed[T any](name string, value T) *ServiceConst[T] {
-	validatePointerToStruct(value)
+	validateNonNilPointer(value)
 
 	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: name}}
 }
 
 // ProvideFn registers a singleton built with a given function.
-func ProvideFn[T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
-	return ProvideNamedFn(typetostring.GetType[T](), fn)
+func ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[I, T] {
+	return ProvideNamedFn[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFn registers a singleton built with a given function.
-func ProvideNamedFn[T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[T] {
-	return &ServiceFnSingleton[T]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFn[I any, T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[I, T] {
+	validateFactoryFunction[I, T](fn)
+
+	return &ServiceFnSingleton[I, T]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
@@ -53,80 +55,92 @@ func ProvideList(services ...ServiceDef) *ServiceList {
 }
 
 // ProvideFactory0 registers a factory service that is build with a given function with no arguments.
-func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
-	return ProvideNamedFactory0(typetostring.GetType[T](), fn)
+func ProvideFactory0[I any, T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[I, T] {
+	return ProvideNamedFactory0[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
-func ProvideFactory1[T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
-	return ProvideNamedFactory1(typetostring.GetType[T](), fn)
+func ProvideFactory1[I any, T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[I, T, P1] {
+	validateFactoryFunction[I, T](fn)
+	return ProvideNamedFactory1[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory2 registers a factory service that is built in runtime with a given function that takes two arguments.
-func ProvideFactory2[T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[T, P1, P2] {
-	return ProvideNamedFactory2(typetostring.GetType[T](), fn)
+func ProvideFactory2[I any, T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[I, T, P1, P2] {
+	return ProvideNamedFactory2[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory3 registers a factory service that is built in runtime with a given function that takes three arguments.
-func ProvideFactory3[T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[T, P1, P2, P3] {
-	return ProvideNamedFactory3(typetostring.GetType[T](), fn)
+func ProvideFactory3[I any, T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[I, T, P1, P2, P3] {
+	return ProvideNamedFactory3[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory4 registers a factory service that is built in runtime with a given function that takes four arguments.
-func ProvideFactory4[T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[T, P1, P2, P3, P4] {
-	return ProvideNamedFactory4(typetostring.GetType[T](), fn)
+func ProvideFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[I, T, P1, P2, P3, P4] {
+	return ProvideNamedFactory4[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory5 registers a factory service that is built in runtime with a given function that takes five arguments.
-func ProvideFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[T, P1, P2, P3, P4, P5] {
-	return ProvideNamedFactory5(typetostring.GetType[T](), fn)
+func ProvideFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[I, T, P1, P2, P3, P4, P5] {
+	return ProvideNamedFactory5[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideNamedFactory0 is like ProvideFactory0 but allows to specify a name.
-func ProvideNamedFactory0[T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFactory0[T] {
-	return &ServiceFactory0[T]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFactory0[I any, T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFactory0[I, T] {
+	validateFactoryFunction[I, T](fn)
+	return &ServiceFactory0[I, T]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
 // ProvideNamedFactory1 is like ProvideFactory1 but allows to specify a name.
-func ProvideNamedFactory1[T any, P1 any](name string, fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
-	return &ServiceFactory1[T, P1]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFactory1[I any, T any, P1 any](name string, fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[I, T, P1] {
+	validateFactoryFunction[I, T](fn)
+
+	return &ServiceFactory1[I, T, P1]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
 // ProvideNamedFactory2 is like ProvideFactory2 but allows to specify a name.
-func ProvideNamedFactory2[T any, P1 any, P2 any](name string, fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[T, P1, P2] {
-	return &ServiceFactory2[T, P1, P2]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFactory2[I any, T any, P1 any, P2 any](name string, fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[I, T, P1, P2] {
+	validateFactoryFunction[I, T](fn)
+
+	return &ServiceFactory2[I, T, P1, P2]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
 // ProvideNamedFactory3 is like ProvideFactory3 but allows to specify a name.
-func ProvideNamedFactory3[T any, P1 any, P2 any, P3 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[T, P1, P2, P3] {
-	return &ServiceFactory3[T, P1, P2, P3]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFactory3[I any, T any, P1 any, P2 any, P3 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[I, T, P1, P2, P3] {
+	validateFactoryFunction[I, T](fn)
+
+	return &ServiceFactory3[I, T, P1, P2, P3]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
 // ProvideNamedFactory4 is like ProvideFactory4 but allows to specify a name.
-func ProvideNamedFactory4[T any, P1 any, P2 any, P3 any, P4 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[T, P1, P2, P3, P4] {
-	return &ServiceFactory4[T, P1, P2, P3, P4]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[I, T, P1, P2, P3, P4] {
+	validateFactoryFunction[I, T](fn)
+
+	return &ServiceFactory4[I, T, P1, P2, P3, P4]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
 // ProvideNamedFactory5 is like ProvideFactory5 but allows to specify a name.
-func ProvideNamedFactory5[T any, P1 any, P2 any, P3 any, P4 any, P5 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[T, P1, P2, P3, P4, P5] {
-	return &ServiceFactory5[T, P1, P2, P3, P4, P5]{
-		fn:           fn,
-		ServiceTyped: ServiceTyped[T]{name: name},
+func ProvideNamedFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[I, T, P1, P2, P3, P4, P5] {
+	validateFactoryFunction[I, T](fn)
+
+	return &ServiceFactory5[I, T, P1, P2, P3, P4, P5]{
+		fn:             fn,
+		ServiceFactory: ServiceFactory[I, T]{ServiceTyped: ServiceTyped[I]{name: name}},
 	}
 }
 
@@ -232,6 +246,13 @@ func InvokeByInterface[I any](ctx context.Context, invoker Invoker, args ...any)
 		}
 	}
 	iface := reflect.TypeOf((*I)(nil)).Elem()
+	if invoker == nil {
+		var err error
+		invoker, err = FromContext(ctx)
+		if err != nil {
+			return empty[I](), err
+		}
+	}
 
 	instance, err := invoker.InvokeByInterface(ctx, iface, args...)
 	if err != nil {
@@ -292,10 +313,34 @@ func must[T any](value T, err error) T {
 	return value
 }
 
-func validatePointerToStruct(value any) {
+func validateNonNilPointer(value any) {
 	val := reflect.ValueOf(value)
 
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		panic(fmt.Sprintf("Argument must be a non-nil pointer to a struct, got %T", value))
+	}
+}
+
+func validateFactoryFunction[I any, T any](fn any) {
+	// Factory function must return a pointer to a struct that implements I
+	// I and T must be the same pointer type.
+	// This way pal can inspect the type of the returned value to build the correct dependency tree.
+	if reflect.TypeOf(fn).Out(0).Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("Factory function must return a pointer, got %s", reflect.TypeOf(fn).Out(0).Kind()))
+	}
+
+	if typetostring.GetType[I]() == typetostring.GetType[T]() {
+		return
+	}
+
+	iType := reflect.TypeOf((*I)(nil)).Elem()
+	tType := reflect.TypeOf((*T)(nil)).Elem()
+
+	if iType.Kind() != reflect.Interface {
+		panic(fmt.Sprintf("I must be an interface, got %s", iType.Kind()))
+	}
+
+	if !tType.Implements(iType) {
+		panic(fmt.Sprintf("T (%s) must implement interface I (%s)", tType, iType))
 	}
 }

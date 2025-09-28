@@ -135,7 +135,7 @@ Singleton services are created once during application initialization and reused
 pal.Provide[MyService](&MyServiceImpl{})
 
 // Register a singleton service using a factory function
-pal.ProvideFn[MyService](func(ctx context.Context) (MyService, error) {
+pal.ProvideFn[MyService](func(ctx context.Context) (MyServiceImpl, error) {
     return &MyServiceImpl{}, nil
 })
 ```
@@ -251,7 +251,7 @@ pal.ProvideFactory[MyService](&MyServiceImpl{}).
     })
 
 // With function-based services
-pal.ProvideFn[MyService](func(ctx context.Context) (MyService, error) {
+pal.ProvideFn[MyService](func(ctx context.Context) (*MyServiceImpl, error) {
     return &MyServiceImpl{}, nil
 }).
     ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {

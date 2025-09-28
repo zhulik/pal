@@ -23,7 +23,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 	t.Run("when called with correct arguments, returns a new instance built with given arguments", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory1(func(_ context.Context, name string) (*factory1Service, error) {
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
 			return &factory1Service{Name: name}, nil
 		})
 		p := newPal(service)
@@ -52,7 +52,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 	t.Run("when called with incorrect number of arguments, returns an error", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory1(func(_ context.Context, name string) (*factory1Service, error) {
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
 			return &factory1Service{Name: name}, nil
 		})
 		p := newPal(service)
@@ -70,7 +70,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 	t.Run("when called with incorrect argument type, returns an error", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory1(func(_ context.Context, name string) (*factory1Service, error) {
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
 			return &factory1Service{Name: name}, nil
 		})
 		p := newPal(service)
@@ -88,7 +88,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 	t.Run("when a service with a factory service dependency is invoked, returns an error", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory1(func(_ context.Context, name string) (*factory1Service, error) {
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
 			return &factory1Service{Name: name}, nil
 		})
 		p := newPal(service)
