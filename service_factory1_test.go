@@ -16,11 +16,15 @@ type serviceWithFactoryServiceDependency struct {
 	Dependency *factory1Service
 }
 
+type serviceWithFactoryFunctionDependency struct {
+	CreateDependency func(ctx context.Context, name string) (*factory1Service, error)
+}
+
 // TestService_Instance tests the Instance method of the service struct
-func TestServiceFactory1_Instance(t *testing.T) {
+func TestServiceFactory1_Invocation(t *testing.T) {
 	t.Parallel()
 
-	t.Run("when called with correct arguments, returns a new instance built with given arguments", func(t *testing.T) {
+	t.Run("when invoked with correct arguments, returns a new instance built with given arguments", func(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
@@ -49,7 +53,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		assert.NotSame(t, instance1, instance2)
 	})
 
-	t.Run("when called with incorrect number of arguments, returns an error", func(t *testing.T) {
+	t.Run("when invoked with incorrect number of arguments, returns an error", func(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
@@ -67,7 +71,7 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		assert.ErrorIs(t, err, pal.ErrServiceInvalidArgumentsCount)
 	})
 
-	t.Run("when called with incorrect argument type, returns an error", func(t *testing.T) {
+	t.Run("when invoked with incorrect argument type, returns an error", func(t *testing.T) {
 		t.Parallel()
 
 		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
@@ -101,5 +105,29 @@ func TestServiceFactory1_Instance(t *testing.T) {
 		err = p.InjectInto(ctx, &serviceWithFactoryServiceDependency{})
 
 		assert.ErrorIs(t, err, pal.ErrFactoryServiceDependency)
+	})
+
+	t.Run("when invoked via injected factory function, returns a new instance built with given arguments", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
+			return &factory1Service{Name: name}, nil
+		})
+		p := newPal(service)
+
+		ctx := pal.WithPal(t.Context(), p)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		serviceWithFactoryFn := &serviceWithFactoryFunctionDependency{}
+		err = p.InjectInto(ctx, serviceWithFactoryFn)
+
+		assert.NoError(t, err)
+
+		dependency, err := serviceWithFactoryFn.CreateDependency(ctx, "test")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "test", dependency.Name)
 	})
 }
