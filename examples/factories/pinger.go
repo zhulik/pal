@@ -34,7 +34,7 @@ func (p *pinger) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// Ping pings google.com.
+// Ping pings given URL.
 func (p *pinger) Ping(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", p.URL, nil)
 	if err != nil {

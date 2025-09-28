@@ -16,13 +16,19 @@ import (
 	"github.com/zhulik/pal/pkg/dag"
 )
 
+type factoryServiceMaping struct {
+	Factory any
+	Service ServiceDef
+}
+
 // Container is responsible for storing services, instances and the dependency graph
 type Container struct {
 	pal *Pal
 
-	services map[string]ServiceDef
-	graph    *dag.DAG[string, ServiceDef]
-	logger   *slog.Logger
+	services  map[string]ServiceDef
+	factories map[string]factoryServiceMaping
+	graph     *dag.DAG[string, ServiceDef]
+	logger    *slog.Logger
 }
 
 // NewContainer creates a new Container instance
@@ -30,14 +36,23 @@ func NewContainer(pal *Pal, services ...ServiceDef) *Container {
 	services = flattenServices(services)
 
 	container := &Container{
-		pal:      pal,
-		services: map[string]ServiceDef{},
-		graph:    dag.New[string, ServiceDef](),
-		logger:   slog.With("palComponent", "Container"),
+		pal:       pal,
+		services:  map[string]ServiceDef{},
+		factories: map[string]factoryServiceMaping{},
+		graph:     dag.New[string, ServiceDef](),
+		logger:    slog.With("palComponent", "Container"),
 	}
 
 	for _, service := range services {
 		container.addService(service)
+		if factorier, ok := service.(interface{ Factory() any }); ok {
+			fn := factorier.Factory()
+			fnType := reflect.TypeOf(fn)
+			container.factories[typetostring.GetReflectType(fnType)] = factoryServiceMaping{
+				Factory: fn,
+				Service: service,
+			}
+		}
 	}
 
 	return container
@@ -123,6 +138,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		}
 
 		fieldType := t.Field(i).Type
+
 		if fieldType == reflect.TypeOf((*slog.Logger)(nil)) && c.pal.config.AttrSetters != nil {
 			c.injectLoggerIntoField(field, target)
 			continue
@@ -142,10 +158,19 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 			typeName = typetostring.GetReflectType(fieldType)
 		}
 
+		if fieldType.Kind() == reflect.Func {
+			mapping, ok := c.factories[typeName]
+			if ok {
+				field.Set(reflect.ValueOf(mapping.Factory))
+			}
+
+			continue
+		}
+
 		err = c.injectByName(ctx, typeName, field)
 		if err != nil {
 			if errors.Is(err, ErrServiceNotFound) && !mustInject {
-				return nil
+				continue
 			}
 			return err
 		}
@@ -277,9 +302,26 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
-		dependencyName := typetostring.GetReflectType(typ.Field(i).Type)
+		field := typ.Field(i)
+		tags, err := ParseTag(field.Tag.Get("pal"))
+		if err != nil {
+			return err
+		}
+
+		dependencyName := tags[TagName]
+
+		if dependencyName == "" {
+			dependencyName = typetostring.GetReflectType(field.Type)
+		}
+
 		if childService, ok := c.services[dependencyName]; ok {
 			if err := c.addDependencyVertex(childService, service); err != nil {
+				return err
+			}
+		}
+
+		if factoryMapping, ok := c.factories[dependencyName]; ok {
+			if err := c.addDependencyVertex(factoryMapping.Service, service); err != nil {
 				return err
 			}
 		}
