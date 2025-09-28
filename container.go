@@ -20,9 +20,10 @@ import (
 type Container struct {
 	pal *Pal
 
-	services map[string]ServiceDef
-	graph    *dag.DAG[string, ServiceDef]
-	logger   *slog.Logger
+	services  map[string]ServiceDef
+	factories map[string]any
+	graph     *dag.DAG[string, ServiceDef]
+	logger    *slog.Logger
 }
 
 // NewContainer creates a new Container instance
@@ -30,14 +31,20 @@ func NewContainer(pal *Pal, services ...ServiceDef) *Container {
 	services = flattenServices(services)
 
 	container := &Container{
-		pal:      pal,
-		services: map[string]ServiceDef{},
-		graph:    dag.New[string, ServiceDef](),
-		logger:   slog.With("palComponent", "Container"),
+		pal:       pal,
+		services:  map[string]ServiceDef{},
+		factories: map[string]any{},
+		graph:     dag.New[string, ServiceDef](),
+		logger:    slog.With("palComponent", "Container"),
 	}
 
 	for _, service := range services {
 		container.addService(service)
+		if factorier, ok := service.(interface{ Factory() any }); ok {
+			fn := factorier.Factory()
+			fnType := reflect.TypeOf(fn)
+			container.factories[typetostring.GetReflectType(fnType)] = fn
+		}
 	}
 
 	return container
@@ -140,6 +147,15 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 
 		if typeName == "" {
 			typeName = typetostring.GetReflectType(fieldType)
+		}
+
+		if fieldType.Kind() == reflect.Func {
+			factory, ok := c.factories[typeName]
+			if ok {
+				field.Set(reflect.ValueOf(factory))
+			}
+
+			continue
 		}
 
 		err = c.injectByName(ctx, typeName, field)

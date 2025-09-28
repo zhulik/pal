@@ -45,3 +45,15 @@ func (c *ServiceFactory3[I, T, P1, P2, P3]) Instance(ctx context.Context, args .
 
 	return instance, nil
 }
+
+// Factory returns a function that creates a new instance of the service.
+func (c *ServiceFactory3[I, T, P1, P2, P3]) Factory() any {
+	return func(ctx context.Context, p1 P1, p2 P2, p3 P3) (I, error) {
+		instance, err := c.Instance(ctx, p1, p2, p3)
+		if err != nil {
+			var i I
+			return i, err
+		}
+		return instance.(I), nil
+	}
+}
