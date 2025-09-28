@@ -3,6 +3,7 @@ package pal
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"reflect"
 
 	typetostring "github.com/samber/go-type-to-string"
@@ -14,14 +15,14 @@ import (
 // - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
 // If the passed value implements Initer, Init() will be called.
 func Provide[T any](value T) *ServiceConst[T] {
-	validatePointerToStruct(value)
+	validateNonNilPointer(value)
 
 	return ProvideNamed(typetostring.GetType[T](), value)
 }
 
 // ProvideNamed registers a const as a service with a given name. Acts like Provide but allows to specify a name.
 func ProvideNamed[T any](name string, value T) *ServiceConst[T] {
-	validatePointerToStruct(value)
+	validateNonNilPointer(value)
 
 	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: name}}
 }
@@ -60,6 +61,15 @@ func ProvideFactory0[T any](fn func(ctx context.Context) (T, error)) *ServiceFac
 // ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
 func ProvideFactory1[T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[T, P1] {
 	return ProvideNamedFactory1(typetostring.GetType[T](), fn)
+}
+
+// ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
+func ProvideFactoryExperement1[I any, T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactoryExperement1[I, T, P1] {
+	validateFactoryFunction[I, T](fn)
+	return &ServiceFactoryExperement1[I, T, P1]{
+		fn:           fn,
+		ServiceTyped: ServiceTyped[I]{name: typetostring.GetType[I]()},
+	}
 }
 
 // ProvideFactory2 registers a factory service that is built in runtime with a given function that takes two arguments.
@@ -225,6 +235,13 @@ func MustInvokeAs[T any, C any](ctx context.Context, invoker Invoker, args ...an
 // if the context does not contain a Pal instance, an error will be returned.
 func InvokeByInterface[I any](ctx context.Context, invoker Invoker, args ...any) (I, error) {
 	iface := reflect.TypeOf((*I)(nil)).Elem()
+	if invoker == nil {
+		var err error
+		invoker, err = FromContext(ctx)
+		if err != nil {
+			return empty[I](), err
+		}
+	}
 
 	instance, err := invoker.InvokeByInterface(ctx, iface, args...)
 	if err != nil {
@@ -285,10 +302,32 @@ func must[T any](value T, err error) T {
 	return value
 }
 
-func validatePointerToStruct(value any) {
+func validateNonNilPointer(value any) {
 	val := reflect.ValueOf(value)
 
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		panic(fmt.Sprintf("Argument must be a non-nil pointer to a struct, got %T", value))
+	}
+}
+
+func validateFactoryFunction[I any, T any](fn any) {
+	if reflect.TypeOf(fn).Out(0).Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("Factory function must return a pointer, got %s", reflect.TypeOf(fn).Out(0).Kind()))
+	}
+
+	slog.InfoContext(context.Background(), "validateImplements", "I", typetostring.GetType[I](), "T", typetostring.GetType[T]())
+	if typetostring.GetType[I]() == typetostring.GetType[T]() {
+		return
+	}
+
+	iType := reflect.TypeOf((*I)(nil)).Elem()
+	tType := reflect.TypeOf((*T)(nil)).Elem()
+
+	if iType.Kind() != reflect.Interface {
+		panic(fmt.Sprintf("I must be an interface, got %s", iType.Kind()))
+	}
+
+	if !tType.Implements(iType) {
+		panic(fmt.Sprintf("T (%s) must implement interface I (%s)", tType, iType))
 	}
 }
