@@ -138,6 +138,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		}
 
 		fieldType := t.Field(i).Type
+
 		if fieldType == reflect.TypeOf((*slog.Logger)(nil)) && c.pal.config.AttrSetters != nil {
 			c.injectLoggerIntoField(field, target)
 			continue
@@ -169,7 +170,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 		err = c.injectByName(ctx, typeName, field)
 		if err != nil {
 			if errors.Is(err, ErrServiceNotFound) && !mustInject {
-				return nil
+				continue
 			}
 			return err
 		}
@@ -312,8 +313,6 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 		if dependencyName == "" {
 			dependencyName = typetostring.GetReflectType(field.Type)
 		}
-
-		slog.Info("Adding dependency vertex", "dependencyName", dependencyName, "service", service.Name())
 
 		if childService, ok := c.services[dependencyName]; ok {
 			if err := c.addDependencyVertex(childService, service); err != nil {

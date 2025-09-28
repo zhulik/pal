@@ -14,7 +14,10 @@ type ticker struct {
 
 	Pal *pal.Pal
 
-	pinger Pinger       // pinger is injected by pal, using the Pinger interface.
+	// CreatePinger is a factory function that creates a pinger service, it is injected by pal.
+	CreatePinger func(ctx context.Context, url string) (Pinger, error)
+
+	pinger Pinger
 	ticker *time.Ticker // ticker is created in Init and stopped in Shutdown.
 }
 
@@ -22,7 +25,7 @@ type ticker struct {
 func (t *ticker) Init(ctx context.Context) error { //nolint:unparam
 	defer t.Logger.Info("ticker initialized")
 
-	pinger, err := pal.Invoke[Pinger](ctx, t.Pal, "https://google.com")
+	pinger, err := t.CreatePinger(ctx, "https://google.com")
 	if err != nil {
 		return err
 	}
