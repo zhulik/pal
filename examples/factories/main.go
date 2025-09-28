@@ -20,7 +20,7 @@ func main() {
 	// When shutting down, it first shuts down the ticker, then the pinger. First it stops the runners,
 	// then shuts down the services in the order reversed to the initialization.
 	p := pal.New(
-		pal.ProvideFactory1(func(_ context.Context, url string) (Pinger, error) {
+		pal.ProvideFactory1[Pinger](func(_ context.Context, url string) (*pinger, error) {
 			return &pinger{URL: url}, nil
 		}), // Provide the pinger service as the Pinger interface.
 		pal.Provide(&ticker{}), // Provide the ticker service. As it is the main runner, it does not need to have a specific interface.

@@ -56,7 +56,7 @@ func TestProvideFn(t *testing.T) {
 	t.Run("creates a singleton service with a function", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFn(func(ctx context.Context) (TestServiceInterface, error) {
+		service := pal.ProvideFn[TestServiceInterface](func(ctx context.Context) (*TestServiceStruct, error) {
 			s := NewMockTestServiceStruct(t)
 			s.MockIniter.EXPECT().Init(ctx).Return(nil)
 			return s, nil
@@ -74,7 +74,7 @@ func TestProvideFactory0(t *testing.T) {
 	t.Run("creates a factory service with a function", func(t *testing.T) {
 		t.Parallel()
 
-		service := pal.ProvideFactory0(func(_ context.Context) (TestServiceInterface, error) {
+		service := pal.ProvideFactory0[TestServiceInterface](func(_ context.Context) (*TestServiceStruct, error) {
 			return NewMockTestServiceStruct(t), nil
 		})
 
@@ -105,7 +105,7 @@ func TestInvoke(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+			pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 				s := NewMockTestServiceStruct(t)
 				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
@@ -241,7 +241,7 @@ func TestBuild(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+			pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 				s := NewMockTestServiceStruct(t)
 				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
@@ -320,7 +320,7 @@ func TestInjectInto(t *testing.T) {
 		t.Parallel()
 
 		p := newPal(
-			pal.ProvideFn(func(ctx context.Context) (*TestServiceStruct, error) {
+			pal.ProvideFn[*TestServiceStruct](func(ctx context.Context) (*TestServiceStruct, error) {
 				s := NewMockTestServiceStruct(t)
 				s.MockIniter.EXPECT().Init(ctx).Return(nil)
 				return s, nil
