@@ -2,6 +2,7 @@ package pal
 
 import (
 	"context"
+	"fmt"
 )
 
 func runService(ctx context.Context, name string, instance any, p *Pal) error {
@@ -11,7 +12,7 @@ func runService(ctx context.Context, name string, instance any, p *Pal) error {
 		return nil
 	}
 
-	return tryWrap(func() error {
+	err := tryWrap(func() error {
 		logger.Debug("Running")
 		err := runner.Run(ctx)
 		if err != nil {
@@ -22,6 +23,14 @@ func runService(ctx context.Context, name string, instance any, p *Pal) error {
 		logger.Debug("Runner finished successfully")
 		return nil
 	})()
+
+	if err != nil {
+		if panicErr, ok := err.(*PanicError); ok {
+			fmt.Printf("panic: %s\n%s\n", panicErr.Error(), panicErr.Backtrace())
+		}
+	}
+
+	return err
 }
 
 func healthcheckService[T any](ctx context.Context, name string, instance T, hook LifecycleHook[T], p *Pal) error {
