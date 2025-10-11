@@ -42,3 +42,12 @@ var (
 	// ErrNotAnInterface is returned when a type is not an interface.
 	ErrNotAnInterface = errors.New("not an interface")
 )
+
+type PanicError struct {
+	error
+	backtrace string
+}
+
+func (e *PanicError) Backtrace() string {
+	return e.backtrace
+}

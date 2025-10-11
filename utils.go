@@ -3,6 +3,8 @@ package pal
 import (
 	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
 )
 
 func empty[T any]() T {
@@ -25,9 +27,36 @@ func tryWrap(f func() error) func() error {
 				default:
 					err = fmt.Errorf("%v", x)
 				}
+
+				err = &PanicError{
+					error:     err,
+					backtrace: backtrace(4),
+				}
 			}
 		}()
 		err = f()
 		return
 	}
+}
+
+func backtrace(skipLastN int) string {
+	pc := make([]uintptr, 100)
+	n := runtime.Callers(skipLastN, pc)
+
+	pc = pc[:n]
+
+	var stackTrace strings.Builder
+
+	frames := runtime.CallersFrames(pc)
+
+	for {
+		frame, more := frames.Next()
+		stackTrace.WriteString(fmt.Sprintf("%s\n\t%s:%d\n", frame.Function, frame.File, frame.Line))
+
+		if !more {
+			break
+		}
+	}
+
+	return stackTrace.String()
 }
