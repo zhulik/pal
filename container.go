@@ -317,6 +317,11 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
+
+		if !field.IsExported() {
+			continue
+		}
+
 		tags, err := ParseTag(field.Tag.Get("pal"))
 		if err != nil {
 			return err
