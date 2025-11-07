@@ -17,7 +17,8 @@ type serviceWithFactoryServiceDependency struct {
 }
 
 type serviceWithFactoryFunctionDependency struct {
-	CreateDependency func(ctx context.Context, name string) (*factory1Service, error)
+	CreateDependency     func(ctx context.Context, name string) (*factory1Service, error)
+	MustCreateDependency func(ctx context.Context, name string) *factory1Service
 }
 
 // TestService_Instance tests the Instance method of the service struct
@@ -128,6 +129,29 @@ func TestServiceFactory1_Invocation(t *testing.T) {
 		dependency, err := serviceWithFactoryFn.CreateDependency(ctx, "test")
 
 		assert.NoError(t, err)
+		assert.Equal(t, "test", dependency.Name)
+	})
+
+	t.Run("when invoked via injected must factory function, returns a new instance built with given arguments", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, name string) (*factory1Service, error) {
+			return &factory1Service{Name: name}, nil
+		})
+		p := newPal(service)
+
+		ctx := pal.WithPal(t.Context(), p)
+
+		err := p.Init(t.Context())
+		assert.NoError(t, err)
+
+		serviceWithFactoryFn := &serviceWithFactoryFunctionDependency{}
+		err = p.InjectInto(ctx, serviceWithFactoryFn)
+
+		assert.NoError(t, err)
+
+		dependency := serviceWithFactoryFn.MustCreateDependency(ctx, "test")
+
 		assert.Equal(t, "test", dependency.Name)
 	})
 }

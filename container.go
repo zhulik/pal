@@ -21,6 +21,11 @@ type factoryServiceMaping struct {
 	Service ServiceDef
 }
 
+type factoryService interface {
+	Factory() any
+	MustFactory() any
+}
+
 // Container is responsible for storing services, instances and the dependency graph
 type Container struct {
 	pal *Pal
@@ -45,9 +50,18 @@ func NewContainer(pal *Pal, services ...ServiceDef) *Container {
 
 	for _, service := range services {
 		container.addService(service)
-		if factorier, ok := service.(interface{ Factory() any }); ok {
-			fn := factorier.Factory()
+		if factory, ok := service.(factoryService); ok {
+			// Add Factory to the container
+			fn := factory.Factory()
 			fnType := reflect.TypeOf(fn)
+			container.factories[typetostring.GetReflectType(fnType)] = factoryServiceMaping{
+				Factory: fn,
+				Service: service,
+			}
+
+			// Add MustFactory to the container
+			fn = factory.MustFactory()
+			fnType = reflect.TypeOf(fn)
 			container.factories[typetostring.GetReflectType(fnType)] = factoryServiceMaping{
 				Factory: fn,
 				Service: service,

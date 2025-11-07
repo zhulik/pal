@@ -42,6 +42,7 @@ func (c *ServiceFactory2[I, T, P1, P2]) Instance(ctx context.Context, args ...an
 }
 
 // Factory returns a function that creates a new instance of the service.
+// The returned function has the signature func(ctx context.Context) (I, error).
 func (c *ServiceFactory2[I, T, P1, P2]) Factory() any {
 	return func(ctx context.Context, p1 P1, p2 P2) (I, error) {
 		instance, err := c.Instance(ctx, p1, p2)
@@ -50,5 +51,14 @@ func (c *ServiceFactory2[I, T, P1, P2]) Factory() any {
 			return i, err
 		}
 		return instance.(I), nil
+	}
+}
+
+// MustFactory returns a function that creates a new instance of the service.
+// The returned function has the signature func(ctx context.Context, p1 P1, p2 P2) I.
+// If the instance creation fails, it panics.
+func (c *ServiceFactory2[I, T, P1, P2]) MustFactory() any {
+	return func(ctx context.Context, p1 P1, p2 P2) I {
+		return must(c.Instance(ctx, p1, p2)).(I)
 	}
 }
