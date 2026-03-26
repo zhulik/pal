@@ -105,16 +105,16 @@ Pal provides several functions for registering services:
 Pal also provides functions for retrieving services:
 
 - `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require arguments.
-- `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Inoke`, castes invoked service to specified `C`, returns an error if casging fails.
+- `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Invoke`, casts the invoked service to `C`, and returns an error if casting fails.
 - `InvokeByInterface[I](ctx, invoker, args...)` - Retrieves the only service that implements the given interface `I`.
   Returns an error if there are zero or more than one service implementing the interface or if `I` is not an interface.
   **Note:** do not overuse this function as it gets slower the more services you have.
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves its dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
-- There are `Named` version of `Invoke` functions which allow to retries service by their names.
+- There are `Named` versions of `Invoke` functions that allow retrieving services by their explicit names.
 
 All these functions accept nil as invoker, in this case, a Pal instance will be extracted from the context.
-Pal automatilly adds itself into contexts paseed to `Init`, `Shutdown` and `Run` under `pal.CtxValue` key.
+Pal automatically adds itself into contexts passed to `Init`, `Shutdown`, and `Run` under the `pal.CtxValue` key.
 You can extract it manually with `pal.FromContext`
 
 ## Service Types
@@ -141,8 +141,8 @@ pal.ProvideFn[MyService](func(ctx context.Context) (MyServiceImpl, error) {
 ```
 
 ### Factory Services
-Factory services create a new instance every time they are invoked. They may accept up to 5 arguments, those which accept any
-argument cannot be explicitdependencies of other services. They are perfect for:
+Factory services create a new instance every time they are invoked. They may accept up to 5 arguments. Factories that accept
+arguments cannot be explicit dependencies of other services. They are perfect for:
 - Stateless components
 - Request-scoped objects
 - Objects that need different configurations per use
@@ -165,13 +165,13 @@ pal.ProvideFactory2[MyService](func(ctx context.Context, url string, timeout tim
 
 There are 2 ways to invoke a factory service:
 
-- manual invocation: 
+- manual invocation:
   ```go
-  pal.Invoke[MyService](ctx, p, "https://exmaple.com", timeout)
+  pal.Invoke[MyService](ctx, p, "https://example.com", timeout)
   ```
-  this way **must never** be using during initialization as Pal does know that your service depends on a factory service and the factory service
+  this way **must never** be used during initialization as Pal does not know that your service depends on a factory service and the factory service
   may not be yet initialized.
-- ivocation using injected factory function:
+- invocation using injected factory function:
   ```go
     type SomeService struct {
       ...
@@ -182,7 +182,7 @@ There are 2 ways to invoke a factory service:
     }
   ```
 
-  This way pal can see that `SomeService` depends on `MyService` and adjust the intitialization process accordingly. 
+  This way Pal can see that `SomeService` depends on `MyService` and adjust the initialization process accordingly.
   It is safe to call `CreateMyService` from `MyService.Init()`.
 
 ### Const Services
@@ -219,10 +219,10 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 
 ## Tags
 
-Pal support 3 struct tags:
+Pal supports 3 struct tags:
 - `pal:"skip"` - fields marked with this tag won't be injected.
 - `pal:"match_interface"` - `InvokeByInterface` will be used to inject this dependency
-- `pal:"name=<name>"` - a service will be invoked by it's explicit name.
+- `pal:"name=<name>"` - a service will be invoked by its explicit name.
 
 ## Lifecycle Hooks
 
@@ -316,12 +316,12 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
    - If `ToShutdown` is specified, the `Shutdown` will not be called.
    - If all services shut down successfully, `Pal.Run()` returns nil, otherwise it returns the collected errors.
 
-## Addition features
+## Additional features
 
 ### Integration with slog
 
 Pal can automatically inject `*slog.Logger` to your services. To enable this behavior call `InjectSlog()`. Pal
-will automatically add the name of service to the `component` attribute of the logger. Attiributes added to the
+will automatically add the name of service to the `component` attribute of the logger. Attributes added to the
 injected logger can be customized by passing arguments to `InjectSlog()`.
 
 ### Embedded healthcheck server
@@ -329,10 +329,10 @@ injected logger can be customized by passing arguments to `InjectSlog()`.
 Pal includes an embedded healthcheck server so you don't have to implement it yourself. Just call
 `RunHealthCheckServer(":8081", "/healthz")` and specify addr and path and the server will start on the specified
 addr and respond on GET requests on the specified path. It never responds with a body and does not add any headers
-beyound the default ones. It may return one of 4 status codes:
+beyond the default ones. It may return one of 4 status codes:
 
 - **200** - all services are healthy
-- **404** - wronng path requested
+- **404** - wrong path requested
 - **405** - wrong HTTP method is used
 - **500** - one or more services are unhealthy
 
