@@ -60,7 +60,7 @@ func (i *Inspect) Run(ctx context.Context) error {
 	}
 	i.P.Logger().Info("Starting Inspect HTTP server", "address", i.server.Addr)
 
-	go func() {
+	go func() { //nolint:gosec
 		<-ctx.Done()
 
 		// create a new context as the one passed to Run is already canceled

@@ -178,7 +178,7 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 		return err
 	}
 
-	go func() {
+	go func() { //nolint:gosec
 		<-ctx.Done()
 
 		p.logger.Warn("Received signal, shutting down. Send it again to exit immediately")

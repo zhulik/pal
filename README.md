@@ -24,6 +24,7 @@ Pal inherits some design decisions from `fx` and `do` and tries to offer the mos
 a few rules described below.
 
 ### Goals
+
 - Nondisruptive API:
   - You can integrate pal with any app, even if it already uses another IoC framework.
   - Even though migrating an existing app to pal may require some app redesign, you can do it gradually,
@@ -53,6 +54,7 @@ a few rules described below.
   - After initialization, pal is goroutine-safe.
 
 ### Non-goals
+
 - Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only
   performs periodic health checks. Thus, pal's initialization and shutdown should not be blazing fast, it should be *fast enough*.
   Using factory services is more expensive than using singleton services, but should generally be *fast enough*.
@@ -67,6 +69,7 @@ a few rules described below.
   mistakes. For instance, it's the user's responsibility to make sure each registered service uses a unique interface.
 
 ## Glossary
+
 - [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) — Inversion of Control is a design principle in software
   engineering that transfers control of a process or object from one part of the program to another.
 - [Dependency Injection](https://en.wikipedia.org/wiki/Dependency_injection) — specific implementation of the Inversion
@@ -105,16 +108,16 @@ Pal provides several functions for registering services:
 Pal also provides functions for retrieving services:
 
 - `Invoke[T](ctx, invoker, args...)` - Retrieves or creates an instance of type `T` from the container, factory services may require arguments.
-- `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Inoke`, castes invoked service to specified `C`, returns an error if casging fails.
+- `InvokeAs[T, C](ctx, invoker, args...)` - A wrapper around `Invoke`, casts the invoked service to `C`, and returns an error if casting fails.
 - `InvokeByInterface[I](ctx, invoker, args...)` - Retrieves the only service that implements the given interface `I`.
   Returns an error if there are zero or more than one service implementing the interface or if `I` is not an interface.
   **Note:** do not overuse this function as it gets slower the more services you have.
 - `Build[S](ctx, invoker)` - Creates an instance of S, resolves its dependencies, injects them into its fields.
 - `InjectInto[S](ctx, invoker, *S)` - Resolves S's dependencies and injects them into its fields.
-- There are `Named` version of `Invoke` functions which allow to retries service by their names.
+- There are `Named` versions of `Invoke` functions that allow retrieving services by their explicit names.
 
 All these functions accept nil as invoker, in this case, a Pal instance will be extracted from the context.
-Pal automatilly adds itself into contexts paseed to `Init`, `Shutdown` and `Run` under `pal.CtxValue` key.
+Pal automatically adds itself into contexts passed to `Init`, `Shutdown`, and `Run` under the `pal.CtxValue` key.
 You can extract it manually with `pal.FromContext`
 
 ## Service Types
@@ -122,7 +125,9 @@ You can extract it manually with `pal.FromContext`
 Pal supports several types of services, each designed for different use cases:
 
 ### Singleton Services
+
 Singleton services are created once during application initialization and reused throughout the application's lifetime. They are ideal for:
+
 - Database connections and clients
 - HTTP clients and servers
 - Configuration objects
@@ -130,6 +135,7 @@ Singleton services are created once during application initialization and reused
 - Any stateful component that should be shared
 
 **Registration:**
+
 ```go
 // Register a singleton service
 pal.Provide[MyService](&MyServiceImpl{})
@@ -141,14 +147,17 @@ pal.ProvideFn[MyService](func(ctx context.Context) (MyServiceImpl, error) {
 ```
 
 ### Factory Services
-Factory services create a new instance every time they are invoked. They may accept up to 5 arguments, those which accept any
-argument cannot be explicitdependencies of other services. They are perfect for:
+
+Factory services create a new instance every time they are invoked. They may accept up to 5 arguments. Factories that accept
+arguments cannot be explicit dependencies of other services. They are perfect for:
+
 - Stateless components
 - Request-scoped objects
 - Objects that need different configurations per use
 - Components that should not be shared
 
 **Registration:**
+
 ```go
 // Register a factory service with no arguments
 pal.ProvideFactory0[MyService](func(ctx context.Context) (*MyServiceImpl, error) {
@@ -161,17 +170,21 @@ pal.ProvideFactory2[MyService](func(ctx context.Context, url string, timeout tim
 })
 ```
 
-**Invocation**
+#### Invocation
 
 There are 2 ways to invoke a factory service:
 
-- manual invocation: 
+- manual invocation:
+
   ```go
-  pal.Invoke[MyService](ctx, p, "https://exmaple.com", timeout)
+  pal.Invoke[MyService](ctx, p, "https://example.com", timeout)
   ```
-  this way **must never** be using during initialization as Pal does know that your service depends on a factory service and the factory service
+
+  this way **must never** be used during initialization as Pal does not know that your service depends on a factory service and the factory service
   may not be yet initialized.
-- ivocation using injected factory function:
+
+- invocation using injected factory function:
+
   ```go
     type SomeService struct {
       ...
@@ -182,16 +195,19 @@ There are 2 ways to invoke a factory service:
     }
   ```
 
-  This way pal can see that `SomeService` depends on `MyService` and adjust the intitialization process accordingly. 
+  This way Pal can see that `SomeService` depends on `MyService` and adjust the initialization process accordingly.
   It is safe to call `CreateMyService` from `MyService.Init()`.
 
 ### Const Services
+
 Const services wrap existing instances. They are useful for:
+
 - Registering third-party objects
 - Wrapping existing instances that don't implement pal interfaces
 - Testing with mock objects
 
 **Registration:**
+
 ```go
 // Register a const service
 existingInstance := &MyServiceImpl{}
@@ -199,13 +215,16 @@ pal.ProvideConst[MyService](existingInstance)
 ```
 
 ### Runner Services
+
 Runner services are special singleton services that run in the background. They implement the `Runner` interface and are used for:
+
 - HTTP servers
 - Message consumers
 - Background workers
 - Long-running processes
 
 **Example:**
+
 ```go
 type HTTPServer struct {
     // dependencies...
@@ -219,14 +238,16 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 
 ## Tags
 
-Pal support 3 struct tags:
+Pal supports 3 struct tags:
+
 - `pal:"skip"` - fields marked with this tag won't be injected.
 - `pal:"match_interface"` - `InvokeByInterface` will be used to inject this dependency
-- `pal:"name=<name>"` - a service will be invoked by it's explicit name.
+- `pal:"name=<name>"` - a service will be invoked by its explicit name.
 
 ## Lifecycle Hooks
 
 Pal provides lifecycle hooks that allow you to customize service behavior without implementing the full lifecycle interfaces. Hooks take precedence over interface methods and are useful for:
+
 - Adding custom initialization logic
 - Implementing custom shutdown procedures
 - Adding health check functionality
@@ -270,13 +291,15 @@ pal.ProvideFn[MyService](func(ctx context.Context) (*MyServiceImpl, error) {
     })
 ```
 
-## Examples:
+## Examples
 
 Examples can be found here:
+
 - [example_container_test.go](./example_container_test.go)
 - [example_pal_test.go](./example_pal_test.go)
 
-## Example apps:
+## Example apps
+
 - [Web Server](./examples/web) - Demonstrates how to build a web server using Pal.
 - [CLI Application](./examples/cli) - Illustrates how to structure a command-line application using Pal.
 - [Dependency management using hooks](./examples/hooks) - Illustrates how to use hooks.
@@ -307,8 +330,6 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
    - Services may implement their health check logic either by specifying `ToHealthCheck` hook or by implementing the `HealthCheck` method.
    - If `ToHealthCheck` hook is specified, the `HealthCheck` method will not be called.
    - If any service returns an error, Pal initiates a graceful shutdown.
-
-
 5. **Shutdown**:
    - When `Pal.Shutdown()` is called or a termination signal is received, Pal initiates the shutdown sequence.
    - Pal cancels the context for all running services (Runners) and awaits for runners to finish.
@@ -316,12 +337,12 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
    - If `ToShutdown` is specified, the `Shutdown` will not be called.
    - If all services shut down successfully, `Pal.Run()` returns nil, otherwise it returns the collected errors.
 
-## Addition features
+## Additional features
 
 ### Integration with slog
 
 Pal can automatically inject `*slog.Logger` to your services. To enable this behavior call `InjectSlog()`. Pal
-will automatically add the name of service to the `component` attribute of the logger. Attiributes added to the
+will automatically add the name of service to the `component` attribute of the logger. Attributes added to the
 injected logger can be customized by passing arguments to `InjectSlog()`.
 
 ### Embedded healthcheck server
@@ -329,10 +350,10 @@ injected logger can be customized by passing arguments to `InjectSlog()`.
 Pal includes an embedded healthcheck server so you don't have to implement it yourself. Just call
 `RunHealthCheckServer(":8081", "/healthz")` and specify addr and path and the server will start on the specified
 addr and respond on GET requests on the specified path. It never responds with a body and does not add any headers
-beyound the default ones. It may return one of 4 status codes:
+beyond the default ones. It may return one of 4 status codes:
 
 - **200** - all services are healthy
-- **404** - wronng path requested
+- **404** - wrong path requested
 - **405** - wrong HTTP method is used
 - **500** - one or more services are unhealthy
 
@@ -358,10 +379,10 @@ The inspection server provides two endpoints:
 - **`/pal/tree.json`** - JSON representation of the dependency graph for programmatic access
 
 The visualization shows:
+
 - Service nodes with their types (singleton, factory)
 - Dependency relationships between services
 - Service capabilities (Initer, Runner, HealthChecker, Shutdowner)
-
 
 ## Best practices
 
