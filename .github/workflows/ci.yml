@@ -27,7 +27,7 @@ jobs:
           args: --timeout=2m
 
       - name: Lint markdown docs
-        uses: DavidAnson/markdownlint-cli2-action@v20
+        uses: DavidAnson/markdownlint-cli2-action@v23
         with:
           globs: |
             README.md
