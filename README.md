@@ -24,6 +24,7 @@ Pal inherits some design decisions from `fx` and `do` and tries to offer the mos
 a few rules described below.
 
 ### Goals
+
 - Nondisruptive API:
   - You can integrate pal with any app, even if it already uses another IoC framework.
   - Even though migrating an existing app to pal may require some app redesign, you can do it gradually,
@@ -53,6 +54,7 @@ a few rules described below.
   - After initialization, pal is goroutine-safe.
 
 ### Non-goals
+
 - Performance: it's assumed that pal is only active during app initialization and shutdown, all other time it only
   performs periodic health checks. Thus, pal's initialization and shutdown should not be blazing fast, it should be *fast enough*.
   Using factory services is more expensive than using singleton services, but should generally be *fast enough*.
@@ -67,6 +69,7 @@ a few rules described below.
   mistakes. For instance, it's the user's responsibility to make sure each registered service uses a unique interface.
 
 ## Glossary
+
 - [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) — Inversion of Control is a design principle in software
   engineering that transfers control of a process or object from one part of the program to another.
 - [Dependency Injection](https://en.wikipedia.org/wiki/Dependency_injection) — specific implementation of the Inversion
