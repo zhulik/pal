@@ -1,15 +1,9 @@
 version: 2
 updates:
-  - package-ecosystem: "go"
+  - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
-
-  - package-ecosystem: "go"
-    directory: "/inspect"
-    schedule:
-      interval: "weekly"
-
 
   - package-ecosystem: "github-actions"
     directory: "/"
