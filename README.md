@@ -460,6 +460,22 @@ Here are solutions to common issues you might encounter when using Pal:
    - **Possible Causes**: The service isn't checking for context cancellation in its Run method.
    - **Solution**: Ensure all long-running operations in your services respect context cancellation by checking `ctx.Done()` regularly.
 
+## Development
+
+`asdf` is the recommended package manager for development tools. Tool versions are pinned in `.tool-versions`.
+
+Basic setup:
+
+```bash
+asdf plugin add golang
+asdf plugin add golangci-lint
+asdf plugin add task
+asdf install
+task
+```
+
+If `task` runs successfully, your local development setup is ready.
+
 ## Contributing
 
 Contributions are welcome.
