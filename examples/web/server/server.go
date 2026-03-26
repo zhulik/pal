@@ -42,7 +42,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// We don't use Shutdown here because ListenAndServe() does not natively support context.
 	// instead we use a goroutine to listen for the context done signal and shutdown the server.
-	go func() {
+	go func() { //nolint:gosec
 		<-ctx.Done()
 		s.server.Shutdown(context.Background()) //nolint:errcheck
 	}()

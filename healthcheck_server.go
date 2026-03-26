@@ -54,7 +54,7 @@ func (h healthCheckServer) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *healthCheckServer) Run(ctx context.Context) error {
-	go func() {
+	go func() { //nolint:gosec
 		<-ctx.Done()
 
 		// create a new context as the one passed to Run is already canceled

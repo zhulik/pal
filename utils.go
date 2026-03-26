@@ -51,7 +51,7 @@ func backtrace(skipLastN int) string {
 
 	for {
 		frame, more := frames.Next()
-		stackTrace.WriteString(fmt.Sprintf("%s\n\t%s:%d\n", frame.Function, frame.File, frame.Line))
+		fmt.Fprintf(&stackTrace, "%s\n\t%s:%d\n", frame.Function, frame.File, frame.Line)
 
 		if !more {
 			break
