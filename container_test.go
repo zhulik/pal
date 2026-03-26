@@ -20,6 +20,18 @@ func NewMockService(t *testing.T, name string) *MockServiceDef {
 	return mock
 }
 
+type cycleServiceA struct {
+	B *cycleServiceB
+}
+
+type cycleServiceB struct {
+	C *cycleServiceC
+}
+
+type cycleServiceC struct {
+	A *cycleServiceA
+}
+
 // TestContainer_New tests the New function for Container
 func TestContainer_New(t *testing.T) {
 	t.Parallel()
@@ -83,6 +95,24 @@ func TestContainer_Init(t *testing.T) {
 		err := c.Init(t.Context())
 
 		assert.ErrorIs(t, err, errTest)
+	})
+
+	t.Run("returns cycle with service names in error", func(t *testing.T) {
+		t.Parallel()
+
+		c := pal.NewContainer(
+			&pal.Pal{},
+			pal.Provide(&cycleServiceA{}),
+			pal.Provide(&cycleServiceB{}),
+			pal.Provide(&cycleServiceC{}),
+		)
+
+		err := c.Init(t.Context())
+
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "cycleServiceA")
+		assert.ErrorContains(t, err, "cycleServiceB")
+		assert.ErrorContains(t, err, "cycleServiceC")
 	})
 }
 

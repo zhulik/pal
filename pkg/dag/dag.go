@@ -3,9 +3,11 @@ package dag
 import (
 	"cmp"
 	"errors"
+	"fmt"
 	"iter"
 	"maps"
 	"slices"
+	"strings"
 )
 
 var (
@@ -13,6 +15,27 @@ var (
 	ErrCycleDetected     = errors.New("cycle detected")
 	ErrVertexNotFound    = errors.New("vertex not found")
 )
+
+type CycleError[ID cmp.Ordered] struct {
+	Cycle []ID
+}
+
+func (e *CycleError[ID]) Error() string {
+	if len(e.Cycle) == 0 {
+		return ErrCycleDetected.Error()
+	}
+
+	parts := make([]string, len(e.Cycle))
+	for i, vertex := range e.Cycle {
+		parts[i] = fmt.Sprint(vertex)
+	}
+
+	return fmt.Sprintf("%s: %s", ErrCycleDetected, strings.Join(parts, " -> "))
+}
+
+func (e *CycleError[ID]) Unwrap() error {
+	return ErrCycleDetected
+}
 
 type DAG[ID cmp.Ordered, T any] struct {
 	vertices map[ID]T
@@ -112,11 +135,11 @@ func (d *DAG[ID, T]) AddEdge(source, target ID) error {
 	d.inDegree[target]++
 
 	// Check for cycles using DFS
-	if d.hasCycle() {
+	if cycle, hasCycle := d.hasCycle(); hasCycle {
 		// Remove the edge if it creates a cycle
-		d.edges[source][target] = false
+		delete(d.edges[source], target)
 		d.inDegree[target]--
-		return ErrCycleDetected
+		return &CycleError[ID]{Cycle: cycle}
 	}
 
 	return nil
@@ -180,39 +203,60 @@ func (d *DAG[ID, T]) ReverseTopologicalOrder() iter.Seq2[ID, T] {
 }
 
 // Helper method to detect cycles using DFS
-func (d *DAG[ID, T]) hasCycle() bool {
+func (d *DAG[ID, T]) hasCycle() ([]ID, bool) {
 	visited := make(map[ID]bool)
 	recStack := make(map[ID]bool)
+	path := make([]ID, 0, len(d.vertices))
+
+	var cycle []ID
 
 	var dfs func(ID) bool
 	dfs = func(vertex ID) bool {
-		if recStack[vertex] {
-			return true // Back edge found, cycle detected
-		}
-		if visited[vertex] {
-			return false // Already processed
-		}
-
 		visited[vertex] = true
 		recStack[vertex] = true
+		path = append(path, vertex)
 
+		neighbors := make([]ID, 0, len(d.edges[vertex]))
 		for neighbor := range d.edges[vertex] {
+			neighbors = append(neighbors, neighbor)
+		}
+		slices.Sort(neighbors)
+
+		for _, neighbor := range neighbors {
+			if recStack[neighbor] {
+				start := slices.Index(path, neighbor)
+				cycle = append([]ID{}, path[start:]...)
+				cycle = append(cycle, neighbor)
+				return true
+			}
+
+			if visited[neighbor] {
+				continue
+			}
+
 			if dfs(neighbor) {
 				return true
 			}
 		}
 
+		path = path[:len(path)-1]
 		recStack[vertex] = false
 		return false
 	}
 
+	vertices := make([]ID, 0, len(d.vertices))
 	for vertex := range d.vertices {
+		vertices = append(vertices, vertex)
+	}
+	slices.Sort(vertices)
+
+	for _, vertex := range vertices {
 		if !visited[vertex] {
 			if dfs(vertex) {
-				return true
+				return cycle, true
 			}
 		}
 	}
 
-	return false
+	return nil, false
 }

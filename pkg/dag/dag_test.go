@@ -133,6 +133,11 @@ func TestAddEdge(t *testing.T) {
 		// Try to add edge that creates cycle
 		err = d.AddEdge("C", "A")
 		assert.ErrorIs(t, err, dag.ErrCycleDetected)
+		assert.ErrorContains(t, err, "A -> B -> C -> A")
+
+		var cycleErr *dag.CycleError[string]
+		assert.ErrorAs(t, err, &cycleErr)
+		assert.Equal(t, []string{"A", "B", "C", "A"}, cycleErr.Cycle)
 
 		// Verify the cycle-causing edge was not added
 		assert.False(t, d.EdgeExists("C", "A"))
@@ -147,6 +152,7 @@ func TestAddEdge(t *testing.T) {
 
 		err := d.AddEdge("A", "A")
 		assert.ErrorIs(t, err, dag.ErrCycleDetected)
+		assert.ErrorContains(t, err, "A -> A")
 		assert.False(t, d.EdgeExists("A", "A"))
 		assert.Equal(t, 0, d.GetInDegree("A"))
 	})
