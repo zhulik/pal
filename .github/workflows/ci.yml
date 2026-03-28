@@ -60,7 +60,12 @@ jobs:
         run: go generate ./...
 
       - name: Run tests
-        run: go test -race ./...
+        run: go test -race -coverprofile=coverage.txt ./...
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   ci:
     name: CI
