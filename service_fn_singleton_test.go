@@ -18,7 +18,7 @@ type fnSingletonPalIniter struct {
 	err    error
 }
 
-func (p *fnSingletonPalIniter) PalInit(ctx context.Context) error {
+func (p *fnSingletonPalIniter) PalInit(_ context.Context) error {
 	p.called = true
 	return p.err
 }
@@ -28,7 +28,7 @@ type fnSingletonIniterOnly struct {
 	err    error
 }
 
-func (i *fnSingletonIniterOnly) Init(ctx context.Context) error {
+func (i *fnSingletonIniterOnly) Init(_ context.Context) error {
 	i.called = true
 	return i.err
 }
@@ -41,7 +41,7 @@ type fnSingletonRunner struct {
 
 type fnSingletonPalRunner struct{}
 
-func (*fnSingletonPalRunner) PalRun(ctx context.Context) error {
+func (*fnSingletonPalRunner) PalRun(_ context.Context) error {
 	return nil
 }
 
@@ -64,25 +64,25 @@ func (s *fnSingletonPalRunConfiger) PalRunConfig() *pal.RunConfig {
 // Implements Runner via Make() template; instance may be nil before Init.
 type fnSingletonRunnerFromMake struct{}
 
-func (*fnSingletonRunnerFromMake) Run(ctx context.Context) error {
+func (*fnSingletonRunnerFromMake) Run(_ context.Context) error {
 	return nil
 }
 
 type fnSingletonPalRunnerFromMake struct{}
 
-func (*fnSingletonPalRunnerFromMake) PalRun(ctx context.Context) error {
+func (*fnSingletonPalRunnerFromMake) PalRun(_ context.Context) error {
 	return nil
 }
 
 type fnSingletonPalHealth struct{}
 
-func (*fnSingletonPalHealth) PalHealthCheck(ctx context.Context) error {
+func (*fnSingletonPalHealth) PalHealthCheck(_ context.Context) error {
 	return errTest
 }
 
 type fnSingletonPalShutdown struct{}
 
-func (*fnSingletonPalShutdown) PalShutdown(ctx context.Context) error {
+func (*fnSingletonPalShutdown) PalShutdown(_ context.Context) error {
 	return errTest2
 }
 
@@ -92,7 +92,7 @@ type fnSingletonBothInit struct {
 	initerCalled bool
 }
 
-func (b *fnSingletonBothInit) Init(ctx context.Context) error {
+func (b *fnSingletonBothInit) Init(_ context.Context) error {
 	b.initerCalled = true
 	return nil
 }
@@ -146,7 +146,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		})
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
-		assert.True(t, inst.fnSingletonPalIniter.called)
+		assert.True(t, inst.called)
 		assert.False(t, inst.initerCalled)
 	})
 
