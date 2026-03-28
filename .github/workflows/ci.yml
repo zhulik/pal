@@ -67,8 +67,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           gcov_ignore:
-            - examples/**
-            - inspect/**
+            - examples
+            - inspect
 
   ci:
     name: CI
