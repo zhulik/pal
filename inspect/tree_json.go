@@ -21,6 +21,7 @@ type NodeJSON struct {
 
 	Initer        bool `json:"initer"`
 	Runner        bool `json:"runner"`
+	RunConfiger   bool `json:"runConfiger"`
 	HealthChecker bool `json:"healthChecker"`
 	Shutdowner    bool `json:"shutdowner"`
 }
@@ -31,21 +32,35 @@ type EdgeJSON struct {
 }
 
 func serviceToJSON(id string, inDegree int, outDegree int, service pal.ServiceDef) NodeJSON {
-	var initer, runner, healthChecker, shutdowner bool
+	var initer, runner, runConfiger, healthChecker, shutdowner bool
 
-	if _, ok := service.Make().(pal.Initer); ok {
+	if _, ok := service.Make().(pal.PalIniter); ok {
+		initer = true
+	} else if _, ok := service.Make().(pal.Initer); ok {
 		initer = true
 	}
 
-	if _, ok := service.Make().(pal.Runner); ok {
+	if _, ok := service.Make().(pal.PalRunner); ok {
+		runner = true
+	} else if _, ok := service.Make().(pal.Runner); ok {
 		runner = true
 	}
 
-	if _, ok := service.Make().(pal.HealthChecker); ok {
+	if _, ok := service.Make().(pal.PalRunConfiger); ok {
+		runConfiger = true
+	} else if _, ok := service.Make().(pal.RunConfiger); ok {
+		runConfiger = true
+	}
+
+	if _, ok := service.Make().(pal.PalHealthChecker); ok {
+		healthChecker = true
+	} else if _, ok := service.Make().(pal.HealthChecker); ok {
 		healthChecker = true
 	}
 
-	if _, ok := service.Make().(pal.Shutdowner); ok {
+	if _, ok := service.Make().(pal.PalShutdowner); ok {
+		shutdowner = true
+	} else if _, ok := service.Make().(pal.Shutdowner); ok {
 		shutdowner = true
 	}
 
@@ -64,6 +79,7 @@ func serviceToJSON(id string, inDegree int, outDegree int, service pal.ServiceDe
 
 		Initer:        initer,
 		Runner:        runner,
+		RunConfiger:   runConfiger,
 		HealthChecker: healthChecker,
 		Shutdowner:    shutdowner,
 	}

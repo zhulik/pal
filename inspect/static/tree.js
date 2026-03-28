@@ -98,6 +98,7 @@ function createNodeTitleTable(node) {
        setValue(".node-out-degree", node.outDegree);
        setValue(".node-initer", node.initer);
        setValue(".node-runner", node.runner);
+       setValue(".node-run-configer", node.runConfiger);
        setValue(".node-health-checker", node.healthChecker);
        setValue(".node-shutdowner", node.shutdowner);
 

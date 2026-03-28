@@ -62,3 +62,39 @@ type Runner interface {
 	// If this method returns an error, Pal will initiate a graceful shutdown of the application.
 	Run(ctx context.Context) error
 }
+
+// PalHealthChecker is an anternative interface with the same semantics as [HealthChecker], using a Pal-prefixed method name
+// so the type can still implement another framework's HealthCheck (or similar) without a clash.
+// Prefer [HealthChecker] when method names do not conflict.
+// If both PalHealthChecker and [HealthChecker] are implemented, Pal calls [PalHealthChecker.PalHealthCheck] only.
+type PalHealthChecker interface { //nolint:revive
+	// PalHealthCheck is equivalent to [HealthChecker.HealthCheck]; see that method's documentation.
+	PalHealthCheck(ctx context.Context) error
+}
+
+// PalShutdowner is an anternative interface with the same semantics as [Shutdowner], using a Pal-prefixed method name
+// so the type can still implement another framework's Shutdown without a clash.
+// Prefer [Shutdowner] when method names do not conflict.
+// If both PalShutdowner and [Shutdowner] are implemented, Pal calls [PalShutdowner.PalShutdown] only.
+type PalShutdowner interface { //nolint:revive
+	// PalShutdown is equivalent to [Shutdowner.Shutdown]; see that method's documentation.
+	PalShutdown(ctx context.Context) error
+}
+
+// PalIniter is an anternative interface with the same semantics as [Initer], using a Pal-prefixed method name
+// so the type can still implement another framework's Init without a clash.
+// Prefer [Initer] when method names do not conflict.
+// If both PalIniter and [Initer] are implemented, Pal calls [PalIniter.PalInit] only.
+type PalIniter interface { //nolint:revive
+	// PalInit is equivalent to [Initer.Init]; see that method's documentation.
+	PalInit(ctx context.Context) error
+}
+
+// PalRunner is an anternative interface with the same semantics as [Runner], using a Pal-prefixed method name
+// so the type can still implement another framework's Run without a clash.
+// Prefer [Runner] when method names do not conflict.
+// If both PalRunner and [Runner] are implemented, Pal calls [PalRunner.PalRun] only.
+type PalRunner interface { //nolint:revive
+	// PalRun is equivalent to [Runner.Run]; see that method's documentation.
+	PalRun(ctx context.Context) error
+}

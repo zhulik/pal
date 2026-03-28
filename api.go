@@ -12,7 +12,8 @@ import (
 // Typically, `T` would be one of:
 // - An interface, in this case passed value must implement it. Used when T may have multiple implementations like mocks for tests.
 // - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
-// If the passed value implements Initer, Init() will be called.
+// If the passed value implements [Initer] or [PalIniter], the matching init method is called after dependency injection,
+// unless a ToInit hook is set on the returned [ServiceConst] (see [ServiceConst.ToInit]).
 func Provide[T any](value T) *ServiceConst[T] {
 	validateNonNilPointer(value)
 

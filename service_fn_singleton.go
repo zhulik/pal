@@ -16,11 +16,13 @@ type ServiceFnSingleton[I, T any] struct {
 }
 
 func (c *ServiceFnSingleton[I, T]) RunConfig() *RunConfig {
-	configer, ok := any(c.instance).(RunConfiger)
-	if ok {
-		return configer.RunConfig()
+	if cfg := palOrStandardRunConfig(any(c.instance)); cfg != nil {
+		return cfg
 	}
 
+	if _, ok := c.Make().(PalRunner); ok {
+		return defaultRunConfig
+	}
 	if _, ok := c.Make().(Runner); ok {
 		return defaultRunConfig
 	}
@@ -40,7 +42,11 @@ func (c *ServiceFnSingleton[I, T]) Init(ctx context.Context) error {
 		return err
 	}
 
-	if initer, ok := any(instance).(Initer); ok {
+	if pi, ok := any(instance).(PalIniter); ok {
+		if err := pi.PalInit(ctx); err != nil {
+			return err
+		}
+	} else if initer, ok := any(instance).(Initer); ok {
 		if err := initer.Init(ctx); err != nil {
 			return err
 		}
@@ -66,14 +72,15 @@ func (c *ServiceFnSingleton[I, T]) Instance(_ context.Context, _ ...any) (any, e
 	return c.instance, nil
 }
 
+// ToShutdown registers a hook called during shutdown. If the service implements [PalShutdowner] or [Shutdowner],
+// those methods are not called; the hook has higher priority.
 func (c *ServiceFnSingleton[I, T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[I, T] {
 	c.hooks.Shutdown = hook
 	return c
 }
 
 // ToHealthCheck registers a hook function that will be called to perform a health check on the service.
-// If the service implements the HealthChecker interface, the HealthCheck() method is not called,
-// the hook has higher priority.
+// If the service implements [PalHealthChecker] or [HealthChecker], those health check methods are not called; the hook has higher priority.
 func (c *ServiceFnSingleton[I, T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceFnSingleton[I, T] {
 	c.hooks.HealthCheck = hook
 	return c
