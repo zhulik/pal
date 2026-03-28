@@ -3,6 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/zhulik/pal?status.svg)](https://pkg.go.dev/github.com/zhulik/pal)
 ![Build Status](https://github.com/zhulik/pal/actions/workflows/ci.yml/badge.svg)
 [![License](https://img.shields.io/github/license/zhulik/pal)](./LICENSE)
+[![codecov](https://codecov.io/github/zhulik/pal/graph/badge.svg?token=A4EETDH7ZJ)](https://codecov.io/github/zhulik/pal)
 
 Pal is an opinionated [IoC](https://en.wikipedia.org/wiki/Inversion_of_control) framework for Go.
 
@@ -194,7 +195,7 @@ There are 2 ways to invoke a factory service:
       ...
       // parameters of a factory function must match the parameters of the function passed to pal.ProvideFactory
       // but the return value must match the first type argument pal.ProvideFactory
-      CreateMyService(ctx context.Context, url string, timeout time.Duration) (MyService, error) 
+      CreateMyService(ctx context.Context, url string, timeout time.Duration) (MyService, error)
       ...
     }
   ```
