@@ -95,8 +95,9 @@ a few rules described below.
   - [Initer](./lifecycle_interfaces.go#L39) / [PalIniter](./lifecycle_interfaces.go#L84) — one-time setup after dependencies are injected (e.g. open a DB pool). Use `PalInit` when `Init` is already taken.
   - [Shutdowner](./lifecycle_interfaces.go#L20) / [PalShutdowner](./lifecycle_interfaces.go#L75) — cleanup (e.g. close connections). Use `PalShutdown` when `Shutdown` is already taken.
   - [HealthChecker](./lifecycle_interfaces.go#L5) / [PalHealthChecker](./lifecycle_interfaces.go#L66) — liveness logic for probes. Use `PalHealthCheck` when `HealthCheck` is already taken.
+  - [RunConfiger](./interfaces.go#L9) / [PalRunConfiger](./interfaces.go#L17) — optional runner scheduling (`Wait` vs fire-and-forget). Use `PalRunConfig` when `RunConfig` is already taken.
 
-  **Dispatch order** when more than one mechanism could apply: lifecycle hooks (`ToInit`, `ToShutdown`, `ToHealthCheck`) run first; then Pal-prefixed methods if implemented; then the standard `Init` / `Shutdown` / `HealthCheck` methods. For background work, `PalRun` is preferred over `Run` when both exist. In normal use, implement **one** style per phase (standard **or** Pal-prefixed), not both on purpose.
+  **Dispatch order** when more than one mechanism could apply: lifecycle hooks (`ToInit`, `ToShutdown`, `ToHealthCheck`) run first; then Pal-prefixed methods if implemented; then the standard `Init` / `Shutdown` / `HealthCheck` / `RunConfig` methods. For background work, `PalRun` is preferred over `Run` when both exist, and `PalRunConfig` over `RunConfig` when both exist. In normal use, implement **one** style per phase (standard **or** Pal-prefixed), not both on purpose.
 
 ## API Functions
 
@@ -326,6 +327,7 @@ The lifecycle of services and the container in Pal follows a well-defined sequen
 3. **Running**:
    - After initialization, Pal starts all services that implement [Runner](./lifecycle_interfaces.go#L55) or [PalRunner](./lifecycle_interfaces.go#L93) in background goroutines.
    - Pal calls `PalRun` or `Run` (respecting the same precedence as above when both exist) with a context that will be canceled during shutdown.
+   - Runners that implement [RunConfiger](./interfaces.go#L9) or [PalRunConfiger](./interfaces.go#L17) supply scheduling via `RunConfig` or `PalRunConfig` (Pal-prefixed wins if both are present); otherwise a default applies for types that only implement `Run` / `PalRun`.
 
 4. **Health Checking**:
    - Developers can use `Pal.HealthCheck()` to initiate the health check sequence. In a web application it should be called
@@ -385,7 +387,7 @@ The visualization shows:
 
 - Service nodes with their types (singleton, factory)
 - Dependency relationships between services
-- Service capabilities (standard and Pal-prefixed lifecycle interfaces: init, run, health check, shutdown)
+- Service capabilities (standard and Pal-prefixed lifecycle interfaces: init, run, run config, health check, shutdown)
 
 ## Best practices
 

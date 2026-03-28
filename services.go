@@ -170,6 +170,18 @@ func flattenServices(services []ServiceDef) []ServiceDef {
 	return result
 }
 
+// palOrStandardRunConfig returns scheduling config from a service instance when it implements
+// [PalRunConfiger] or [RunConfiger]; otherwise nil.
+func palOrStandardRunConfig(instance any) *RunConfig {
+	if pc, ok := instance.(PalRunConfiger); ok {
+		return pc.PalRunConfig()
+	}
+	if c, ok := instance.(RunConfiger); ok {
+		return c.RunConfig()
+	}
+	return nil
+}
+
 func getRunners(services []ServiceDef) ([]ServiceDef, []ServiceDef) {
 	mainRunners := []ServiceDef{}
 	secondaryRunners := []ServiceDef{}

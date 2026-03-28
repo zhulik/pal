@@ -10,9 +10,17 @@ type RunConfiger interface {
 	RunConfig() *RunConfig
 }
 
+// PalRunConfiger is an alternaltive interface with the same semantics as [RunConfiger], using a Pal-prefixed method name
+// so the type can still implement another framework's RunConfig without a clash.
+// Prefer [RunConfiger] when method names do not conflict.
+// If both PalRunConfiger and [RunConfiger] are implemented, Pal uses [PalRunConfiger.PalRunConfig] only.
+type PalRunConfiger interface { //nolint:revive
+	PalRunConfig() *RunConfig
+}
+
 // ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
 // This interface embeds the standard lifecycle interfaces ([Initer], [HealthChecker], [Shutdowner], [Runner]);
-// concrete services may instead implement the Pal-prefixed alternatives ([PalIniter], [PalHealthChecker], [PalShutdowner], [PalRunner]) where method names would otherwise clash.
+// concrete services may instead implement the Pal-prefixed alternatives ([PalIniter], [PalHealthChecker], [PalShutdowner], [PalRunner], [PalRunConfiger]) where method names would otherwise clash.
 // It adds methods specific to service definition and management.
 type ServiceDef interface {
 	Initer

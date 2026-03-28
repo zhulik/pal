@@ -16,9 +16,8 @@ type ServiceFnSingleton[I, T any] struct {
 }
 
 func (c *ServiceFnSingleton[I, T]) RunConfig() *RunConfig {
-	configer, ok := any(c.instance).(RunConfiger)
-	if ok {
-		return configer.RunConfig()
+	if cfg := palOrStandardRunConfig(any(c.instance)); cfg != nil {
+		return cfg
 	}
 
 	if _, ok := c.Make().(PalRunner); ok {

@@ -15,9 +15,8 @@ type ServiceConst[T any] struct {
 }
 
 func (c *ServiceConst[T]) RunConfig() *RunConfig {
-	configer, ok := any(c.instance).(RunConfiger)
-	if ok {
-		return configer.RunConfig()
+	if cfg := palOrStandardRunConfig(any(c.instance)); cfg != nil {
+		return cfg
 	}
 
 	if _, ok := any(c.instance).(PalRunner); ok {
