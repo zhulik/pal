@@ -60,15 +60,14 @@ jobs:
         run: go generate ./...
 
       - name: Run tests
-        run: go test -race -coverprofile=coverage.txt ./...
+        run: |
+          go test -race -coverprofile=coverage.raw.txt ./...
+          cat coverage.raw.txt | grep -v "examples" | grep -v "inspect" > coverage.txt
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          gcov_ignore: |
-            examples
-            inspect
 
   ci:
     name: CI
