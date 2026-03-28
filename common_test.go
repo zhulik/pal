@@ -61,6 +61,14 @@ type DependentStruct struct {
 	Dependency *TestServiceStruct
 }
 
+// factoryMultiLabel is a catch-all payload for multi-arity factory tests (service_factory0 through 5).
+type factoryMultiLabel struct {
+	S0, S1, S2 string
+	I0, I1     int
+	B          bool
+	R          rune
+}
+
 func newPal(services ...pal.ServiceDef) *pal.Pal {
 	return pal.New(services...).
 		InitTimeout(time.Second).
