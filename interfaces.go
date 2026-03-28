@@ -11,8 +11,9 @@ type RunConfiger interface {
 }
 
 // ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
-// This interface combines all the lifecycle interfaces (Initer, HealthChecker, Shutdowner, Runner)
-// and adds methods specific to service definition and management.
+// This interface embeds the standard lifecycle interfaces ([Initer], [HealthChecker], [Shutdowner], [Runner]);
+// concrete services may instead implement the Pal-prefixed alternatives ([PalIniter], [PalHealthChecker], [PalShutdowner], [PalRunner]) where method names would otherwise clash.
+// It adds methods specific to service definition and management.
 type ServiceDef interface {
 	Initer
 	HealthChecker

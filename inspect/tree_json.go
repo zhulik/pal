@@ -33,19 +33,27 @@ type EdgeJSON struct {
 func serviceToJSON(id string, inDegree int, outDegree int, service pal.ServiceDef) NodeJSON {
 	var initer, runner, healthChecker, shutdowner bool
 
-	if _, ok := service.Make().(pal.Initer); ok {
+	if _, ok := service.Make().(pal.PalIniter); ok {
+		initer = true
+	} else if _, ok := service.Make().(pal.Initer); ok {
 		initer = true
 	}
 
-	if _, ok := service.Make().(pal.Runner); ok {
+	if _, ok := service.Make().(pal.PalRunner); ok {
+		runner = true
+	} else if _, ok := service.Make().(pal.Runner); ok {
 		runner = true
 	}
 
-	if _, ok := service.Make().(pal.HealthChecker); ok {
+	if _, ok := service.Make().(pal.PalHealthChecker); ok {
+		healthChecker = true
+	} else if _, ok := service.Make().(pal.HealthChecker); ok {
 		healthChecker = true
 	}
 
-	if _, ok := service.Make().(pal.Shutdowner); ok {
+	if _, ok := service.Make().(pal.PalShutdowner); ok {
+		shutdowner = true
+	} else if _, ok := service.Make().(pal.Shutdowner); ok {
 		shutdowner = true
 	}
 

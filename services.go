@@ -7,22 +7,35 @@ import (
 
 func runService(ctx context.Context, name string, instance any, p *Pal) error {
 	logger := p.logger.With("service", name)
-	runner, ok := instance.(Runner)
-	if !ok {
+
+	var run func() error
+	if pr, ok := instance.(PalRunner); ok {
+		run = func() error {
+			logger.Debug("Running")
+			err := pr.PalRun(ctx)
+			if err != nil {
+				logger.Error("Runner exited with error", "error", err)
+				return err
+			}
+			logger.Debug("Runner finished successfully")
+			return nil
+		}
+	} else if runner, ok := instance.(Runner); ok {
+		run = func() error {
+			logger.Debug("Running")
+			err := runner.Run(ctx)
+			if err != nil {
+				logger.Error("Runner exited with error", "error", err)
+				return err
+			}
+			logger.Debug("Runner finished successfully")
+			return nil
+		}
+	} else {
 		return nil
 	}
 
-	err := tryWrap(func() error {
-		logger.Debug("Running")
-		err := runner.Run(ctx)
-		if err != nil {
-			logger.Error("Runner exited with error", "error", err)
-			return err
-		}
-
-		logger.Debug("Runner finished successfully")
-		return nil
-	})()
+	err := tryWrap(run)()
 
 	if err != nil {
 		if panicErr, ok := err.(*PanicError); ok {
@@ -40,6 +53,14 @@ func healthcheckService[T any](ctx context.Context, name string, instance T, hoo
 		err := hook(ctx, instance, p)
 		if err != nil {
 			logger.Error("Healthcheck hook failed", "error", err)
+		}
+		return err
+	}
+
+	if ph, ok := any(instance).(PalHealthChecker); ok {
+		err := ph.PalHealthCheck(ctx)
+		if err != nil {
+			logger.Error("Healthcheck failed", "error", err)
 		}
 		return err
 	}
@@ -65,6 +86,14 @@ func shutdownService[T any](ctx context.Context, name string, instance T, hook L
 		err := hook(ctx, instance, p)
 		if err != nil {
 			logger.Error("Shutdown hook failed", "error", err)
+		}
+		return err
+	}
+
+	if ps, ok := any(instance).(PalShutdowner); ok {
+		err := ps.PalShutdown(ctx)
+		if err != nil {
+			logger.Error("Shutdown failed", "error", err)
 		}
 		return err
 	}
@@ -100,6 +129,14 @@ func initService[T any](ctx context.Context, name string, instance T, hook Lifec
 		return err
 	}
 
+	if pi, ok := any(instance).(PalIniter); ok && any(instance) != any(p) {
+		logger.Debug("Calling PalInit method")
+		if err := pi.PalInit(ctx); err != nil {
+			logger.Error("Init failed", "error", err)
+			return err
+		}
+		return nil
+	}
 	if initer, ok := any(instance).(Initer); ok && any(instance) != any(p) {
 		logger.Debug("Calling Init method")
 		if err := initer.Init(ctx); err != nil {

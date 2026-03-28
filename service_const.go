@@ -20,6 +20,9 @@ func (c *ServiceConst[T]) RunConfig() *RunConfig {
 		return configer.RunConfig()
 	}
 
+	if _, ok := any(c.instance).(PalRunner); ok {
+		return defaultRunConfig
+	}
 	if _, ok := any(c.instance).(Runner); ok {
 		return defaultRunConfig
 	}
@@ -60,8 +63,7 @@ func (c *ServiceConst[T]) Instance(_ context.Context, _ ...any) (any, error) {
 
 // ToInit registers a hook function that will be called to initialize the service.
 // This hook is called after the service is injected with its dependencies.
-// If the service implements the Initer interface, the Init() method is not called,
-// the hook has higher priority.
+// If the service implements [PalIniter] or [Initer], those init methods are not called; the hook has higher priority.
 func (c *ServiceConst[T]) ToInit(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.hooks.Init = hook
 	return c
@@ -69,16 +71,14 @@ func (c *ServiceConst[T]) ToInit(hook LifecycleHook[T]) *ServiceConst[T] {
 
 // ToShutdown registers a hook function that will be called to shutdown the service.
 // This hook is called before service's dependencies are shutdown.
-// If the service implements the Shutdowner interface, the Shutdown() method is not called,
-// the hook has higher priority.
+// If the service implements [PalShutdowner] or [Shutdowner], those shutdown methods are not called; the hook has higher priority.
 func (c *ServiceConst[T]) ToShutdown(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.hooks.Shutdown = hook
 	return c
 }
 
 // ToHealthCheck registers a hook function that will be called to perform a health check on the service.
-// If the service implements the HealthChecker interface, the HealthCheck() method is not called,
-// the hook has higher priority.
+// If the service implements [PalHealthChecker] or [HealthChecker], those health check methods are not called; the hook has higher priority.
 func (c *ServiceConst[T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceConst[T] {
 	c.hooks.HealthCheck = hook
 	return c
