@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/zhulik/pal"
 )
 
@@ -154,4 +156,83 @@ func TestServiceFactory1_Invocation(t *testing.T) {
 
 		assert.Equal(t, "test", dependency.Name)
 	})
+}
+
+func TestServiceFactory1_instanceInitFailure(t *testing.T) {
+	t.Parallel()
+
+	service := pal.ProvideFactory1[TestServiceInterface](func(ctx context.Context, _ string) (*TestServiceStruct, error) {
+		s := NewMockTestServiceStruct(t)
+		s.MockIniter.EXPECT().Init(ctx).Return(errTest)
+		return s, nil
+	})
+	p := newPal(service)
+	ctx := pal.WithPal(t.Context(), p)
+	require.NoError(t, p.Init(t.Context()))
+
+	_, err := p.Invoke(ctx, service.Name(), "x")
+	assert.ErrorIs(t, err, pal.ErrServiceInitFailed)
+	assert.ErrorIs(t, err, errTest)
+}
+
+func TestServiceFactory1_fnError(t *testing.T) {
+	t.Parallel()
+
+	service := pal.ProvideFactory1[*factoryMultiLabel](func(_ context.Context, _ string) (*factoryMultiLabel, error) {
+		return nil, errTest
+	})
+	p := newPal(service)
+	ctx := pal.WithPal(t.Context(), p)
+	require.NoError(t, p.Init(t.Context()))
+
+	_, err := p.Invoke(ctx, service.Name(), "x")
+	assert.ErrorIs(t, err, pal.ErrServiceInitFailed)
+	assert.ErrorIs(t, err, errTest)
+}
+
+func TestServiceFactory1_FactoryAndMustFactory(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Factory propagates error from builder", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, _ string) (*factory1Service, error) {
+			return nil, errTest
+		})
+		p := newPal(service)
+		ctx := pal.WithPal(t.Context(), p)
+		require.NoError(t, p.Init(t.Context()))
+
+		fn := service.Factory().(func(context.Context, string) (*factory1Service, error))
+		_, err := fn(ctx, "x")
+		assert.ErrorIs(t, err, errTest)
+	})
+
+	t.Run("MustFactory panics when builder fails", func(t *testing.T) {
+		t.Parallel()
+
+		service := pal.ProvideFactory1[*factory1Service](func(_ context.Context, _ string) (*factory1Service, error) {
+			return nil, errTest
+		})
+		p := newPal(service)
+		ctx := pal.WithPal(t.Context(), p)
+		require.NoError(t, p.Init(t.Context()))
+
+		mustFn := service.MustFactory().(func(context.Context, string) *factory1Service)
+		assert.PanicsWithValue(t, errTest, func() { mustFn(ctx, "x") })
+	})
+}
+
+func TestServiceFactory1_firstArgumentWrongType(t *testing.T) {
+	t.Parallel()
+
+	service := pal.ProvideFactory1[*factoryMultiLabel](func(_ context.Context, _ int) (*factoryMultiLabel, error) {
+		return &factoryMultiLabel{}, nil
+	})
+	p := newPal(service)
+	ctx := pal.WithPal(t.Context(), p)
+	require.NoError(t, p.Init(t.Context()))
+
+	_, err := p.Invoke(ctx, service.Name(), "not-int")
+	assert.ErrorIs(t, err, pal.ErrServiceInvalidArgumentType)
 }
