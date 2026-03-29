@@ -2,6 +2,7 @@ package pal_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -44,6 +45,20 @@ func TestServiceRunner_Run(t *testing.T) {
 		r := pal.ProvideRunner(func(context.Context) error { return errTest })
 		r.P = newPal(r)
 		assert.ErrorIs(t, r.Run(t.Context()), errTest)
+	})
+
+	t.Run("returns PanicError when fn panics", func(t *testing.T) {
+		t.Parallel()
+
+		const msg = "runner panic"
+		r := pal.ProvideRunner(func(context.Context) error { panic(msg) })
+		r.P = newPal(r)
+		err := r.Run(t.Context())
+		require.Error(t, err)
+		var panicErr *pal.PanicError
+		require.True(t, errors.As(err, &panicErr))
+		assert.Contains(t, panicErr.Error(), msg)
+		assert.NotEmpty(t, panicErr.Backtrace())
 	})
 }
 
