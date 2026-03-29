@@ -32,6 +32,7 @@ func TestServiceRunner_Run(t *testing.T) {
 			got = ctx
 			return nil
 		})
+		r.P = newPal(r)
 		ctx := t.Context()
 		require.NoError(t, r.Run(ctx))
 		assert.Equal(t, ctx, got)
@@ -41,6 +42,7 @@ func TestServiceRunner_Run(t *testing.T) {
 		t.Parallel()
 
 		r := pal.ProvideRunner(func(context.Context) error { return errTest })
+		r.P = newPal(r)
 		assert.ErrorIs(t, r.Run(t.Context()), errTest)
 	})
 }

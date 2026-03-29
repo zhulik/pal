@@ -9,6 +9,7 @@ import (
 const idCharset = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 type ServiceRunner struct {
+	P *Pal
 	ServiceTyped[any]
 	fn func(ctx context.Context) error
 }
@@ -18,7 +19,7 @@ func (c *ServiceRunner) RunConfig() *RunConfig {
 }
 
 func (c *ServiceRunner) Run(ctx context.Context) error {
-	return c.fn(ctx)
+	return runService(ctx, c.Name(), c.fn, c.P)
 }
 
 func (c *ServiceRunner) Instance(_ context.Context, _ ...any) (any, error) {
