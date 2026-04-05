@@ -3,7 +3,7 @@ module github.com/zhulik/pal
 go 1.25.0
 
 require (
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/samber/go-type-to-string v1.8.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.20.0
