@@ -29,6 +29,7 @@ func Steps() []Step {
 	return []Step{
 		forceStep{},
 		moduleStep{},
+		templateStep{},
 		gitStep{},
 	}
 }

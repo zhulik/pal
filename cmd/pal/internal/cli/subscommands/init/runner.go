@@ -47,6 +47,14 @@ func (r *runner) Run(ctx context.Context) error {
 		}
 	}
 
+	if err := applyTemplate(cwd, opts); err != nil {
+		return err
+	}
+
+	if err := tidyModule(ctx, cwd); err != nil {
+		return err
+	}
+
 	fmt.Println("Project initialized.")
 	return nil
 }

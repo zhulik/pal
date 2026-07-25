@@ -12,6 +12,7 @@ Framework: **urfave/cli/v3**. Root command lives in `internal/cli`; `main` only 
 ```
 cmd/pal/
   main.go
+  templates/                       # embedded project scaffolds (see Project templates)
   internal/cli/cli.go              # root; register subcommands here
   internal/cli/app/                # shared pal app runner (timeouts, Provide)
   internal/cli/subscommands/<name>/  # note: "subscommands" spelling is intentional
@@ -41,6 +42,7 @@ Pass the Action’s `ctx` into `app.Run` — never substitute `context.Backgroun
 - Wizard does not shell out. Use `Options.Args()` to show the equivalent `pal init …` invocation.
 - Wizard library: **charmbracelet/huh**.
 - Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
+- Project template is `--template` (default `cli`). The wizard always asks; non-interactive uses the flag.
 
 ## Step registry (keep CLI ↔ wizard in sync)
 
@@ -57,6 +59,18 @@ type Step interface {
 ```
 
 Wizard runs **one step per form**, in registry order. After each answered step, if `Abort` is true, return `ErrAborted` immediately — do not ask later steps. Use `Abort` for declining answers that cancel init (e.g. force); optional skips (e.g. `--no-git`) return false.
+
+## Project templates
+
+Scaffolds live under `cmd/pal/templates/<name>/` and are embedded into the CLI via `embed.FS` in package `templates` (`//go:embed all:<name>` per template directory). Init copies the chosen template into the working directory **after** `go mod init` and optional `git init`.
+
+**Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. The only data field currently supported is `.Package` (derived from the module path’s last element, with `-` → `_`). Example layout:
+
+```
+templates/cli/cmd/{{.Package}}/main.go  →  cmd/myapp/main.go
+```
+
+Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`.
 
 ## Exit codes
 

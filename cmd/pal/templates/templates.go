@@ -1,0 +1,104 @@
+package templates
+
+import (
+	"bytes"
+	"embed"
+	"fmt"
+	"io/fs"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+	"text/template"
+)
+
+//go:embed all:cli
+var FS embed.FS
+
+// Data is the values available to project template paths and file contents.
+// Currently only Package is supported.
+type Data struct {
+	Package string
+}
+
+// Apply renders the named project template from FS into dst.
+// Both relative paths and file contents are Go text/template templates
+// executed with data.
+func Apply(dst, name string, data Data) error {
+	if name == "" {
+		return fmt.Errorf("template name is required")
+	}
+	if _, err := fs.Stat(FS, name); err != nil {
+		return fmt.Errorf("unknown template %q: %w", name, err)
+	}
+
+	return fs.WalkDir(FS, name, func(embedPath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(name, embedPath)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+
+		renderedRel, err := execute(filepath.ToSlash(rel), data)
+		if err != nil {
+			return fmt.Errorf("render path %q: %w", rel, err)
+		}
+		outPath := filepath.Join(dst, filepath.FromSlash(renderedRel))
+
+		if d.IsDir() {
+			return os.MkdirAll(outPath, 0o755)
+		}
+
+		raw, err := FS.ReadFile(embedPath)
+		if err != nil {
+			return err
+		}
+		rendered, err := execute(string(raw), data)
+		if err != nil {
+			return fmt.Errorf("render file %q: %w", embedPath, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(outPath, []byte(rendered), 0o644)
+	})
+}
+
+// Names returns the project template directory names embedded in FS.
+func Names() ([]string, error) {
+	entries, err := fs.ReadDir(FS, ".")
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if e.IsDir() {
+			names = append(names, e.Name())
+		}
+	}
+	return names, nil
+}
+
+// PackageName derives the Go package name from a module path (last element,
+// with '-' replaced by '_').
+func PackageName(module string) string {
+	return strings.ReplaceAll(path.Base(module), "-", "_")
+}
+
+func execute(text string, data Data) (string, error) {
+	tmpl, err := template.New("").Parse(text)
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}

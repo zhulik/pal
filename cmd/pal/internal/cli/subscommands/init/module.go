@@ -58,3 +58,13 @@ func initModule(ctx context.Context, dir, module string) error {
 	}
 	return nil
 }
+
+func tidyModule(ctx context.Context, dir string) error {
+	cmd := exec.CommandContext(ctx, "go", "mod", "tidy")
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("go mod tidy: %w: %s", err, bytes.TrimSpace(out))
+	}
+	return nil
+}

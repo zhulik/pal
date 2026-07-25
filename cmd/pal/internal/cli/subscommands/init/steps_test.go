@@ -131,3 +131,28 @@ func TestModuleStepDoesNotAbort(t *testing.T) {
 	require.False(t, moduleStep{}.Abort(&Options{}))
 	require.False(t, moduleStep{}.Abort(&Options{Module: "example.com/app"}))
 }
+
+func TestTemplateStepFlag(t *testing.T) {
+	t.Parallel()
+
+	flag := templateStep{}.Flag()
+	stringFlag, ok := flag.(*cli.StringFlag)
+	require.True(t, ok)
+	require.Equal(t, flagTemplate, stringFlag.Name)
+	require.Equal(t, defaultTemplate, stringFlag.Value)
+	require.Nil(t, templateStep{}.Argument())
+}
+
+func TestTemplateStepAlwaysApplicable(t *testing.T) {
+	t.Parallel()
+
+	require.True(t, templateStep{}.Applicable(&Options{}, t.TempDir()))
+	require.True(t, templateStep{}.Applicable(&Options{Template: "cli"}, t.TempDir()))
+}
+
+func TestTemplateStepDoesNotAbort(t *testing.T) {
+	t.Parallel()
+
+	require.False(t, templateStep{}.Abort(&Options{}))
+	require.False(t, templateStep{}.Abort(&Options{Template: "cli"}))
+}

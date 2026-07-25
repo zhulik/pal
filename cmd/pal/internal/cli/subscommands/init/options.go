@@ -9,6 +9,9 @@ type Options struct {
 	Force         bool
 	// Module is the Go module path passed to `go mod init`.
 	Module string
+	// Template is the project template name (directory under cmd/pal/templates).
+	// Default is "cli" when read from flags; the wizard also defaults to cli.
+	Template string
 	// Git controls whether init runs `git init`. Default is true when read from
 	// flags (unless --no-git); the wizard also defaults to yes.
 	Git bool
@@ -24,6 +27,9 @@ func (o Options) Args() []string {
 	if o.Force {
 		args = append(args, "--force")
 	}
+	if o.Template != "" && o.Template != defaultTemplate {
+		args = append(args, "--"+flagTemplate, o.Template)
+	}
 	if !o.Git {
 		args = append(args, "--"+flagNoGit)
 	}
@@ -36,6 +42,7 @@ func OptionsFromCommand(cmd *cli.Command) Options {
 		NoInteractive: cmd.Bool(flagNoInteractive),
 		Force:         cmd.Bool("force"),
 		Module:        cmd.StringArg(argModule),
+		Template:      cmd.String(flagTemplate),
 		Git:           !cmd.Bool(flagNoGit),
 	}
 }
