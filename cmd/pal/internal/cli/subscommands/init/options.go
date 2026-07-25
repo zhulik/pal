@@ -7,6 +7,9 @@ import "github.com/urfave/cli/v3"
 type Options struct {
 	NoInteractive bool
 	Force         bool
+	// Git controls whether init runs `git init`. Default is true when read from
+	// flags (unless --no-git); the wizard also defaults to yes.
+	Git bool
 }
 
 // Args returns the CLI flag arguments equivalent to the project options
@@ -16,6 +19,9 @@ func (o Options) Args() []string {
 	if o.Force {
 		args = append(args, "--force")
 	}
+	if !o.Git {
+		args = append(args, "--"+flagNoGit)
+	}
 	return args
 }
 
@@ -24,5 +30,6 @@ func OptionsFromCommand(cmd *cli.Command) Options {
 	return Options{
 		NoInteractive: cmd.Bool(flagNoInteractive),
 		Force:         cmd.Bool("force"),
+		Git:           !cmd.Bool(flagNoGit),
 	}
 }

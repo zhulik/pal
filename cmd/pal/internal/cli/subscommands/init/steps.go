@@ -19,5 +19,6 @@ type Step interface {
 func Steps() []Step {
 	return []Step{
 		forceStep{},
+		gitStep{},
 	}
 }

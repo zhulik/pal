@@ -34,6 +34,12 @@ func (r *runner) Run(ctx context.Context) error {
 		return ErrNotEmpty
 	}
 
+	if opts.Git {
+		if err := initGit(ctx, cwd); err != nil {
+			return err
+		}
+	}
+
 	fmt.Println("Project initialized.")
 	return nil
 }

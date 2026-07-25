@@ -34,11 +34,36 @@ func TestRunner(t *testing.T) {
 		err := (&runner{opts: Options{NoInteractive: true, Force: true}}).Run(t.Context())
 		require.NoError(t, err)
 	})
+
+	t.Run("git init when Git is true", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Chdir(dir)
+
+		err := (&runner{opts: Options{NoInteractive: true, Git: true}}).Run(t.Context())
+		require.NoError(t, err)
+
+		info, err := os.Stat(filepath.Join(dir, ".git"))
+		require.NoError(t, err)
+		require.True(t, info.IsDir())
+	})
+
+	t.Run("skips git init when Git is false", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Chdir(dir)
+
+		err := (&runner{opts: Options{NoInteractive: true, Git: false}}).Run(t.Context())
+		require.NoError(t, err)
+
+		_, err = os.Stat(filepath.Join(dir, ".git"))
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
 }
 
 func TestOptionsArgs(t *testing.T) {
 	t.Parallel()
 
-	require.Empty(t, Options{}.Args())
-	require.Equal(t, []string{"--force"}, Options{Force: true}.Args())
+	require.Equal(t, []string{"--no-git"}, Options{}.Args())
+	require.Empty(t, Options{Git: true}.Args())
+	require.Equal(t, []string{"--force"}, Options{Force: true, Git: true}.Args())
+	require.Equal(t, []string{"--force", "--no-git"}, Options{Force: true}.Args())
 }

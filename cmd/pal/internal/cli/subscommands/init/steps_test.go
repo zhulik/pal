@@ -57,3 +57,18 @@ func TestForceStepFlag(t *testing.T) {
 	require.Equal(t, "force", boolFlag.Name)
 	require.Equal(t, []string{"f"}, boolFlag.Aliases)
 }
+
+func TestGitStepFlag(t *testing.T) {
+	t.Parallel()
+
+	flag := gitStep{}.Flag()
+	boolFlag, ok := flag.(*cli.BoolFlag)
+	require.True(t, ok)
+	require.Equal(t, flagNoGit, boolFlag.Name)
+}
+
+func TestGitStepAlwaysApplicable(t *testing.T) {
+	t.Parallel()
+
+	require.True(t, gitStep{}.Applicable(&Options{}, t.TempDir()))
+}
