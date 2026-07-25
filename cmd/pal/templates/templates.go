@@ -29,15 +29,18 @@ func mustSub(fsys embed.FS, dir string) fs.FS {
 }
 
 // Data is the values available to project template paths and file contents.
-// Currently only Package is supported.
 type Data struct {
+	// Package is the Go package / binary name derived from the module path.
 	Package string
+	// Module is the full Go module path (e.g. github.com/user/app).
+	Module string
 }
 
 // Apply renders the named project template from FS into dst.
 // Both relative paths and file contents are Go text/template templates
-// executed with data. A trailing ".tmpl" suffix on file names is stripped
-// from the output path so scaffold sources can avoid go tool package discovery.
+// executed with data. Every scaffold file must use a trailing ".tmpl"
+// suffix; Apply strips it from the output path (so Go sources are ignored by
+// go test/list, and all scaffold files share one convention).
 func Apply(dst, name string, data Data) error {
 	if name == "" {
 		return fmt.Errorf("template name is required")

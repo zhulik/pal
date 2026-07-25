@@ -81,13 +81,17 @@ Init copies the chosen template into the working directory **after** `go mod ini
 
 The wizard template select and non-interactive validation both use `templates.Names()` / `Apply` — never hardcode the list of template names in the step UI.
 
-**Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. The only data field currently supported is `.Package` (derived from the module path’s last element, with `-` → `_`). Scaffold files that would otherwise be valid Go sources use a `.tmpl` suffix so `go test`/`go list` ignore them; `Apply` strips a trailing `.tmpl` from the output path. Example layout:
+**Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. Supported `templates.Data` fields: `.Package` (module path’s last element, `-` → `_`) and `.Module` (full module path).
+
+**Every scaffold file must end with `.tmpl`.** This is required for all files (Go sources, README, Taskfile, configs, `.gitignore`, …), not only sources that would confuse `go test`/`go list`. `Apply` strips a trailing `.tmpl` from the output path. Example layout:
 
 ```
 templates/scaffolds/cli/cmd/{{.Package}}/main.go.tmpl  →  cmd/myapp/main.go
+templates/scaffolds/cli/README.md.tmpl                 →  README.md
+templates/scaffolds/cli/.gitignore.tmpl                →  .gitignore
 ```
 
-Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`.
+Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`. Do not add scaffold files without the `.tmpl` suffix.
 
 ## Frozen public surface
 

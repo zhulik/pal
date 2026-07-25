@@ -1,0 +1,51 @@
+# {{.Package}}
+
+CLI application scaffolded with [pal](https://github.com/zhulik/pal), a Go
+dependency-injection and lifecycle toolkit.
+
+Module: `{{.Module}}`
+
+## Requirements
+
+- Go 1.22+
+- [Task](https://taskfile.dev/) (optional, for the Taskfile)
+- [golangci-lint](https://golangci-lint.run/) (optional, for linting)
+
+## Run
+
+```bash
+go run ./cmd/{{.Package}}
+```
+
+Or with Task:
+
+```bash
+task run
+```
+
+## Develop
+
+```bash
+task test
+task lint
+```
+
+Coverage HTML report:
+
+```bash
+task cover
+```
+
+## Layout
+
+```
+.
+├── cmd/{{.Package}}/   # application entrypoint
+├── Taskfile.yaml       # test, lint, run
+├── .golangci.yaml      # linter config
+└── .gitignore
+```
+
+The entrypoint wires a `pal.Runner` with slog injection and standard init /
+health-check / shutdown timeouts. Extend it by providing more services to
+`pal.New` and injecting them into your runner.

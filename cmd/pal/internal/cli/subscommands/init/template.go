@@ -61,6 +61,7 @@ func applyTemplate(dir string, opts Options) error {
 	}
 	if err := templates.Apply(dir, name, templates.Data{
 		Package: templates.PackageName(opts.Module),
+		Module:  opts.Module,
 	}); err != nil {
 		return fmt.Errorf("apply template %q: %w", name, err)
 	}
