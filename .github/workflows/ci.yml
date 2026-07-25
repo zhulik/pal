@@ -14,11 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # cmd/pal requires a newer Go than the library module; use it for the
+      # whole lint job so the CLI linter can load packages (GOTOOLCHAIN=local).
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           cache: true
-          go-version-file: 'go.mod'
+          go-version-file: 'cmd/pal/go.mod'
+          cache-dependency-path: |
+            go.sum
+            cmd/pal/go.sum
 
       - name: Run generate
         run: go generate ./...
