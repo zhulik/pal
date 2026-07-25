@@ -14,8 +14,8 @@ func New() *cli.Command {
 		Name:  "init",
 		Usage: "initialize a new pal project",
 		Flags: Flags(),
-		Action: func(context.Context, *cli.Command) error {
-			return app.Run(context.Background(), pal.Provide(&runner{}))
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return app.Run(ctx, pal.Provide(&runner{opts: OptionsFromCommand(cmd)}))
 		},
 	}
 }
