@@ -29,6 +29,13 @@ jobs:
           version: latest
           args: --timeout=2m
 
+      - name: Run CLI linter
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          working-directory: cmd/pal
+          args: --timeout=2m
+
       - name: Lint markdown docs
         uses: DavidAnson/markdownlint-cli2-action@v23
         with:
@@ -69,11 +76,41 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test-cli:
+    name: Test CLI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'cmd/pal/go.mod'
+          cache: true
+          cache-dependency-path: cmd/pal/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          install-only: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Run CLI tests
+        working-directory: cmd/pal
+        run: go test -race ./... -timeout=5m -count=1
+
   ci:
     name: CI
     runs-on: ubuntu-latest
     needs:
       - lint
       - test
+      - test-cli
     steps:
       - run: echo ok

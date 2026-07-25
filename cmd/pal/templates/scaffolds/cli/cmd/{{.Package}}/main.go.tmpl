@@ -16,7 +16,7 @@ type runner struct {
 
 func (r *runner) Run(ctx context.Context) error {
 	r.Logger.Info("{{.Package}} running")
-	return nil
+	return ctx.Err()
 }
 
 func main() {

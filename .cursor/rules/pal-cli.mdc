@@ -114,6 +114,18 @@ New flags, steps, templates, and `Data` fields are fine. Renaming the table abov
 
 Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …). `main` maps any error to exit 1; success is exit 0 only when init actually completes.
 
+## Init integration tests
+
+Success-path init coverage lives in [`cmd/pal/internal/cli/init_integration_test.go`](cmd/pal/internal/cli/init_integration_test.go) (`package cli_test`).
+
+- Matrix over `templates.Names()` × git on/`--no-git` × `-d` existing-empty / missing-nested. Always `--no-interactive` + a MODULE.
+- Drive a **built `pal` binary** as a subprocess (not in-process `cli.New().Run`) so the real CLI entrypoint is covered and Pal’s shutdown watchdog does not panic in the long-lived test process.
+- After init: `go mod edit -replace` to the local library checkout, mutate the generated tree (e.g. edit a source string + add a smoke `*_test.go`), then run `task` in the project dir. That exercises the generated Taskfile (default target = lint + test). Assume `task`, `go`, and `golangci-lint` are on `PATH` — do not soft-skip or invoke those tools directly from the test.
+- When the repo has a `.tool-versions`, copy it into the generated project before `task` so asdf resolves the same pins outside the repo tree. Serialize `task` across parallel cases (`golangci-lint` rejects concurrent runs).
+- Each scaffold name must have an entry in `templateValidators`; adding `scaffolds/<name>/` without a validator fails the suite.
+- Negative paths stay in `init` package unit tests (`runner_test.go`, etc.).
+- No build tags / special runners: `cd cmd/pal && go test ./...` (Taskfile timeout ≥ 5m). Root `go test ./...` does not see the nested module; root `task test` and CI `test-cli` recurse into `cmd/pal`.
+
 ## Adding a subcommand
 
 1. Create `internal/cli/subscommands/<name>/` with `<name>.go`, `flags.go`, `runner.go`.

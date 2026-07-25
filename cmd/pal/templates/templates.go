@@ -17,7 +17,7 @@ var scaffoldsFS embed.FS
 
 // FS is the project template tree (one directory per template name under
 // scaffolds/). Adding a template is: create scaffolds/<name>/… — no new
-// go:embed line required.
+// embed directive is required.
 var FS = mustSub(scaffoldsFS, "scaffolds")
 
 func mustSub(fsys embed.FS, dir string) fs.FS {

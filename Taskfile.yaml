@@ -17,9 +17,10 @@ tasks:
       - test
 
   test:
-    desc: Run tests
+    desc: Run library and CLI tests
     cmds:
       - go test -race ./... -test.timeout=3s -count=1
+      - task -d cmd/pal test
 
   cover:
     desc: Run tests with cover report
