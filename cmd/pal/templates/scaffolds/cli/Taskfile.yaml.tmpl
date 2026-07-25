@@ -2,10 +2,10 @@ version: "3"
 
 tasks:
   default:
-    desc: Run tests and linting
-    deps:
-      - lint
-      - test
+    desc: Run linting then tests
+    cmds:
+      - task: lint
+      - task: test
 
   test:
     desc: Run tests
@@ -22,12 +22,12 @@ tasks:
   lint:
     desc: Run golangci-lint
     cmds:
-      - golangci-lint run
+      - GOLANGCI_LINT_CACHE="$PWD/.cache/golangci-lint" golangci-lint run --allow-parallel-runners
 
   lint-fix:
     desc: Run golangci-lint with auto-fix
     cmds:
-      - golangci-lint run --fix
+      - GOLANGCI_LINT_CACHE="$PWD/.cache/golangci-lint" golangci-lint run --fix --allow-parallel-runners
 
   run:
     desc: Run the CLI

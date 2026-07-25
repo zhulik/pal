@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -59,6 +60,20 @@ func initModule(ctx context.Context, dir, module string) error {
 func tidyModule(ctx context.Context, dir string) error {
 	if err := cmdexec.Run(ctx, dir, "go", "mod", "tidy"); err != nil {
 		return fmt.Errorf("go mod tidy: %w", err)
+	}
+	return nil
+}
+
+func lintFix(ctx context.Context, dir string) error {
+	// Resolve to an absolute path and run with that as the process working
+	// directory so Taskfile, asdf (.tool-versions), and golangci-lint all
+	// resolve against the generated project — not the pal CLI process cwd.
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("resolve directory for lint-fix: %w", err)
+	}
+	if err := cmdexec.Run(ctx, abs, "task", "-d", abs, "lint-fix"); err != nil {
+		return fmt.Errorf("task lint-fix: %w", err)
 	}
 	return nil
 }

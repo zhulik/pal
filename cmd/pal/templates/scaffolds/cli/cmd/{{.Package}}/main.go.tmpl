@@ -1,3 +1,4 @@
+// Package main is the {{.Package}} CLI entrypoint.
 package main
 
 import (
@@ -10,22 +11,31 @@ import (
 	"github.com/zhulik/pal"
 )
 
+var (
+	_ pal.Initer     = (*runner)(nil)
+	_ pal.Runner     = (*runner)(nil)
+	_ pal.Shutdowner = (*runner)(nil)
+)
+
 type runner struct {
 	Logger *slog.Logger
 }
 
-func (r *runner) Init(_ context.Context) error { //nolint:unparam
+//nolint:unparam // demo Init always succeeds
+func (r *runner) Init(_ context.Context) error {
 	r.Logger.Info("{{.Package}} initializing")
 	return nil
 }
 
-func (r *runner) Run(ctx context.Context) error { //nolint:unparam
+//nolint:unparam // demo Run waits for cancel then succeeds
+func (r *runner) Run(ctx context.Context) error {
 	r.Logger.Info("{{.Package}} running")
 	<-ctx.Done()
 	return nil
 }
 
-func (r *runner) Shutdown(_ context.Context) error { //nolint:unparam
+//nolint:unparam // demo Shutdown always succeeds
+func (r *runner) Shutdown(_ context.Context) error {
 	r.Logger.Info("{{.Package}} shutting down")
 	return nil
 }

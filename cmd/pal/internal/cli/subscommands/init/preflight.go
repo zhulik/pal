@@ -22,6 +22,9 @@ func preflight(opts Options) error {
 	if _, err := exec.LookPath("go"); err != nil {
 		return fmt.Errorf("go is required on PATH: %w", err)
 	}
+	if _, err := exec.LookPath("task"); err != nil {
+		return fmt.Errorf("task is required on PATH: %w", err)
+	}
 	if opts.Git {
 		if _, err := exec.LookPath("git"); err != nil {
 			return fmt.Errorf("git is required on PATH (or pass --no-git): %w", err)

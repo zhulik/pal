@@ -77,9 +77,10 @@ Init never mutates the target until the project is fully built:
 
 1. Resolve the final target path; if it exists, require it empty (**before** the wizard).
 2. Collect options (wizard or flags).
-3. **Preflight** — template exists (`templates.Exists`), `go` on `PATH`, and `git` on `PATH` when git is enabled. Fail here with the target untouched.
+3. **Preflight** — template exists (`templates.Exists`), `go` and `task` on `PATH`, and `git` on `PATH` when git is enabled. Fail here with the target untouched.
 4. Build the project only in a **staging temp directory** (`go mod init`, optional `git init`, apply template, `go mod tidy`).
 5. On success, **promote** the staging tree into the target via `os.CopyFS`. `PromoteWorkDir` re-checks that the target is empty immediately before the copy (closes the TOCTOU window after the early check). On promote failure: if the target was newly created, remove it; if it already existed empty, clear its contents back to empty. The staging dir is always removed.
+6. **`task lint-fix`** runs with the **final target directory** as cwd (`task -d <abs-target>`), so Taskfile / asdf `.tool-versions` / golangci-lint resolve against the new project — not the pal CLI process cwd.
 
 Do not write into an existing empty target (or cwd) in place — that left half-inits when a later step failed. Staging + promote is the only write path.
 

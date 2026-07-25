@@ -74,6 +74,12 @@ func (r *runner) Run(ctx context.Context) error {
 		return err
 	}
 
+	// Lint-fix runs in the final target directory (Taskfile + .tool-versions
+	// context), after promote, so tooling resolves against the new project.
+	if err := lintFix(ctx, promoteTo); err != nil {
+		return err
+	}
+
 	fmt.Println("Project initialized.")
 	return nil
 }

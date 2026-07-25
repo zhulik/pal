@@ -56,10 +56,13 @@ func TestApplyCLI(t *testing.T) {
 	data, err := os.ReadFile(mainPath)
 	require.NoError(t, err)
 	require.Contains(t, string(data), "package main")
+	require.Contains(t, string(data), "Package main is the myapp CLI entrypoint")
+	require.Contains(t, string(data), "pal.Initer")
 	require.Contains(t, string(data), `"myapp initializing"`)
 	require.Contains(t, string(data), `"myapp running"`)
 	require.Contains(t, string(data), `"myapp shutting down"`)
 	require.Contains(t, string(data), "<-ctx.Done()")
+	require.Contains(t, string(data), "//nolint:unparam")
 	require.NotContains(t, string(data), "{{.Package}}")
 
 	for _, rel := range []string{
@@ -67,12 +70,19 @@ func TestApplyCLI(t *testing.T) {
 		".gitignore",
 		"Taskfile.yaml",
 		".golangci.yaml",
+		".tool-versions",
 	} {
 		path := filepath.Join(dir, rel)
 		_, err := os.Stat(path)
 		require.NoError(t, err, "expected scaffold file %s", rel)
 		require.False(t, strings.HasSuffix(path, ".tmpl"))
 	}
+
+	toolVersions, err := os.ReadFile(filepath.Join(dir, ".tool-versions"))
+	require.NoError(t, err)
+	require.Contains(t, string(toolVersions), "golang ")
+	require.Contains(t, string(toolVersions), "golangci-lint ")
+	require.Contains(t, string(toolVersions), "task ")
 
 	readme, err := os.ReadFile(filepath.Join(dir, "README.md"))
 	require.NoError(t, err)

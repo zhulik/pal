@@ -168,11 +168,10 @@ func requireEmptyDir(t *testing.T, dir string) {
 	require.True(t, empty)
 }
 
-func writeStubExecutable(t *testing.T, dir, name string) string {
+func writeStubExecutable(t *testing.T, dir, name string) {
 	t.Helper()
 	path := filepath.Join(dir, name)
 	require.NoError(t, os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o755))
-	return path
 }
 
 func TestOptions_Args(t *testing.T) {
@@ -208,6 +207,7 @@ func TestRun_PreflightPATH(t *testing.T) {
 		dir := t.TempDir()
 		bin := t.TempDir()
 		writeStubExecutable(t, bin, "go")
+		writeStubExecutable(t, bin, "task")
 		t.Setenv("PATH", bin)
 
 		err := initcmd.Run(t.Context(), initcmd.Options{

@@ -141,13 +141,8 @@ func requireProjectTooling(t *testing.T, dir, root string) {
 	if data, err := os.ReadFile(filepath.Join(root, ".tool-versions")); err == nil {
 		require.NoError(t, os.WriteFile(filepath.Join(dir, ".tool-versions"), data, 0o644))
 	}
-	// golangci-lint refuses concurrent runs; serialize task across parallel cases.
-	projectToolingMu.Lock()
-	defer projectToolingMu.Unlock()
 	runCmd(t, dir, "task")
 }
-
-var projectToolingMu sync.Mutex
 
 func runCmd(t *testing.T, dir, name string, args ...string) {
 	t.Helper()
