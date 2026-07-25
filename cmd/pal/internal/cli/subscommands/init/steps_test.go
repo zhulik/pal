@@ -72,3 +72,17 @@ func TestGitStepAlwaysApplicable(t *testing.T) {
 
 	require.True(t, gitStep{}.Applicable(&Options{}, t.TempDir()))
 }
+
+func TestForceStepAbort(t *testing.T) {
+	t.Parallel()
+
+	require.True(t, forceStep{}.Abort(&Options{Force: false}))
+	require.False(t, forceStep{}.Abort(&Options{Force: true}))
+}
+
+func TestGitStepDoesNotAbort(t *testing.T) {
+	t.Parallel()
+
+	require.False(t, gitStep{}.Abort(&Options{Git: false}))
+	require.False(t, gitStep{}.Abort(&Options{Git: true}))
+}

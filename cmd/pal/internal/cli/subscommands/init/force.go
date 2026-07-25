@@ -32,3 +32,8 @@ func (forceStep) Field(opts *Options) huh.Field {
 		Negative("N").
 		Value(&opts.Force)
 }
+
+func (forceStep) Abort(opts *Options) bool {
+	// Abort if the user does not want to force overwrite.
+	return !opts.Force
+}

@@ -34,6 +34,10 @@ func (gitStep) Field(opts *Options) huh.Field {
 		Value(&opts.Git)
 }
 
+func (gitStep) Abort(_ *Options) bool {
+	return false
+}
+
 func initGit(ctx context.Context, dir string) error {
 	cmd := exec.CommandContext(ctx, "git", "init")
 	cmd.Dir = dir

@@ -13,6 +13,9 @@ type Step interface {
 	Applicable(opts *Options, cwd string) bool
 	// Field returns a huh field bound to opts.
 	Field(opts *Options) huh.Field
+	// Abort reports whether the wizard should stop after this step was answered
+	// (fail fast). Only called when the step was actually shown.
+	Abort(opts *Options) bool
 }
 
 // Steps returns the ordered registry of init steps.

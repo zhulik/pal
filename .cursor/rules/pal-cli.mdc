@@ -50,8 +50,11 @@ type Step interface {
     Flag() cli.Flag
     Applicable(opts *Options, cwd string) bool
     Field(opts *Options) huh.Field
+    Abort(opts *Options) bool
 }
 ```
+
+Wizard runs **one step per form**, in registry order. After each answered step, if `Abort` is true, return `ErrAborted` immediately — do not ask later steps. Use `Abort` for declining answers that cancel init (e.g. force); optional skips (e.g. `--no-git`) return false.
 
 ## Exit codes
 
