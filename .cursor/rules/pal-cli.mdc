@@ -13,6 +13,7 @@ Framework: **urfave/cli/v3**. Root command lives in `internal/cli`; `main` only 
 cmd/pal/
   main.go
   templates/                       # embedded project scaffolds (see Project templates)
+  pkg/cmdexec/                     # run external commands with live stdio
   internal/cli/cli.go              # root; register subcommands here
   internal/cli/app/                # shared pal app runner (timeouts, Provide)
   internal/cli/subscommands/<name>/  # note: "subscommands" spelling is intentional
@@ -20,6 +21,10 @@ cmd/pal/
     flags.go     # command flags (mode flags + step registry)
     runner.go    # all command logic
 ```
+
+## External commands
+
+When the CLI shells out (`git`, `go`, …) and the user should see progress, use `cmdexec.Run(ctx, dir, name, args...)` — it builds an `exec.CommandContext`, sets `Dir`, and attaches stdout/stderr so output streams in real time. Do not call `os/exec` directly or use `CombinedOutput`/`Output` for those cases (they buffer until exit). Stdlib file-descriptor inheritance is enough here; do not pull in a third-party exec wrapper just to forward stdio.
 
 Package `init` is reserved in Go — use `package initcmd` under directory `init/`.
 

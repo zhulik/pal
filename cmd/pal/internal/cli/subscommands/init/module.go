@@ -1,15 +1,15 @@
 package initcmd
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/urfave/cli/v3"
+
+	"github.com/zhulik/pal/cmd/pal/pkg/cmdexec"
 )
 
 const argModule = "module"
@@ -50,21 +50,15 @@ func (moduleStep) Abort(_ *Options) bool {
 }
 
 func initModule(ctx context.Context, dir, module string) error {
-	cmd := exec.CommandContext(ctx, "go", "mod", "init", module)
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("go mod init: %w: %s", err, bytes.TrimSpace(out))
+	if err := cmdexec.Run(ctx, dir, "go", "mod", "init", module); err != nil {
+		return fmt.Errorf("go mod init: %w", err)
 	}
 	return nil
 }
 
 func tidyModule(ctx context.Context, dir string) error {
-	cmd := exec.CommandContext(ctx, "go", "mod", "tidy")
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("go mod tidy: %w: %s", err, bytes.TrimSpace(out))
+	if err := cmdexec.Run(ctx, dir, "go", "mod", "tidy"); err != nil {
+		return fmt.Errorf("go mod tidy: %w", err)
 	}
 	return nil
 }

@@ -1,13 +1,13 @@
 package initcmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
 
 	"github.com/charmbracelet/huh"
 	"github.com/urfave/cli/v3"
+
+	"github.com/zhulik/pal/cmd/pal/pkg/cmdexec"
 )
 
 const flagNoGit = "no-git"
@@ -43,11 +43,8 @@ func (gitStep) Abort(_ *Options) bool {
 }
 
 func initGit(ctx context.Context, dir string) error {
-	cmd := exec.CommandContext(ctx, "git", "init")
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("git init: %w: %s", err, bytes.TrimSpace(out))
+	if err := cmdexec.Run(ctx, dir, "git", "init"); err != nil {
+		return fmt.Errorf("git init: %w", err)
 	}
 	return nil
 }
