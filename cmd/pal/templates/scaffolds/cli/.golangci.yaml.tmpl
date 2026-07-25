@@ -1,0 +1,49 @@
+version: "2"
+
+linters:
+  enable:
+    - gosec
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
+    - paralleltest
+    - testpackage
+  settings:
+    gosec:
+      excludes:
+        - G104
+    testpackage:
+      # Do not exempt export_test.go / internal_test.go or package main.
+      skip-regexp: "^$"
+      allow-packages: []
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  fix: false
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

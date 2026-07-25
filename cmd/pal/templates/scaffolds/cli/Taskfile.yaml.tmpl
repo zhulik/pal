@@ -1,0 +1,35 @@
+version: "3"
+
+tasks:
+  default:
+    desc: Run linting then tests
+    cmds:
+      - task: lint
+      - task: test
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -race ./... -count=1
+
+  cover:
+    desc: Run tests with a coverage report
+    cmds:
+      - mkdir -p coverage/
+      - go test -coverpkg=./... -coverprofile=coverage/cover.out ./...
+      - go tool cover -html coverage/cover.out -o coverage/cover.html
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - GOLANGCI_LINT_CACHE="$PWD/.cache/golangci-lint" golangci-lint run --allow-parallel-runners
+
+  lint-fix:
+    desc: Run golangci-lint with auto-fix
+    cmds:
+      - GOLANGCI_LINT_CACHE="$PWD/.cache/golangci-lint" golangci-lint run --fix --allow-parallel-runners
+
+  run:
+    desc: Run the CLI
+    cmds:
+      - go run ./cmd/{{.Package}}

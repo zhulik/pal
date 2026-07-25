@@ -1,0 +1,12 @@
+---
+description: Run task lint-fix after every code change
+alwaysApply: true
+---
+# Lint after every change
+
+After any code change, run `task lint-fix` in the module you touched and fix issues before finishing:
+
+- Library / root module: from the repo root — `task lint-fix`
+- CLI module: from `cmd/pal` — `task -d cmd/pal lint-fix` (or `cd cmd/pal && task lint-fix`)
+
+If you changed both, run both. Do not leave lint or format failures for the user.

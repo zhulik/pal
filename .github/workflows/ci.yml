@@ -14,11 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # cmd/pal requires a newer Go than the library module; use it for the
+      # whole lint job so the CLI linter can load packages (GOTOOLCHAIN=local).
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           cache: true
-          go-version-file: 'go.mod'
+          go-version-file: 'cmd/pal/go.mod'
+          cache-dependency-path: |
+            go.sum
+            cmd/pal/go.sum
 
       - name: Run generate
         run: go generate ./...
@@ -27,6 +32,13 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
+          args: --timeout=2m
+
+      - name: Run CLI linter
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          working-directory: cmd/pal
           args: --timeout=2m
 
       - name: Lint markdown docs
@@ -69,11 +81,41 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test-cli:
+    name: Test CLI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'cmd/pal/go.mod'
+          cache: true
+          cache-dependency-path: cmd/pal/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          install-only: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Run CLI tests
+        working-directory: cmd/pal
+        run: go test -race ./... -timeout=5m -count=1
+
   ci:
     name: CI
     runs-on: ubuntu-latest
     needs:
       - lint
       - test
+      - test-cli
     steps:
       - run: echo ok

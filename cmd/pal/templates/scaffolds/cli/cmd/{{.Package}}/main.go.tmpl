@@ -1,0 +1,56 @@
+// Package main is the {{.Package}} CLI entrypoint.
+package main
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"time"
+
+	"github.com/zhulik/pal"
+)
+
+var (
+	_ pal.Initer     = (*runner)(nil)
+	_ pal.Runner     = (*runner)(nil)
+	_ pal.Shutdowner = (*runner)(nil)
+)
+
+type runner struct {
+	Logger *slog.Logger
+}
+
+//nolint:unparam // demo Init always succeeds
+func (r *runner) Init(_ context.Context) error {
+	r.Logger.Info("{{.Package}} initializing")
+	return nil
+}
+
+//nolint:unparam // demo Run waits for cancel then succeeds
+func (r *runner) Run(ctx context.Context) error {
+	r.Logger.Info("{{.Package}} running")
+	<-ctx.Done()
+	return nil
+}
+
+//nolint:unparam // demo Shutdown always succeeds
+func (r *runner) Shutdown(_ context.Context) error {
+	r.Logger.Info("{{.Package}} shutting down")
+	return nil
+}
+
+func main() {
+	p := pal.New(
+		pal.Provide(&runner{}),
+	).
+		InjectSlog().
+		InitTimeout(time.Second).
+		HealthCheckTimeout(time.Second).
+		ShutdownTimeout(3 * time.Second)
+	err := p.Run(context.Background())
+	if err != nil {
+		fmt.Printf("{{.Package}} failed: %v\n", err)
+		os.Exit(1)
+	}
+}

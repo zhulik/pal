@@ -17,16 +17,15 @@ tasks:
       - test
 
   test:
-    desc: Run library and CLI tests
+    desc: Run tests
     cmds:
-      - go test -race ./... -test.timeout=3s -count=1
-      - task -d cmd/pal test
+      - go test -race ./... -test.timeout=5m -count=1
 
   cover:
     desc: Run tests with cover report
     cmds:
       - mkdir -p coverage/
-      - go test -coverpkg=./... -coverprofile=coverage/cover.out ./... -test.timeout=2s
+      - go test -coverpkg=./... -coverprofile=coverage/cover.out ./... -test.timeout=5m
       - go tool cover -html coverage/cover.out -o coverage/cover.html
 
   lint:

@@ -1,0 +1,201 @@
+---
+description: Architecture and conventions for the pal CLI (cmd/pal)
+globs: cmd/pal/**/*
+alwaysApply: false
+---
+# pal CLI architecture
+
+Framework: **urfave/cli/v3**. Root command lives in `internal/cli`; `main` only runs it. Help is built-in (`help` / `-h`) — do not add a custom help subcommand. Version is built-in (`-v` / `--version`) plus a `version` subcommand — both print the same string (see Version).
+
+## Layout
+
+```
+cmd/pal/
+  main.go
+  templates/                       # embedded project scaffolds (see Project templates)
+  pkg/cmdexec/                     # run external commands with live stdio
+  internal/version/                # CLI build version string (runtime/debug)
+  internal/cli/cli.go              # root; register subcommands here
+  internal/cli/app/                # shared pal app runner (timeouts, Provide)
+  internal/cli/subscommands/<name>/  # note: "subscommands" spelling is intentional
+    <name>.go    # cli.Command (thin wrapper)
+    flags.go     # command flags (mode flags + step registry); omit if none
+    runner.go    # all command logic; omit for meta commands (e.g. version)
+    wizard.go                  # interactive wizard runner (if any)
+    wizard_steps.go            # Step interface + Steps() registry
+    wizard_step_<concern>.go   # one file per wizard/CLI step (see Step registry)
+```
+
+## External commands
+
+When the CLI shells out (`git`, `go`, …) and the user should see progress, use `cmdexec.Run(ctx, dir, name, args...)` — it builds an `exec.CommandContext`, sets `Dir`, and attaches stdout/stderr so output streams in real time. Do not call `os/exec` directly or use `CombinedOutput`/`Output` for those cases (they buffer until exit). Stdlib file-descriptor inheritance is enough here; do not pull in a third-party exec wrapper just to forward stdio.
+
+Package `init` is reserved in Go — use `package initcmd` under directory `init/`. Same pattern for other reserved/colliding names (`version` → `versioncmd`).
+
+## Thin Command, fat runner
+
+`Action` must only read flags/args and pass them into the runner. No business logic in `Action`.
+
+```go
+Action: func(ctx context.Context, cmd *cli.Command) error {
+    return app.Run(ctx, pal.Provide(&runner{opts: OptionsFromCommand(cmd)}))
+},
+```
+
+Pass the Action’s `ctx` into `app.Run` — never substitute `context.Background()` there.
+
+**The CLI dogfoods Pal.** Every subcommand Action that performs work runs its runner through `app.Run` → `pal.New(…).Run`. Do not call `runner.Run` directly from Action; keep `internal/cli/app` as the shared entry so timeouts and Provide stay consistent across commands.
+
+**Exception:** the `version` subcommand (and urfave’s built-in `-v` / `--version`) only print build metadata via `cli.ShowVersion` / `Command.Version`. They must not go through `app.Run`.
+
+## Version
+
+CLI version comes from Go build metadata (`runtime/debug.ReadBuildInfo`), implemented in `internal/version` — no hand-maintained version constant and no required ldflags for local builds (Go’s default `-buildvcs` is enough).
+
+Resolution order:
+
+1. **Module version** when `Main.Version` is set and not `(devel)` — a release tag (`v1.2.3`) or Go pseudo-version when installed/built from a module version.
+2. Else **short VCS revision + commit date** (`abcdef0 2026-07-25`), with a `-dirty` suffix when `vcs.modified` is true.
+3. Else `devel` / `unknown` as last resorts.
+
+Wire `Command.Version` on the root to `version.String()`. `-v` / `--version` use urfave’s built-in version flag; the `version` subcommand calls `cli.ShowVersion(cmd.Root())` so both paths print the same `pal version …` line.
+
+## Interactive frontend / non-interactive backend
+
+- **Interactive is the default.** Scripts use `--no-interactive`.
+- Shared `Options` is the contract. Wizard (frontend) fills `Options`; non-interactive reads flags/args into `Options`; both call the same runner backend.
+- Wizard does not shell out. Use `Options.Args()` to show the equivalent `pal init …` invocation.
+- Wizard library: **charmbracelet/huh**.
+- Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
+- Project template is `--template` (default `cli`). The wizard asks unless `--template` was **explicitly** set on the CLI (`cmd.IsSet`); the flag default alone does not skip the step.
+- `--no-git` skips the git wizard step when explicitly set; otherwise the wizard asks (default yes).
+- **`--directory` / `-d`** is a path override (CLI-only, not a Step — same class as `--no-interactive`). Applies to both interactive and non-interactive modes. Empty/omitted means the process cwd. The target must be missing or an existing **empty** directory (`ErrNotEmpty` otherwise; no `--force`).
+
+## Init is transactional
+
+Init never mutates the target until the project is fully built:
+
+1. Resolve the final target path; if it exists, require it empty (**before** the wizard).
+2. Collect options (wizard or flags).
+3. **Preflight** — template exists (`templates.Exists`), `go` and `task` on `PATH`, and `git` on `PATH` when git is enabled. Fail here with the target untouched.
+4. Build the project only in a **staging temp directory** (`go mod init`, optional `git init`, apply template, `go mod tidy`).
+5. On success, **promote** the staging tree into the target via `os.CopyFS`. `PromoteWorkDir` re-checks that the target is empty immediately before the copy (closes the TOCTOU window after the early check). On promote failure: if the target was newly created, remove it; if it already existed empty, clear its contents back to empty. The staging dir is always removed.
+6. **`task lint-fix`** runs with the **final target directory** as cwd (`task -d <abs-target>`), so Taskfile / asdf `.tool-versions` / golangci-lint resolve against the new project — not the pal CLI process cwd.
+
+Do not write into an existing empty target (or cwd) in place — that left half-inits when a later step failed. Staging + promote is the only write path.
+
+Pass the full `Options` from the CLI into `RunWizard` — never reseed with a partial struct (e.g. only `Module`). Steps that track “explicitly set on CLI” use `IsSet` flags on `Options` (`TemplateSet`, `GitSet`) so flag defaults do not suppress prompts.
+
+## Step registry (keep CLI ↔ wizard in sync)
+
+Each init concern is a `Step` owning both a CLI input (flag **or** positional argument) and the huh field. `Flags()`, `Arguments()`, and the wizard all iterate `Steps()`. New options = new step file + one line in `Steps()` — never add a CLI input without a wizard counterpart (or vice versa).
+
+**Naming (frozen for init and future wizard-using commands):**
+
+| Kind | Pattern | Examples |
+|------|---------|----------|
+| Registry file | `wizard_steps.go` | `Step` interface + `Steps()` |
+| Step file | `wizard_step_<concern>.go` | `wizard_step_module.go`, `wizard_step_git.go`, `wizard_step_template.go` |
+| Step type | `wizardStep<Concern>` | `wizardStepModule`, `wizardStepGit`, `wizardStepTemplate` |
+
+Do not name step files after the concern alone (`module.go`, `git.go`) — that collides with runner helpers and hides that the type is a wizard/CLI step. Related backend helpers for a concern (e.g. `initGit`, `applyTemplate`) may live in the same `wizard_step_*.go` file.
+
+```go
+type Step interface {
+    Flag() cli.Flag           // nil if the step uses a positional argument
+    Argument() cli.Argument   // nil if the step uses a flag
+    Applicable(opts *Options, cwd string) bool
+    Field(opts *Options) (huh.Field, error)
+    Abort(opts *Options) bool
+}
+```
+
+Wizard runs **one step per form**, in registry order. After each answered step, if `Abort` is true, return `ErrAborted` immediately — do not ask later steps. Use `Abort` for declining answers that cancel init; optional skips (e.g. `--no-git`) return false.
+
+**Target directory must be empty.** Init fails with `ErrNotEmpty` if the target exists and is not empty — there is no `--force` / overwrite path. Check emptiness before the wizard so users are not prompted for a doomed run.
+
+## Project templates
+
+Scaffolds live under `cmd/pal/templates/scaffolds/<name>/` and are embedded via a single `//go:embed all:scaffolds` in package `templates`, exposed as `templates.FS` (`fs.Sub` of the scaffolds root). **Adding a template** = create `scaffolds/<name>/…` — no new `go:embed` line and no hardcoded wizard options.
+
+Init copies the chosen template into the **staging** directory **after** `go mod init` and optional `git init` (still before promote).
+
+The wizard template select and non-interactive validation both use `templates.Names()` / `templates.Exists` / `Apply` — never hardcode the list of template names in the step UI. If `Names()` fails or returns no templates, the wizard step must return an error (do not fall back to a hardcoded `cli` list).
+
+Scaffold docs that mention a Go version (e.g. README Requirements) must match the **pal library** `go` directive in the root `go.mod`, not an outdated minimum.
+
+**Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. Supported `templates.Data` fields: `.Package` (module path’s last element, `-` → `_`) and `.Module` (full module path).
+
+**Every scaffold file must end with `.tmpl`.** This is required for all files (Go sources, README, Taskfile, configs, `.gitignore`, …), not only sources that would confuse `go test`/`go list`. `Apply` strips a trailing `.tmpl` from the output path. Example layout:
+
+```
+templates/scaffolds/cli/cmd/{{.Package}}/main.go.tmpl  →  cmd/myapp/main.go
+templates/scaffolds/cli/README.md.tmpl                 →  README.md
+templates/scaffolds/cli/.gitignore.tmpl                →  .gitignore
+```
+
+Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`. Do not add scaffold files without the `.tmpl` suffix.
+
+## Frozen public surface
+
+These names are **frozen** — extend by adding, do not rename without a deliberate breaking-change decision:
+
+| Kind | Frozen value |
+|------|----------------|
+| Package path segment | `internal/cli/subscommands` (intentional spelling) |
+| Init package | directory `init/`, Go package `initcmd` |
+| Mode flag | `--no-interactive` |
+| Path flag | `--directory` / `-d` |
+| Template flag | `--template` (default / id `cli`) |
+| Git flag | `--no-git` |
+| Module input | positional `MODULE` |
+| Templating | Go `text/template` + `templates.Data` fields only |
+| Exit codes | `0` success, `1` any error (no richer taxonomy) |
+| Version flag | `-v` / `--version` (urfave built-in) |
+| Version command | `version` subcommand (same output as the flag) |
+| Version source | `runtime/debug` build info (tag / pseudo-version, else SHA+date) |
+
+New flags, steps, templates, and `Data` fields are fine. Renaming the table above is not “cleanup”.
+
+## Exit codes
+
+**Always exit 0 on success and 1 on any error.** Do not introduce a richer exit-code taxonomy (usage vs abort vs IO, etc.). From the user’s perspective the CLI either succeeded or failed; scripts and humans will not distinguish failure kinds via `$?`.
+
+Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …) for typed handling and clear messages inside the process. `main` maps any error to exit 1; success is exit 0 only when the command actually completes.
+
+## Tests
+
+CLI tests must live in external `*_test` packages (`package foo_test`) and exercise the package public API only. White-box tests in the same package as production code are not allowed.
+
+Enforced by the `testpackage` linter in [`cmd/pal/.golangci.yaml`](cmd/pal/.golangci.yaml) and the generated scaffold [`cmd/pal/templates/scaffolds/cli/.golangci.yaml.tmpl`](cmd/pal/templates/scaffolds/cli/.golangci.yaml.tmpl):
+
+```yaml
+linters:
+  enable:
+    - testpackage
+  settings:
+    testpackage:
+      skip-regexp: "^$"
+      allow-packages: []
+```
+
+That disables the usual exemptions (`export_test.go`, `internal_test.go`, and `package main`). Generated projects must use `package main_test` for tests next to `main`.
+
+## Init integration tests
+
+Success-path init coverage lives in [`cmd/pal/internal/cli/init_integration_test.go`](cmd/pal/internal/cli/init_integration_test.go) (`package cli_test`).
+
+- Matrix over `templates.Names()` × git on/`--no-git` × `-d` existing-empty / missing-nested. Always `--no-interactive` + a MODULE.
+- Drive a **built `pal` binary** as a subprocess (not in-process `cli.New().Run`) so the real CLI entrypoint is covered and Pal’s shutdown watchdog does not panic in the long-lived test process.
+- After init: `go mod edit -replace` to the local library checkout, mutate the generated tree (e.g. edit a source string + add a smoke `*_test.go`), then run `task` in the project dir. That exercises the generated Taskfile (default target = lint + test). Assume `task`, `go`, and `golangci-lint` are on `PATH` — do not soft-skip or invoke those tools directly from the test.
+- When the repo has a `.tool-versions`, copy it into the generated project before `task` so asdf resolves the same pins outside the repo tree. Serialize `task` across parallel cases (`golangci-lint` rejects concurrent runs).
+- Each scaffold name must have an entry in `templateValidators`; adding `scaffolds/<name>/` without a validator fails the suite.
+- Negative paths stay in `init` package unit tests (`runner_test.go`, etc.).
+- Process exit codes: [`cmd/pal/internal/cli/exit_test.go`](cmd/pal/internal/cli/exit_test.go) drives the built binary and asserts success → `0`, representative failures → `1`.
+- No build tags / special runners: `cd cmd/pal && go test ./...` (Taskfile timeout ≥ 5m). Root `go test ./...` does not see the nested module; root `task test` and CI `test-cli` recurse into `cmd/pal`.
+
+## Adding a subcommand
+
+1. Create `internal/cli/subscommands/<name>/` with `<name>.go`, `flags.go`, `runner.go`.
+2. Keep `Action` thin; put logic in the runner.
+3. Register via `New()` in `internal/cli/cli.go`.

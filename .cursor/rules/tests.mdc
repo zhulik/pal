@@ -18,4 +18,6 @@ Resources which can be reused across multiple tests files, must be defined in co
 
 For asserts and mocks `github.com/stretchr/testify` should be used.
 
+Never use `context.Background()` in tests when `t.Context()` is available.
+
 Make sure all code paths are tested.

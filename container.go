@@ -306,7 +306,7 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 		return nil
 	}
 	val := reflect.ValueOf(m)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 
