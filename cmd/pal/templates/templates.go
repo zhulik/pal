@@ -36,17 +36,25 @@ type Data struct {
 	Module string
 }
 
+// Exists reports whether name is a known project template directory under FS.
+func Exists(name string) error {
+	if name == "" {
+		return fmt.Errorf("template name is required")
+	}
+	if _, err := fs.Stat(FS, name); err != nil {
+		return fmt.Errorf("unknown template %q: %w", name, err)
+	}
+	return nil
+}
+
 // Apply renders the named project template from FS into dst.
 // Both relative paths and file contents are Go text/template templates
 // executed with data. Every scaffold file must use a trailing ".tmpl"
 // suffix; Apply strips it from the output path (so Go sources are ignored by
 // go test/list, and all scaffold files share one convention).
 func Apply(dst, name string, data Data) error {
-	if name == "" {
-		return fmt.Errorf("template name is required")
-	}
-	if _, err := fs.Stat(FS, name); err != nil {
-		return fmt.Errorf("unknown template %q: %w", name, err)
+	if err := Exists(name); err != nil {
+		return err
 	}
 
 	return fs.WalkDir(FS, name, func(embedPath string, d fs.DirEntry, err error) error {

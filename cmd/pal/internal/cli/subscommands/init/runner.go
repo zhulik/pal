@@ -16,25 +16,28 @@ func Run(ctx context.Context, opts Options) error {
 }
 
 func (r *runner) Run(ctx context.Context) error {
-	workDir, promoteTo, cleanup, err := ResolveWorkDir(r.opts.Directory)
+	workDir, promoteTo, targetExisted, cleanup, err := ResolveWorkDir(r.opts.Directory)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
-	empty, err := IsEmpty(workDir)
-	if err != nil {
-		return err
-	}
-	if !empty {
-		return ErrNotEmpty
+	if targetExisted {
+		empty, err := IsEmpty(promoteTo)
+		if err != nil {
+			return err
+		}
+		if !empty {
+			return ErrNotEmpty
+		}
 	}
 
 	opts := r.opts
 	if !opts.NoInteractive {
 		// Seed the wizard from CLI options so explicitly set flags/args skip
 		// their steps (via Applicable) while unset ones are still prompted.
-		opts, err = RunWizard(workDir, opts)
+		// Pass the final target path (not the staging dir) as wizard context.
+		opts, err = RunWizard(promoteTo, opts)
 		if err != nil {
 			return err
 		}
@@ -43,7 +46,12 @@ func (r *runner) Run(ctx context.Context) error {
 	if opts.Module == "" {
 		return ErrModuleRequired
 	}
+	if err := preflight(opts); err != nil {
+		return err
+	}
 
+	// All mutations happen only in the staging directory. The target is
+	// updated solely via PromoteWorkDir on success.
 	if err := initModule(ctx, workDir, opts.Module); err != nil {
 		return err
 	}
@@ -62,10 +70,8 @@ func (r *runner) Run(ctx context.Context) error {
 		return err
 	}
 
-	if promoteTo != "" {
-		if err := PromoteWorkDir(workDir, promoteTo); err != nil {
-			return err
-		}
+	if err := PromoteWorkDir(workDir, promoteTo, targetExisted); err != nil {
+		return err
 	}
 
 	fmt.Println("Project initialized.")

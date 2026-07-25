@@ -66,7 +66,19 @@ Wire `Command.Version` on the root to `version.String()`. `-v` / `--version` use
 - Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
 - Project template is `--template` (default `cli`). The wizard asks unless `--template` was **explicitly** set on the CLI (`cmd.IsSet`); the flag default alone does not skip the step.
 - `--no-git` skips the git wizard step when explicitly set; otherwise the wizard asks (default yes).
-- **`--directory` / `-d`** is a path override (CLI-only, not a Step — same class as `--no-interactive`). Applies to both interactive and non-interactive modes. Empty/omitted means the process cwd. If the path exists, init runs there. If it is missing, init runs in a temp dir and, only on success, creates all missing parents and copies the temp tree to `-d` via `os.CopyFS`; the temp dir is always removed on exit.
+- **`--directory` / `-d`** is a path override (CLI-only, not a Step — same class as `--no-interactive`). Applies to both interactive and non-interactive modes. Empty/omitted means the process cwd. The target must be missing or an existing **empty** directory (`ErrNotEmpty` otherwise; no `--force`).
+
+## Init is transactional
+
+Init never mutates the target until the project is fully built:
+
+1. Resolve the final target path; if it exists, require it empty (**before** the wizard).
+2. Collect options (wizard or flags).
+3. **Preflight** — template exists (`templates.Exists`), `go` on `PATH`, and `git` on `PATH` when git is enabled. Fail here with the target untouched.
+4. Build the project only in a **staging temp directory** (`go mod init`, optional `git init`, apply template, `go mod tidy`).
+5. On success, **promote** the staging tree into the target via `os.CopyFS`. On promote failure: if the target was newly created, remove it; if it already existed empty, clear its contents back to empty. The staging dir is always removed.
+
+Do not write into an existing empty target (or cwd) in place — that left half-inits when a later step failed. Staging + promote is the only write path.
 
 Pass the full `Options` from the CLI into `RunWizard` — never reseed with a partial struct (e.g. only `Module`). Steps that track “explicitly set on CLI” use `IsSet` flags on `Options` (`TemplateSet`, `GitSet`) so flag defaults do not suppress prompts.
 
@@ -86,15 +98,15 @@ type Step interface {
 
 Wizard runs **one step per form**, in registry order. After each answered step, if `Abort` is true, return `ErrAborted` immediately — do not ask later steps. Use `Abort` for declining answers that cancel init; optional skips (e.g. `--no-git`) return false.
 
-**Target directory must be empty.** Init fails with `ErrNotEmpty` if the resolved work dir is not empty — there is no `--force` / overwrite path. Check emptiness before the wizard so users are not prompted for a doomed run.
+**Target directory must be empty.** Init fails with `ErrNotEmpty` if the target exists and is not empty — there is no `--force` / overwrite path. Check emptiness before the wizard so users are not prompted for a doomed run.
 
 ## Project templates
 
 Scaffolds live under `cmd/pal/templates/scaffolds/<name>/` and are embedded via a single `//go:embed all:scaffolds` in package `templates`, exposed as `templates.FS` (`fs.Sub` of the scaffolds root). **Adding a template** = create `scaffolds/<name>/…` — no new `go:embed` line and no hardcoded wizard options.
 
-Init copies the chosen template into the working directory **after** `go mod init` and optional `git init`.
+Init copies the chosen template into the **staging** directory **after** `go mod init` and optional `git init` (still before promote).
 
-The wizard template select and non-interactive validation both use `templates.Names()` / `Apply` — never hardcode the list of template names in the step UI.
+The wizard template select and non-interactive validation both use `templates.Names()` / `templates.Exists` / `Apply` — never hardcode the list of template names in the step UI.
 
 **Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. Supported `templates.Data` fields: `.Package` (module path’s last element, `-` → `_`) and `.Module` (full module path).
 

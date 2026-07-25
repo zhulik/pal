@@ -90,3 +90,11 @@ func TestApplyUnknown(t *testing.T) {
 	err := templates.Apply(t.TempDir(), "missing", templates.Data{Package: "x"})
 	require.Error(t, err)
 }
+
+func TestExists(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, templates.Exists("cli"))
+	require.Error(t, templates.Exists(""))
+	require.Error(t, templates.Exists("missing"))
+}

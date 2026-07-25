@@ -69,13 +69,14 @@ func TestRun(t *testing.T) {
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
-	t.Run("unknown template fails", func(t *testing.T) {
+	t.Run("unknown template fails without mutating target", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
 		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Module: module, Template: "nope"})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "nope")
+		requireEmptyDir(t, dir)
 	})
 
 	t.Run("directory flag uses existing empty dir", func(t *testing.T) {
@@ -158,6 +159,20 @@ func requireCLITemplate(t *testing.T, dir string) {
 	require.NotContains(t, string(data), "{{.Package}}")
 }
 
+func requireEmptyDir(t *testing.T, dir string) {
+	t.Helper()
+	empty, err := initcmd.IsEmpty(dir)
+	require.NoError(t, err)
+	require.True(t, empty)
+}
+
+func writeStubExecutable(t *testing.T, dir, name string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o755))
+	return path
+}
+
 func TestOptions_Args(t *testing.T) {
 	t.Parallel()
 
@@ -165,4 +180,43 @@ func TestOptions_Args(t *testing.T) {
 	require.Equal(t, []string{"example.com/app"}, initcmd.Options{Module: "example.com/app", Git: true}.Args())
 	require.Equal(t, []string{"example.com/app", "-d", "./app"}, initcmd.Options{Module: "example.com/app", Directory: "./app", Git: true}.Args())
 	require.Equal(t, []string{"example.com/app", "--template", "other"}, initcmd.Options{Module: "example.com/app", Template: "other", Git: true}.Args())
+}
+
+//nolint:paralleltest // t.Setenv cannot be combined with t.Parallel
+func TestRun_PreflightPATH(t *testing.T) {
+	const module = "example.com/myapp"
+
+	t.Run("missing go on PATH fails without mutating target", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Setenv("PATH", t.TempDir())
+
+		err := initcmd.Run(t.Context(), initcmd.Options{
+			NoInteractive: true,
+			Directory:     dir,
+			Module:        module,
+			Template:      "cli",
+			Git:           false,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "go is required on PATH")
+		requireEmptyDir(t, dir)
+	})
+
+	t.Run("missing git on PATH fails without mutating target", func(t *testing.T) {
+		dir := t.TempDir()
+		bin := t.TempDir()
+		writeStubExecutable(t, bin, "go")
+		t.Setenv("PATH", bin)
+
+		err := initcmd.Run(t.Context(), initcmd.Options{
+			NoInteractive: true,
+			Directory:     dir,
+			Module:        module,
+			Template:      "cli",
+			Git:           true,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "git is required on PATH")
+		requireEmptyDir(t, dir)
+	})
 }
