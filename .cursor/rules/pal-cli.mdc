@@ -73,12 +73,16 @@ Wizard runs **one step per form**, in registry order. After each answered step, 
 
 ## Project templates
 
-Scaffolds live under `cmd/pal/templates/<name>/` and are embedded into the CLI via `embed.FS` in package `templates` (`//go:embed all:<name>` per template directory). Init copies the chosen template into the working directory **after** `go mod init` and optional `git init`.
+Scaffolds live under `cmd/pal/templates/scaffolds/<name>/` and are embedded via a single `//go:embed all:scaffolds` in package `templates`, exposed as `templates.FS` (`fs.Sub` of the scaffolds root). **Adding a template** = create `scaffolds/<name>/…` — no new `go:embed` line and no hardcoded wizard options.
+
+Init copies the chosen template into the working directory **after** `go mod init` and optional `git init`.
+
+The wizard template select and non-interactive validation both use `templates.Names()` / `Apply` — never hardcode the list of template names in the step UI.
 
 **Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. The only data field currently supported is `.Package` (derived from the module path’s last element, with `-` → `_`). Scaffold files that would otherwise be valid Go sources use a `.tmpl` suffix so `go test`/`go list` ignore them; `Apply` strips a trailing `.tmpl` from the output path. Example layout:
 
 ```
-templates/cli/cmd/{{.Package}}/main.go.tmpl  →  cmd/myapp/main.go
+templates/scaffolds/cli/cmd/{{.Package}}/main.go.tmpl  →  cmd/myapp/main.go
 ```
 
 Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`.

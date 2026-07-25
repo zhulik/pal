@@ -12,8 +12,21 @@ import (
 	"text/template"
 )
 
-//go:embed all:cli
-var FS embed.FS
+//go:embed all:scaffolds
+var scaffoldsFS embed.FS
+
+// FS is the project template tree (one directory per template name under
+// scaffolds/). Adding a template is: create scaffolds/<name>/… — no new
+// go:embed line required.
+var FS = mustSub(scaffoldsFS, "scaffolds")
+
+func mustSub(fsys embed.FS, dir string) fs.FS {
+	sub, err := fs.Sub(fsys, dir)
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}
 
 // Data is the values available to project template paths and file contents.
 // Currently only Package is supported.
@@ -59,7 +72,7 @@ func Apply(dst, name string, data Data) error {
 			return os.MkdirAll(outPath, 0o755)
 		}
 
-		raw, err := FS.ReadFile(embedPath)
+		raw, err := fs.ReadFile(FS, embedPath)
 		if err != nil {
 			return err
 		}

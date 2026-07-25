@@ -36,9 +36,17 @@ func (templateStep) Field(opts *Options) huh.Field {
 	if opts.Template == "" {
 		opts.Template = defaultTemplate
 	}
+	names, err := templates.Names()
+	if err != nil {
+		names = []string{defaultTemplate}
+	}
+	options := make([]huh.Option[string], 0, len(names))
+	for _, name := range names {
+		options = append(options, huh.NewOption(name, name))
+	}
 	return huh.NewSelect[string]().
 		Title("Which project template?").
-		Options(huh.NewOption("CLI", "cli")).
+		Options(options...).
 		Value(&opts.Template)
 }
 

@@ -11,8 +11,9 @@ type Options struct {
 	Directory string
 	// Module is the Go module path passed to `go mod init`.
 	Module string
-	// Template is the project template name (directory under cmd/pal/templates).
-	// Default is "cli" when read from flags; the wizard also defaults to cli.
+	// Template is the project template name (directory under
+	// cmd/pal/templates/scaffolds). Default is "cli" when read from flags; the
+	// wizard also defaults to cli.
 	Template string
 	// TemplateSet is true when --template was explicitly passed on the CLI.
 	// Used by the wizard to skip the template step without treating the flag
