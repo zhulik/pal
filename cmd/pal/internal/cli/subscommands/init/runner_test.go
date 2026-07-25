@@ -154,7 +154,9 @@ func requireCLITemplate(t *testing.T, dir string) {
 	data, err := os.ReadFile(mainPath)
 	require.NoError(t, err)
 	require.Contains(t, string(data), "package main")
+	require.Contains(t, string(data), `"myapp initializing"`)
 	require.Contains(t, string(data), `"myapp running"`)
+	require.Contains(t, string(data), `"myapp shutting down"`)
 	require.Contains(t, string(data), `"github.com/zhulik/pal"`)
 	require.NotContains(t, string(data), "{{.Package}}")
 }

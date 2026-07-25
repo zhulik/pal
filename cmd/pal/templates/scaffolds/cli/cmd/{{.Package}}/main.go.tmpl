@@ -14,9 +14,20 @@ type runner struct {
 	Logger *slog.Logger
 }
 
-func (r *runner) Run(ctx context.Context) error {
+func (r *runner) Init(_ context.Context) error { //nolint:unparam
+	r.Logger.Info("{{.Package}} initializing")
+	return nil
+}
+
+func (r *runner) Run(ctx context.Context) error { //nolint:unparam
 	r.Logger.Info("{{.Package}} running")
-	return ctx.Err()
+	<-ctx.Done()
+	return nil
+}
+
+func (r *runner) Shutdown(_ context.Context) error { //nolint:unparam
+	r.Logger.Info("{{.Package}} shutting down")
+	return nil
 }
 
 func main() {

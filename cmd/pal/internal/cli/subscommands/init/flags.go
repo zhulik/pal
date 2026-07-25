@@ -12,12 +12,12 @@ func Flags() []cli.Flag {
 	flags := []cli.Flag{
 		&cli.BoolFlag{
 			Name:  flagNoInteractive,
-			Usage: "run without the interactive wizard (read options from flags)",
+			Usage: "run without the interactive wizard (require MODULE; other options from flags)",
 		},
 		&cli.StringFlag{
 			Name:    flagDirectory,
 			Aliases: []string{"d"},
-			Usage:   "project directory (created on success if missing)",
+			Usage:   "project directory (must be empty if it exists; created on success if missing)",
 		},
 	}
 	for _, step := range Steps() {

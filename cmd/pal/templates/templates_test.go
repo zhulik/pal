@@ -56,7 +56,10 @@ func TestApplyCLI(t *testing.T) {
 	data, err := os.ReadFile(mainPath)
 	require.NoError(t, err)
 	require.Contains(t, string(data), "package main")
+	require.Contains(t, string(data), `"myapp initializing"`)
 	require.Contains(t, string(data), `"myapp running"`)
+	require.Contains(t, string(data), `"myapp shutting down"`)
+	require.Contains(t, string(data), "<-ctx.Done()")
 	require.NotContains(t, string(data), "{{.Package}}")
 
 	for _, rel := range []string{
@@ -97,6 +100,10 @@ func TestExists(t *testing.T) {
 	require.NoError(t, templates.Exists("cli"))
 	require.Error(t, templates.Exists(""))
 	require.Error(t, templates.Exists("missing"))
+
+	err := templates.Exists("cli/README.md.tmpl")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not a template directory")
 }
 
 func TestCLIScaffoldREADMEGoVersion(t *testing.T) {

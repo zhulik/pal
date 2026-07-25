@@ -46,6 +46,7 @@ task cover
 └── .gitignore
 ```
 
-The entrypoint wires a `pal.Runner` with slog injection and standard init /
-health-check / shutdown timeouts. Extend it by providing more services to
+The entrypoint wires a service with `Init` / `Run` / `Shutdown` logging, slog
+injection, and standard init / health-check / shutdown timeouts. `Run` blocks
+until the process is interrupted. Extend it by providing more services to
 `pal.New` and injecting them into your runner.

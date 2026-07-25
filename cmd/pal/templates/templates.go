@@ -41,8 +41,12 @@ func Exists(name string) error {
 	if name == "" {
 		return fmt.Errorf("template name is required")
 	}
-	if _, err := fs.Stat(FS, name); err != nil {
+	info, err := fs.Stat(FS, name)
+	if err != nil {
 		return fmt.Errorf("unknown template %q: %w", name, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("unknown template %q: not a template directory", name)
 	}
 	return nil
 }
