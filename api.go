@@ -317,7 +317,7 @@ func must[T any](value T, err error) T {
 func validateNonNilPointer(value any) {
 	val := reflect.ValueOf(value)
 
-	if val.Kind() != reflect.Ptr || val.IsNil() {
+	if val.Kind() != reflect.Pointer || val.IsNil() {
 		panic(fmt.Sprintf("Argument must be a non-nil pointer to a struct, got %T", value))
 	}
 }
@@ -326,7 +326,7 @@ func validateFactoryFunction[I any, T any](fn any) {
 	// Factory function must return a pointer to a struct that implements I
 	// I and T must be the same pointer type.
 	// This way pal can inspect the type of the returned value to build the correct dependency tree.
-	if reflect.TypeOf(fn).Out(0).Kind() != reflect.Ptr {
+	if reflect.TypeOf(fn).Out(0).Kind() != reflect.Pointer {
 		panic(fmt.Sprintf("Factory function must return a pointer, got %s", reflect.TypeOf(fn).Out(0).Kind()))
 	}
 

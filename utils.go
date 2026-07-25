@@ -14,7 +14,7 @@ func empty[T any]() T {
 
 func isNil(val any) bool {
 	v := reflect.ValueOf(val)
-	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || v.IsZero()
+	return !v.IsValid() || (v.Kind() == reflect.Pointer && v.IsNil()) || v.IsZero()
 }
 
 func tryWrap(f func() error) func() error {
