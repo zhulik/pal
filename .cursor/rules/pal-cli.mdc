@@ -107,12 +107,15 @@ These names are **frozen** — extend by adding, do not rename without a deliber
 | Git flag | `--no-git` |
 | Module input | positional `MODULE` |
 | Templating | Go `text/template` + `templates.Data` fields only |
+| Exit codes | `0` success, `1` any error (no richer taxonomy) |
 
 New flags, steps, templates, and `Data` fields are fine. Renaming the table above is not “cleanup”.
 
 ## Exit codes
 
-Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …). `main` maps any error to exit 1; success is exit 0 only when init actually completes.
+**Always exit 0 on success and 1 on any error.** Do not introduce a richer exit-code taxonomy (usage vs abort vs IO, etc.). From the user’s perspective the CLI either succeeded or failed; scripts and humans will not distinguish failure kinds via `$?`.
+
+Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …) for typed handling and clear messages inside the process. `main` maps any error to exit 1; success is exit 0 only when the command actually completes.
 
 ## Tests
 
