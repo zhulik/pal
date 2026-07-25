@@ -121,7 +121,7 @@ func validateCLITemplate(t *testing.T, dir, pkg string) {
 	require.NoError(t, os.WriteFile(mainPath, []byte(updated), 0o644))
 
 	testPath := filepath.Join(dir, "cmd", pkg, "main_test.go")
-	smoke := `package main
+	smoke := `package main_test
 
 import "testing"
 

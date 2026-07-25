@@ -9,10 +9,15 @@ linters:
     - unparam
     - whitespace
     - paralleltest
+    - testpackage
   settings:
     gosec:
       excludes:
         - G104
+    testpackage:
+      # Do not exempt export_test.go / internal_test.go or package main.
+      skip-regexp: "^$"
+      allow-packages: []
   exclusions:
     generated: lax
     presets:

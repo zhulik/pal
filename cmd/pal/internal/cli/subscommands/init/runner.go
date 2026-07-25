@@ -9,8 +9,14 @@ type runner struct {
 	opts Options
 }
 
+// Run initializes a project with opts. Prefer this from tests and other
+// callers; the CLI Action goes through app.Run → pal with an unexported runner.
+func Run(ctx context.Context, opts Options) error {
+	return (&runner{opts: opts}).Run(ctx)
+}
+
 func (r *runner) Run(ctx context.Context) error {
-	workDir, promoteTo, cleanup, err := resolveWorkDir(r.opts.Directory)
+	workDir, promoteTo, cleanup, err := ResolveWorkDir(r.opts.Directory)
 	if err != nil {
 		return err
 	}
@@ -57,7 +63,7 @@ func (r *runner) Run(ctx context.Context) error {
 	}
 
 	if promoteTo != "" {
-		if err := promoteWorkDir(workDir, promoteTo); err != nil {
+		if err := PromoteWorkDir(workDir, promoteTo); err != nil {
 			return err
 		}
 	}

@@ -16,14 +16,14 @@ func IsEmpty(dir string) (bool, error) {
 	return len(entries) == 0, nil
 }
 
-// resolveWorkDir picks where init should write files.
+// ResolveWorkDir picks where init should write files.
 //
 // If directory is empty, the process working directory is used.
 // If directory exists and is a directory, it is used in place.
 // If directory does not exist, a temp dir is created; promoteTo is set so the
 // caller can copy the result to directory after a successful init. cleanup
 // always removes the temp dir when one was created (call via defer).
-func resolveWorkDir(directory string) (workDir, promoteTo string, cleanup func(), err error) {
+func ResolveWorkDir(directory string) (workDir, promoteTo string, cleanup func(), err error) {
 	cleanup = func() {}
 
 	if directory == "" {
@@ -58,9 +58,9 @@ func resolveWorkDir(directory string) (workDir, promoteTo string, cleanup func()
 	return tmp, abs, cleanup, nil
 }
 
-// promoteWorkDir copies a successful init from tmp into target, creating any
+// PromoteWorkDir copies a successful init from tmp into target, creating any
 // missing parent directories. The caller removes tmp via cleanup.
-func promoteWorkDir(tmp, target string) error {
+func PromoteWorkDir(tmp, target string) error {
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		return fmt.Errorf("create directory %s: %w", target, err)
 	}

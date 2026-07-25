@@ -1,28 +1,39 @@
-package initcmd
+package initcmd_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
+
+	initcmd "github.com/zhulik/pal/cmd/pal/internal/cli/subscommands/init"
+)
+
+const (
+	flagNoInteractive = "no-interactive"
+	flagDirectory     = "directory"
+	flagNoGit         = "no-git"
+	flagTemplate      = "template"
+	argModule         = "module"
+	defaultTemplate   = "cli"
 )
 
 func TestStepsInputsCoveredByCLI(t *testing.T) {
 	t.Parallel()
 
 	flagNames := map[string]struct{}{}
-	for _, f := range Flags() {
+	for _, f := range initcmd.Flags() {
 		for _, name := range f.Names() {
 			flagNames[name] = struct{}{}
 		}
 	}
 
 	argNames := map[string]struct{}{}
-	for _, a := range Arguments() {
+	for _, a := range initcmd.Arguments() {
 		argNames[a.(*cli.StringArg).Name] = struct{}{}
 	}
 
-	for _, step := range Steps() {
+	for _, step := range initcmd.Steps() {
 		flag := step.Flag()
 		arg := step.Argument()
 		require.True(t, flag != nil || arg != nil, "step must expose a flag or argument")
@@ -47,7 +58,7 @@ func TestFlagsIncludeNoInteractive(t *testing.T) {
 	t.Parallel()
 
 	var found bool
-	for _, f := range Flags() {
+	for _, f := range initcmd.Flags() {
 		for _, name := range f.Names() {
 			if name == flagNoInteractive {
 				found = true
@@ -57,7 +68,7 @@ func TestFlagsIncludeNoInteractive(t *testing.T) {
 	require.True(t, found)
 
 	// Mode flag is not a Step — ensure Steps do not own it.
-	for _, step := range Steps() {
+	for _, step := range initcmd.Steps() {
 		if flag := step.Flag(); flag != nil {
 			for _, name := range flag.Names() {
 				require.NotEqual(t, flagNoInteractive, name)
@@ -70,7 +81,7 @@ func TestFlagsIncludeDirectory(t *testing.T) {
 	t.Parallel()
 
 	var found bool
-	for _, f := range Flags() {
+	for _, f := range initcmd.Flags() {
 		stringFlag, ok := f.(*cli.StringFlag)
 		if !ok {
 			continue
@@ -82,7 +93,7 @@ func TestFlagsIncludeDirectory(t *testing.T) {
 	}
 	require.True(t, found)
 
-	for _, step := range Steps() {
+	for _, step := range initcmd.Steps() {
 		if flag := step.Flag(); flag != nil {
 			for _, name := range flag.Names() {
 				require.NotEqual(t, flagDirectory, name)
@@ -92,80 +103,114 @@ func TestFlagsIncludeDirectory(t *testing.T) {
 	}
 }
 
-func TestGitStepFlag(t *testing.T) {
+func TestSteps_GitFlag(t *testing.T) {
 	t.Parallel()
 
-	flag := gitStep{}.Flag()
-	boolFlag, ok := flag.(*cli.BoolFlag)
+	step := stepByFlag(t, flagNoGit)
+	boolFlag, ok := step.Flag().(*cli.BoolFlag)
 	require.True(t, ok)
 	require.Equal(t, flagNoGit, boolFlag.Name)
-	require.Nil(t, gitStep{}.Argument())
+	require.Nil(t, step.Argument())
 }
 
-func TestModuleStepArgument(t *testing.T) {
+func TestSteps_ModuleArgument(t *testing.T) {
 	t.Parallel()
 
-	require.Nil(t, moduleStep{}.Flag())
-	arg, ok := moduleStep{}.Argument().(*cli.StringArg)
+	step := stepByArg(t, argModule)
+	require.Nil(t, step.Flag())
+	arg, ok := step.Argument().(*cli.StringArg)
 	require.True(t, ok)
 	require.Equal(t, argModule, arg.Name)
 	require.Equal(t, "MODULE", arg.UsageText)
 }
 
-func TestModuleStepApplicable(t *testing.T) {
+func TestSteps_ModuleApplicable(t *testing.T) {
 	t.Parallel()
 
+	step := stepByArg(t, argModule)
 	dir := t.TempDir()
-	require.True(t, moduleStep{}.Applicable(&Options{}, dir))
-	require.False(t, moduleStep{}.Applicable(&Options{Module: "example.com/app"}, dir))
+	require.True(t, step.Applicable(&initcmd.Options{}, dir))
+	require.False(t, step.Applicable(&initcmd.Options{Module: "example.com/app"}, dir))
 }
 
-func TestGitStepApplicable(t *testing.T) {
+func TestSteps_GitApplicable(t *testing.T) {
 	t.Parallel()
 
+	step := stepByFlag(t, flagNoGit)
 	dir := t.TempDir()
-	require.True(t, gitStep{}.Applicable(&Options{}, dir))
-	require.True(t, gitStep{}.Applicable(&Options{Git: false}, dir))
-	require.False(t, gitStep{}.Applicable(&Options{GitSet: true, Git: false}, dir))
+	require.True(t, step.Applicable(&initcmd.Options{}, dir))
+	require.True(t, step.Applicable(&initcmd.Options{Git: false}, dir))
+	require.False(t, step.Applicable(&initcmd.Options{GitSet: true, Git: false}, dir))
 }
 
-func TestGitStepDoesNotAbort(t *testing.T) {
+func TestSteps_GitDoesNotAbort(t *testing.T) {
 	t.Parallel()
 
-	require.False(t, gitStep{}.Abort(&Options{Git: false}))
-	require.False(t, gitStep{}.Abort(&Options{Git: true}))
+	step := stepByFlag(t, flagNoGit)
+	require.False(t, step.Abort(&initcmd.Options{Git: false}))
+	require.False(t, step.Abort(&initcmd.Options{Git: true}))
 }
 
-func TestModuleStepDoesNotAbort(t *testing.T) {
+func TestSteps_ModuleDoesNotAbort(t *testing.T) {
 	t.Parallel()
 
-	require.False(t, moduleStep{}.Abort(&Options{}))
-	require.False(t, moduleStep{}.Abort(&Options{Module: "example.com/app"}))
+	step := stepByArg(t, argModule)
+	require.False(t, step.Abort(&initcmd.Options{}))
+	require.False(t, step.Abort(&initcmd.Options{Module: "example.com/app"}))
 }
 
-func TestTemplateStepFlag(t *testing.T) {
+func TestSteps_TemplateFlag(t *testing.T) {
 	t.Parallel()
 
-	flag := templateStep{}.Flag()
-	stringFlag, ok := flag.(*cli.StringFlag)
+	step := stepByFlag(t, flagTemplate)
+	stringFlag, ok := step.Flag().(*cli.StringFlag)
 	require.True(t, ok)
 	require.Equal(t, flagTemplate, stringFlag.Name)
 	require.Equal(t, defaultTemplate, stringFlag.Value)
-	require.Nil(t, templateStep{}.Argument())
+	require.Nil(t, step.Argument())
 }
 
-func TestTemplateStepApplicable(t *testing.T) {
+func TestSteps_TemplateApplicable(t *testing.T) {
 	t.Parallel()
 
+	step := stepByFlag(t, flagTemplate)
 	dir := t.TempDir()
-	require.True(t, templateStep{}.Applicable(&Options{}, dir))
-	require.True(t, templateStep{}.Applicable(&Options{Template: "cli"}, dir))
-	require.False(t, templateStep{}.Applicable(&Options{TemplateSet: true, Template: "cli"}, dir))
+	require.True(t, step.Applicable(&initcmd.Options{}, dir))
+	require.True(t, step.Applicable(&initcmd.Options{Template: "cli"}, dir))
+	require.False(t, step.Applicable(&initcmd.Options{TemplateSet: true, Template: "cli"}, dir))
 }
 
-func TestTemplateStepDoesNotAbort(t *testing.T) {
+func TestSteps_TemplateDoesNotAbort(t *testing.T) {
 	t.Parallel()
 
-	require.False(t, templateStep{}.Abort(&Options{}))
-	require.False(t, templateStep{}.Abort(&Options{Template: "cli"}))
+	step := stepByFlag(t, flagTemplate)
+	require.False(t, step.Abort(&initcmd.Options{}))
+	require.False(t, step.Abort(&initcmd.Options{Template: "cli"}))
+}
+
+func stepByFlag(t *testing.T, name string) initcmd.Step {
+	t.Helper()
+	for _, step := range initcmd.Steps() {
+		if flag := step.Flag(); flag != nil {
+			for _, n := range flag.Names() {
+				if n == name {
+					return step
+				}
+			}
+		}
+	}
+	require.FailNowf(t, "step not found", "no step owns flag %q", name)
+	return nil
+}
+
+func stepByArg(t *testing.T, name string) initcmd.Step {
+	t.Helper()
+	for _, step := range initcmd.Steps() {
+		arg, ok := step.Argument().(*cli.StringArg)
+		if ok && arg.Name == name {
+			return step
+		}
+	}
+	require.FailNowf(t, "step not found", "no step owns argument %q", name)
+	return nil
 }

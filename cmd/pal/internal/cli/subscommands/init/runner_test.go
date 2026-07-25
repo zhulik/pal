@@ -1,4 +1,4 @@
-package initcmd
+package initcmd_test
 
 import (
 	"os"
@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	initcmd "github.com/zhulik/pal/cmd/pal/internal/cli/subscommands/init"
 )
 
-func TestRunner(t *testing.T) {
+func TestRun(t *testing.T) {
 	t.Parallel()
 
 	const module = "example.com/myapp"
@@ -17,7 +19,7 @@ func TestRunner(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli"}}).Run(t.Context())
+		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli"})
 		require.NoError(t, err)
 		requireGoMod(t, dir)
 		requireCLITemplate(t, dir)
@@ -28,23 +30,23 @@ func TestRunner(t *testing.T) {
 		dir := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644))
 
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli"}}).Run(t.Context())
-		require.ErrorIs(t, err, ErrNotEmpty)
+		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli"})
+		require.ErrorIs(t, err, initcmd.ErrNotEmpty)
 	})
 
 	t.Run("missing module fails", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Template: "cli"}}).Run(t.Context())
-		require.ErrorIs(t, err, ErrModuleRequired)
+		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Template: "cli"})
+		require.ErrorIs(t, err, initcmd.ErrModuleRequired)
 	})
 
 	t.Run("git init when Git is true", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli", Git: true}}).Run(t.Context())
+		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli", Git: true})
 		require.NoError(t, err)
 		requireGoMod(t, dir)
 		requireCLITemplate(t, dir)
@@ -58,7 +60,7 @@ func TestRunner(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli", Git: false}}).Run(t.Context())
+		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli", Git: false})
 		require.NoError(t, err)
 		requireGoMod(t, dir)
 		requireCLITemplate(t, dir)
@@ -71,7 +73,7 @@ func TestRunner(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Module: module, Template: "nope"}}).Run(t.Context())
+		err := initcmd.Run(t.Context(), initcmd.Options{NoInteractive: true, Directory: dir, Module: module, Template: "nope"})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "nope")
 	})
@@ -80,12 +82,12 @@ func TestRunner(t *testing.T) {
 		t.Parallel()
 		target := t.TempDir()
 
-		err := (&runner{opts: Options{
+		err := initcmd.Run(t.Context(), initcmd.Options{
 			NoInteractive: true,
 			Directory:     target,
 			Module:        module,
 			Template:      "cli",
-		}}).Run(t.Context())
+		})
 		require.NoError(t, err)
 		requireGoMod(t, target)
 		requireCLITemplate(t, target)
@@ -96,12 +98,12 @@ func TestRunner(t *testing.T) {
 		cwd := t.TempDir()
 		target := filepath.Join(cwd, "new", "nested", "app")
 
-		err := (&runner{opts: Options{
+		err := initcmd.Run(t.Context(), initcmd.Options{
 			NoInteractive: true,
 			Directory:     target,
 			Module:        module,
 			Template:      "cli",
-		}}).Run(t.Context())
+		})
 		require.NoError(t, err)
 		requireGoMod(t, target)
 		requireCLITemplate(t, target)
@@ -112,12 +114,12 @@ func TestRunner(t *testing.T) {
 		cwd := t.TempDir()
 		target := filepath.Join(cwd, "missing", "app")
 
-		err := (&runner{opts: Options{
+		err := initcmd.Run(t.Context(), initcmd.Options{
 			NoInteractive: true,
 			Directory:     target,
 			Module:        module,
 			Template:      "nope",
-		}}).Run(t.Context())
+		})
 		require.Error(t, err)
 		_, err = os.Stat(target)
 		require.ErrorIs(t, err, os.ErrNotExist)
@@ -128,13 +130,13 @@ func TestRunner(t *testing.T) {
 		target := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(target, "file.txt"), []byte("x"), 0o644))
 
-		err := (&runner{opts: Options{
+		err := initcmd.Run(t.Context(), initcmd.Options{
 			NoInteractive: true,
 			Directory:     target,
 			Module:        module,
 			Template:      "cli",
-		}}).Run(t.Context())
-		require.ErrorIs(t, err, ErrNotEmpty)
+		})
+		require.ErrorIs(t, err, initcmd.ErrNotEmpty)
 	})
 }
 
@@ -156,11 +158,11 @@ func requireCLITemplate(t *testing.T, dir string) {
 	require.NotContains(t, string(data), "{{.Package}}")
 }
 
-func TestOptionsArgs(t *testing.T) {
+func TestOptions_Args(t *testing.T) {
 	t.Parallel()
 
-	require.Equal(t, []string{"--no-git"}, Options{}.Args())
-	require.Equal(t, []string{"example.com/app"}, Options{Module: "example.com/app", Git: true}.Args())
-	require.Equal(t, []string{"example.com/app", "-d", "./app"}, Options{Module: "example.com/app", Directory: "./app", Git: true}.Args())
-	require.Equal(t, []string{"example.com/app", "--template", "other"}, Options{Module: "example.com/app", Template: "other", Git: true}.Args())
+	require.Equal(t, []string{"--no-git"}, initcmd.Options{}.Args())
+	require.Equal(t, []string{"example.com/app"}, initcmd.Options{Module: "example.com/app", Git: true}.Args())
+	require.Equal(t, []string{"example.com/app", "-d", "./app"}, initcmd.Options{Module: "example.com/app", Directory: "./app", Git: true}.Args())
+	require.Equal(t, []string{"example.com/app", "--template", "other"}, initcmd.Options{Module: "example.com/app", Template: "other", Git: true}.Args())
 }

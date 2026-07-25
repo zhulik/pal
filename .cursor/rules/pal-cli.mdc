@@ -114,6 +114,24 @@ New flags, steps, templates, and `Data` fields are fine. Renaming the table abov
 
 Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …). `main` maps any error to exit 1; success is exit 0 only when init actually completes.
 
+## Tests
+
+CLI tests must live in external `*_test` packages (`package foo_test`) and exercise the package public API only. White-box tests in the same package as production code are not allowed.
+
+Enforced by the `testpackage` linter in [`cmd/pal/.golangci.yaml`](cmd/pal/.golangci.yaml) and the generated scaffold [`cmd/pal/templates/scaffolds/cli/.golangci.yaml.tmpl`](cmd/pal/templates/scaffolds/cli/.golangci.yaml.tmpl):
+
+```yaml
+linters:
+  enable:
+    - testpackage
+  settings:
+    testpackage:
+      skip-regexp: "^$"
+      allow-packages: []
+```
+
+That disables the usual exemptions (`export_test.go`, `internal_test.go`, and `package main`). Generated projects must use `package main_test` for tests next to `main`.
+
 ## Init integration tests
 
 Success-path init coverage lives in [`cmd/pal/internal/cli/init_integration_test.go`](cmd/pal/internal/cli/init_integration_test.go) (`package cli_test`).
