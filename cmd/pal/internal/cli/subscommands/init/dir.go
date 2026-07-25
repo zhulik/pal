@@ -69,16 +69,26 @@ func resolveTarget(directory string) (target string, existed bool, err error) {
 
 // PromoteWorkDir copies a successful init from stage into target.
 //
-// If targetExisted is false, missing parents are created; on copy failure the
-// newly created target tree is removed. If targetExisted is true, target must
-// already be an empty directory; on copy failure its contents are cleared so
-// it remains an empty directory (the directory itself is not removed).
+// If targetExisted is false, missing parents are created. Immediately before
+// copying, the target must be empty (re-checked here to close the window
+// after the early emptiness check). On copy failure: if the target was newly
+// created, remove it; if it already existed, clear its contents back to empty
+// (the directory itself is not removed).
 func PromoteWorkDir(stage, target string, targetExisted bool) error {
 	if !targetExisted {
 		if err := os.MkdirAll(target, 0o755); err != nil {
 			return fmt.Errorf("create directory %s: %w", target, err)
 		}
 	}
+
+	empty, err := IsEmpty(target)
+	if err != nil {
+		return err
+	}
+	if !empty {
+		return ErrNotEmpty
+	}
+
 	if err := os.CopyFS(target, os.DirFS(stage)); err != nil {
 		if targetExisted {
 			_ = clearDir(target)

@@ -76,7 +76,7 @@ Init never mutates the target until the project is fully built:
 2. Collect options (wizard or flags).
 3. **Preflight** — template exists (`templates.Exists`), `go` on `PATH`, and `git` on `PATH` when git is enabled. Fail here with the target untouched.
 4. Build the project only in a **staging temp directory** (`go mod init`, optional `git init`, apply template, `go mod tidy`).
-5. On success, **promote** the staging tree into the target via `os.CopyFS`. On promote failure: if the target was newly created, remove it; if it already existed empty, clear its contents back to empty. The staging dir is always removed.
+5. On success, **promote** the staging tree into the target via `os.CopyFS`. `PromoteWorkDir` re-checks that the target is empty immediately before the copy (closes the TOCTOU window after the early check). On promote failure: if the target was newly created, remove it; if it already existed empty, clear its contents back to empty. The staging dir is always removed.
 
 Do not write into an existing empty target (or cwd) in place — that left half-inits when a later step failed. Staging + promote is the only write path.
 
@@ -177,6 +177,7 @@ Success-path init coverage lives in [`cmd/pal/internal/cli/init_integration_test
 - When the repo has a `.tool-versions`, copy it into the generated project before `task` so asdf resolves the same pins outside the repo tree. Serialize `task` across parallel cases (`golangci-lint` rejects concurrent runs).
 - Each scaffold name must have an entry in `templateValidators`; adding `scaffolds/<name>/` without a validator fails the suite.
 - Negative paths stay in `init` package unit tests (`runner_test.go`, etc.).
+- Process exit codes: [`cmd/pal/internal/cli/exit_test.go`](cmd/pal/internal/cli/exit_test.go) drives the built binary and asserts success → `0`, representative failures → `1`.
 - No build tags / special runners: `cd cmd/pal && go test ./...` (Taskfile timeout ≥ 5m). Root `go test ./...` does not see the nested module; root `task test` and CI `test-cli` recurse into `cmd/pal`.
 
 ## Adding a subcommand

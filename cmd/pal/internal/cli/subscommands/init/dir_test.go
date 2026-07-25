@@ -118,4 +118,21 @@ func TestPromoteWorkDir(t *testing.T) {
 		require.NoError(t, initcmd.PromoteWorkDir(stage, target, true))
 		require.FileExists(t, filepath.Join(target, "go.mod"))
 	})
+
+	t.Run("rejects non-empty existing target without clearing it", func(t *testing.T) {
+		t.Parallel()
+		stage := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(stage, "go.mod"), []byte("module x\n"), 0o644))
+		target := t.TempDir()
+		keep := filepath.Join(target, "keep.txt")
+		require.NoError(t, os.WriteFile(keep, []byte("mine"), 0o644))
+
+		err := initcmd.PromoteWorkDir(stage, target, true)
+		require.ErrorIs(t, err, initcmd.ErrNotEmpty)
+		data, err := os.ReadFile(keep)
+		require.NoError(t, err)
+		require.Equal(t, "mine", string(data))
+		_, err = os.Stat(filepath.Join(target, "go.mod"))
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
 }
