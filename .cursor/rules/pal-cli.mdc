@@ -40,6 +40,8 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
 
 Pass the Action’s `ctx` into `app.Run` — never substitute `context.Background()` there.
 
+**The CLI dogfoods Pal.** Every subcommand Action runs its runner through `app.Run` → `pal.New(…).Run`. Do not call `runner.Run` directly from Action; keep `internal/cli/app` as the shared entry so timeouts and Provide stay consistent across commands.
+
 ## Interactive frontend / non-interactive backend
 
 - **Interactive is the default.** Scripts use `--no-interactive`.
