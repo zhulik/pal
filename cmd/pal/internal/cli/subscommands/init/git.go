@@ -21,6 +21,10 @@ func (gitStep) Flag() cli.Flag {
 	}
 }
 
+func (gitStep) Argument() cli.Argument {
+	return nil
+}
+
 func (gitStep) Applicable(_ *Options, _ string) bool {
 	return true
 }

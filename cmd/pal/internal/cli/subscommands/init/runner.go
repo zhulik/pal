@@ -11,8 +11,6 @@ type runner struct {
 }
 
 func (r *runner) Run(ctx context.Context) error {
-	_ = ctx
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("get working directory: %w", err)
@@ -20,10 +18,15 @@ func (r *runner) Run(ctx context.Context) error {
 
 	opts := r.opts
 	if !opts.NoInteractive {
-		opts, err = RunWizard(cwd)
+		// Preserve Module from the CLI argument so the wizard can skip that step.
+		opts, err = RunWizard(cwd, Options{Module: opts.Module})
 		if err != nil {
 			return err
 		}
+	}
+
+	if opts.Module == "" {
+		return ErrModuleRequired
 	}
 
 	empty, err := IsEmpty(cwd)
@@ -32,6 +35,10 @@ func (r *runner) Run(ctx context.Context) error {
 	}
 	if !empty && !opts.Force {
 		return ErrNotEmpty
+	}
+
+	if err := initModule(ctx, cwd, opts.Module); err != nil {
+		return err
 	}
 
 	if opts.Git {

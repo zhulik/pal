@@ -15,6 +15,10 @@ func (forceStep) Flag() cli.Flag {
 	}
 }
 
+func (forceStep) Argument() cli.Argument {
+	return nil
+}
+
 func (forceStep) Applicable(_ *Options, cwd string) bool {
 	empty, err := IsEmpty(cwd)
 	if err != nil {

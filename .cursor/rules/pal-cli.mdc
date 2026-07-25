@@ -37,17 +37,19 @@ Pass the Action’s `ctx` into `app.Run` — never substitute `context.Backgroun
 ## Interactive frontend / non-interactive backend
 
 - **Interactive is the default.** Scripts use `--no-interactive`.
-- Shared `Options` is the contract. Wizard (frontend) fills `Options`; non-interactive reads flags into `Options`; both call the same runner backend.
+- Shared `Options` is the contract. Wizard (frontend) fills `Options`; non-interactive reads flags/args into `Options`; both call the same runner backend.
 - Wizard does not shell out. Use `Options.Args()` to show the equivalent `pal init …` invocation.
 - Wizard library: **charmbracelet/huh**.
+- Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
 
-## Step registry (keep flags ↔ wizard in sync)
+## Step registry (keep CLI ↔ wizard in sync)
 
-Each init concern is a `Step` owning both the CLI flag and the huh field. `Flags()` and the wizard both iterate `Steps()`. New options = new step file + one line in `Steps()` — never add a flag without a wizard counterpart (or vice versa).
+Each init concern is a `Step` owning both a CLI input (flag **or** positional argument) and the huh field. `Flags()`, `Arguments()`, and the wizard all iterate `Steps()`. New options = new step file + one line in `Steps()` — never add a CLI input without a wizard counterpart (or vice versa).
 
 ```go
 type Step interface {
-    Flag() cli.Flag
+    Flag() cli.Flag           // nil if the step uses a positional argument
+    Argument() cli.Argument   // nil if the step uses a flag
     Applicable(opts *Options, cwd string) bool
     Field(opts *Options) huh.Field
     Abort(opts *Options) bool

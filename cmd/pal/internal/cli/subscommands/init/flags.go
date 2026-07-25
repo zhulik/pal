@@ -13,7 +13,20 @@ func Flags() []cli.Flag {
 		},
 	}
 	for _, step := range Steps() {
-		flags = append(flags, step.Flag())
+		if f := step.Flag(); f != nil {
+			flags = append(flags, f)
+		}
 	}
 	return flags
+}
+
+// Arguments returns positional arguments owned by init steps.
+func Arguments() []cli.Argument {
+	var args []cli.Argument
+	for _, step := range Steps() {
+		if a := step.Argument(); a != nil {
+			args = append(args, a)
+		}
+	}
+	return args
 }

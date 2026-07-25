@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func TestStepsFlagsCoveredByFlags(t *testing.T) {
+func TestStepsInputsCoveredByCLI(t *testing.T) {
 	t.Parallel()
 
 	flagNames := map[string]struct{}{}
@@ -17,13 +17,29 @@ func TestStepsFlagsCoveredByFlags(t *testing.T) {
 		}
 	}
 
+	argNames := map[string]struct{}{}
+	for _, a := range Arguments() {
+		argNames[a.(*cli.StringArg).Name] = struct{}{}
+	}
+
 	for _, step := range Steps() {
 		flag := step.Flag()
-		require.NotNil(t, flag)
-		names := flag.Names()
-		require.NotEmpty(t, names, "step flag must have a name")
-		_, ok := flagNames[names[0]]
-		require.True(t, ok, "step flag %q must appear in Flags()", names[0])
+		arg := step.Argument()
+		require.True(t, flag != nil || arg != nil, "step must expose a flag or argument")
+		require.False(t, flag != nil && arg != nil, "step must not expose both a flag and an argument")
+
+		if flag != nil {
+			names := flag.Names()
+			require.NotEmpty(t, names, "step flag must have a name")
+			_, ok := flagNames[names[0]]
+			require.True(t, ok, "step flag %q must appear in Flags()", names[0])
+		}
+		if arg != nil {
+			stringArg, ok := arg.(*cli.StringArg)
+			require.True(t, ok)
+			_, ok = argNames[stringArg.Name]
+			require.True(t, ok, "step argument %q must appear in Arguments()", stringArg.Name)
+		}
 	}
 }
 
@@ -42,8 +58,10 @@ func TestFlagsIncludeNoInteractive(t *testing.T) {
 
 	// Mode flag is not a Step — ensure Steps do not own it.
 	for _, step := range Steps() {
-		for _, name := range step.Flag().Names() {
-			require.NotEqual(t, flagNoInteractive, name)
+		if flag := step.Flag(); flag != nil {
+			for _, name := range flag.Names() {
+				require.NotEqual(t, flagNoInteractive, name)
+			}
 		}
 	}
 }
@@ -56,6 +74,7 @@ func TestForceStepFlag(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "force", boolFlag.Name)
 	require.Equal(t, []string{"f"}, boolFlag.Aliases)
+	require.Nil(t, forceStep{}.Argument())
 }
 
 func TestGitStepFlag(t *testing.T) {
@@ -65,6 +84,25 @@ func TestGitStepFlag(t *testing.T) {
 	boolFlag, ok := flag.(*cli.BoolFlag)
 	require.True(t, ok)
 	require.Equal(t, flagNoGit, boolFlag.Name)
+	require.Nil(t, gitStep{}.Argument())
+}
+
+func TestModuleStepArgument(t *testing.T) {
+	t.Parallel()
+
+	require.Nil(t, moduleStep{}.Flag())
+	arg, ok := moduleStep{}.Argument().(*cli.StringArg)
+	require.True(t, ok)
+	require.Equal(t, argModule, arg.Name)
+	require.Equal(t, "MODULE", arg.UsageText)
+}
+
+func TestModuleStepApplicable(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	require.True(t, moduleStep{}.Applicable(&Options{}, dir))
+	require.False(t, moduleStep{}.Applicable(&Options{Module: "example.com/app"}, dir))
 }
 
 func TestGitStepAlwaysApplicable(t *testing.T) {
@@ -85,4 +123,11 @@ func TestGitStepDoesNotAbort(t *testing.T) {
 
 	require.False(t, gitStep{}.Abort(&Options{Git: false}))
 	require.False(t, gitStep{}.Abort(&Options{Git: true}))
+}
+
+func TestModuleStepDoesNotAbort(t *testing.T) {
+	t.Parallel()
+
+	require.False(t, moduleStep{}.Abort(&Options{}))
+	require.False(t, moduleStep{}.Abort(&Options{Module: "example.com/app"}))
 }
