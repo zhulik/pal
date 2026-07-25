@@ -88,6 +88,23 @@ templates/scaffolds/cli/cmd/{{.Package}}/main.go.tmpl  →  cmd/myapp/main.go
 
 Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`.
 
+## Frozen public surface
+
+These names are **frozen** — extend by adding, do not rename without a deliberate breaking-change decision:
+
+| Kind | Frozen value |
+|------|----------------|
+| Package path segment | `internal/cli/subscommands` (intentional spelling) |
+| Init package | directory `init/`, Go package `initcmd` |
+| Mode flag | `--no-interactive` |
+| Path flag | `--directory` / `-d` |
+| Template flag | `--template` (default / id `cli`) |
+| Git flag | `--no-git` |
+| Module input | positional `MODULE` |
+| Templating | Go `text/template` + `templates.Data` fields only |
+
+New flags, steps, templates, and `Data` fields are fine. Renaming the table above is not “cleanup”.
+
 ## Exit codes
 
 Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …). `main` maps any error to exit 1; success is exit 0 only when init actually completes.
