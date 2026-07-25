@@ -64,7 +64,9 @@ type Step interface {
 }
 ```
 
-Wizard runs **one step per form**, in registry order. After each answered step, if `Abort` is true, return `ErrAborted` immediately — do not ask later steps. Use `Abort` for declining answers that cancel init (e.g. force); optional skips (e.g. `--no-git`) return false.
+Wizard runs **one step per form**, in registry order. After each answered step, if `Abort` is true, return `ErrAborted` immediately — do not ask later steps. Use `Abort` for declining answers that cancel init; optional skips (e.g. `--no-git`) return false.
+
+**Target directory must be empty.** Init fails with `ErrNotEmpty` if the resolved work dir is not empty — there is no `--force` / overwrite path. Check emptiness before the wizard so users are not prompted for a doomed run.
 
 ## Project templates
 

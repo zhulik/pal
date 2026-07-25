@@ -92,17 +92,6 @@ func TestFlagsIncludeDirectory(t *testing.T) {
 	}
 }
 
-func TestForceStepFlag(t *testing.T) {
-	t.Parallel()
-
-	flag := forceStep{}.Flag()
-	boolFlag, ok := flag.(*cli.BoolFlag)
-	require.True(t, ok)
-	require.Equal(t, "force", boolFlag.Name)
-	require.Equal(t, []string{"f"}, boolFlag.Aliases)
-	require.Nil(t, forceStep{}.Argument())
-}
-
 func TestGitStepFlag(t *testing.T) {
 	t.Parallel()
 
@@ -135,13 +124,6 @@ func TestGitStepAlwaysApplicable(t *testing.T) {
 	t.Parallel()
 
 	require.True(t, gitStep{}.Applicable(&Options{}, t.TempDir()))
-}
-
-func TestForceStepAbort(t *testing.T) {
-	t.Parallel()
-
-	require.True(t, forceStep{}.Abort(&Options{Force: false}))
-	require.False(t, forceStep{}.Abort(&Options{Force: true}))
 }
 
 func TestGitStepDoesNotAbort(t *testing.T) {

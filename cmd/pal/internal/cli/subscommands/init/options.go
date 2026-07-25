@@ -9,7 +9,6 @@ type Options struct {
 	// Directory is the project path from --directory/-d. Empty means the
 	// process working directory. Not a Step — CLI-only path override.
 	Directory string
-	Force     bool
 	// Module is the Go module path passed to `go mod init`.
 	Module string
 	// Template is the project template name (directory under cmd/pal/templates).
@@ -30,9 +29,6 @@ func (o Options) Args() []string {
 	if o.Directory != "" {
 		args = append(args, "-d", o.Directory)
 	}
-	if o.Force {
-		args = append(args, "--force")
-	}
 	if o.Template != "" && o.Template != defaultTemplate {
 		args = append(args, "--"+flagTemplate, o.Template)
 	}
@@ -47,7 +43,6 @@ func OptionsFromCommand(cmd *cli.Command) Options {
 	return Options{
 		NoInteractive: cmd.Bool(flagNoInteractive),
 		Directory:     cmd.String(flagDirectory),
-		Force:         cmd.Bool("force"),
 		Module:        cmd.StringArg(argModule),
 		Template:      cmd.String(flagTemplate),
 		Git:           !cmd.Bool(flagNoGit),

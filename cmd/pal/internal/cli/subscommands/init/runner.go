@@ -16,6 +16,14 @@ func (r *runner) Run(ctx context.Context) error {
 	}
 	defer cleanup()
 
+	empty, err := IsEmpty(workDir)
+	if err != nil {
+		return err
+	}
+	if !empty {
+		return ErrNotEmpty
+	}
+
 	opts := r.opts
 	if !opts.NoInteractive {
 		// Preserve Module from the CLI argument so the wizard can skip that step.
@@ -27,14 +35,6 @@ func (r *runner) Run(ctx context.Context) error {
 
 	if opts.Module == "" {
 		return ErrModuleRequired
-	}
-
-	empty, err := IsEmpty(workDir)
-	if err != nil {
-		return err
-	}
-	if !empty && !opts.Force {
-		return ErrNotEmpty
 	}
 
 	if err := initModule(ctx, workDir, opts.Module); err != nil {

@@ -13,7 +13,7 @@ func TestRunner(t *testing.T) {
 
 	const module = "example.com/myapp"
 
-	t.Run("empty directory succeeds without force", func(t *testing.T) {
+	t.Run("empty directory succeeds", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 
@@ -23,24 +23,13 @@ func TestRunner(t *testing.T) {
 		requireCLITemplate(t, dir)
 	})
 
-	t.Run("non-empty without force fails", func(t *testing.T) {
+	t.Run("non-empty directory fails", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644))
 
 		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Module: module, Template: "cli"}}).Run(t.Context())
 		require.ErrorIs(t, err, ErrNotEmpty)
-	})
-
-	t.Run("non-empty with force succeeds", func(t *testing.T) {
-		t.Parallel()
-		dir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644))
-
-		err := (&runner{opts: Options{NoInteractive: true, Directory: dir, Force: true, Module: module, Template: "cli"}}).Run(t.Context())
-		require.NoError(t, err)
-		requireGoMod(t, dir)
-		requireCLITemplate(t, dir)
 	})
 
 	t.Run("missing module fails", func(t *testing.T) {
@@ -134,7 +123,7 @@ func TestRunner(t *testing.T) {
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
-	t.Run("directory flag non-empty without force fails", func(t *testing.T) {
+	t.Run("directory flag non-empty fails", func(t *testing.T) {
 		t.Parallel()
 		target := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(target, "file.txt"), []byte("x"), 0o644))
@@ -173,7 +162,5 @@ func TestOptionsArgs(t *testing.T) {
 	require.Equal(t, []string{"--no-git"}, Options{}.Args())
 	require.Equal(t, []string{"example.com/app"}, Options{Module: "example.com/app", Git: true}.Args())
 	require.Equal(t, []string{"example.com/app", "-d", "./app"}, Options{Module: "example.com/app", Directory: "./app", Git: true}.Args())
-	require.Equal(t, []string{"example.com/app", "--force"}, Options{Module: "example.com/app", Force: true, Git: true}.Args())
-	require.Equal(t, []string{"example.com/app", "--force", "--no-git"}, Options{Module: "example.com/app", Force: true}.Args())
 	require.Equal(t, []string{"example.com/app", "--template", "other"}, Options{Module: "example.com/app", Template: "other", Git: true}.Args())
 }
