@@ -1,0 +1,64 @@
+---
+description: Architecture and conventions for the pal CLI (cmd/pal)
+globs: cmd/pal/**/*
+alwaysApply: false
+---
+# pal CLI architecture
+
+Framework: **urfave/cli/v3**. Root command lives in `internal/cli`; `main` only runs it. Help is built-in (`help` / `-h`) — do not add a custom help subcommand.
+
+## Layout
+
+```
+cmd/pal/
+  main.go
+  internal/cli/cli.go              # root; register subcommands here
+  internal/cli/app/                # shared pal app runner (timeouts, Provide)
+  internal/cli/subscommands/<name>/  # note: "subscommands" spelling is intentional
+    <name>.go    # cli.Command (thin wrapper)
+    flags.go     # command flags (mode flags + step registry)
+    runner.go    # all command logic
+```
+
+Package `init` is reserved in Go — use `package initcmd` under directory `init/`.
+
+## Thin Command, fat runner
+
+`Action` must only read flags/args and pass them into the runner. No business logic in `Action`.
+
+```go
+Action: func(ctx context.Context, cmd *cli.Command) error {
+    return app.Run(ctx, pal.Provide(&runner{opts: OptionsFromCommand(cmd)}))
+},
+```
+
+Pass the Action’s `ctx` into `app.Run` — never substitute `context.Background()` there.
+
+## Interactive frontend / non-interactive backend
+
+- **Interactive is the default.** Scripts use `--no-interactive`.
+- Shared `Options` is the contract. Wizard (frontend) fills `Options`; non-interactive reads flags into `Options`; both call the same runner backend.
+- Wizard does not shell out. Use `Options.Args()` to show the equivalent `pal init …` invocation.
+- Wizard library: **charmbracelet/huh**.
+
+## Step registry (keep flags ↔ wizard in sync)
+
+Each init concern is a `Step` owning both the CLI flag and the huh field. `Flags()` and the wizard both iterate `Steps()`. New options = new step file + one line in `Steps()` — never add a flag without a wizard counterpart (or vice versa).
+
+```go
+type Step interface {
+    Flag() cli.Flag
+    Applicable(opts *Options, cwd string) bool
+    Field(opts *Options) huh.Field
+}
+```
+
+## Exit codes
+
+Return sentinel errors (`ErrAborted`, `ErrNotEmpty`, …). `main` maps any error to exit 1; success is exit 0 only when init actually completes.
+
+## Adding a subcommand
+
+1. Create `internal/cli/subscommands/<name>/` with `<name>.go`, `flags.go`, `runner.go`.
+2. Keep `Action` thin; put logic in the runner.
+3. Register via `New()` in `internal/cli/cli.go`.
