@@ -15,7 +15,6 @@ cmd/pal/
   templates/                       # embedded project scaffolds (see Project templates)
   pkg/cmdexec/                     # run external commands with live stdio
   internal/cli/cli.go              # root; register subcommands here
-  internal/cli/app/                # shared pal app runner (timeouts, Provide)
   internal/cli/subscommands/<name>/  # note: "subscommands" spelling is intentional
     <name>.go    # cli.Command (thin wrapper)
     flags.go     # command flags (mode flags + step registry)
@@ -34,11 +33,13 @@ Package `init` is reserved in Go — use `package initcmd` under directory `init
 
 ```go
 Action: func(ctx context.Context, cmd *cli.Command) error {
-    return app.Run(ctx, pal.Provide(&runner{opts: OptionsFromCommand(cmd)}))
+    return (&runner{opts: OptionsFromCommand(cmd)}).Run(ctx)
 },
 ```
 
-Pass the Action’s `ctx` into `app.Run` — never substitute `context.Background()` there.
+Pass the Action’s `ctx` into the runner — never substitute `context.Background()` there.
+
+**Do not wrap one-shot CLI commands in `pal.New(…).Run`.** Scaffolded *apps* dogfood Pal; the CLI itself calls `runner.Run` directly so lifecycle logging, health checks, and timeouts do not leak into CLI UX. If a future long-running CLI command needs Pal, wire it explicitly in that command only.
 
 ## Interactive frontend / non-interactive backend
 
