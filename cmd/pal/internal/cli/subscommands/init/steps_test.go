@@ -66,6 +66,32 @@ func TestFlagsIncludeNoInteractive(t *testing.T) {
 	}
 }
 
+func TestFlagsIncludeDirectory(t *testing.T) {
+	t.Parallel()
+
+	var found bool
+	for _, f := range Flags() {
+		stringFlag, ok := f.(*cli.StringFlag)
+		if !ok {
+			continue
+		}
+		if stringFlag.Name == flagDirectory {
+			found = true
+			require.Equal(t, []string{"d"}, stringFlag.Aliases)
+		}
+	}
+	require.True(t, found)
+
+	for _, step := range Steps() {
+		if flag := step.Flag(); flag != nil {
+			for _, name := range flag.Names() {
+				require.NotEqual(t, flagDirectory, name)
+				require.NotEqual(t, "d", name)
+			}
+		}
+	}
+}
+
 func TestForceStepFlag(t *testing.T) {
 	t.Parallel()
 

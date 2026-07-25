@@ -48,6 +48,7 @@ Pass the Action’s `ctx` into `app.Run` — never substitute `context.Backgroun
 - Wizard library: **charmbracelet/huh**.
 - Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
 - Project template is `--template` (default `cli`). The wizard always asks; non-interactive uses the flag.
+- **`--directory` / `-d`** is a path override (CLI-only, not a Step — same class as `--no-interactive`). Applies to both interactive and non-interactive modes. Empty/omitted means the process cwd. If the path exists, init runs there. If it is missing, init runs in a temp dir and, only on success, creates all missing parents and copies the temp tree to `-d` via `os.CopyFS`; the temp dir is always removed on exit.
 
 ## Step registry (keep CLI ↔ wizard in sync)
 
@@ -69,10 +70,10 @@ Wizard runs **one step per form**, in registry order. After each answered step, 
 
 Scaffolds live under `cmd/pal/templates/<name>/` and are embedded into the CLI via `embed.FS` in package `templates` (`//go:embed all:<name>` per template directory). Init copies the chosen template into the working directory **after** `go mod init` and optional `git init`.
 
-**Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. The only data field currently supported is `.Package` (derived from the module path’s last element, with `-` → `_`). Example layout:
+**Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. The only data field currently supported is `.Package` (derived from the module path’s last element, with `-` → `_`). Scaffold files that would otherwise be valid Go sources use a `.tmpl` suffix so `go test`/`go list` ignore them; `Apply` strips a trailing `.tmpl` from the output path. Example layout:
 
 ```
-templates/cli/cmd/{{.Package}}/main.go  →  cmd/myapp/main.go
+templates/cli/cmd/{{.Package}}/main.go.tmpl  →  cmd/myapp/main.go
 ```
 
 Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`.

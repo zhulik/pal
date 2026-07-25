@@ -2,7 +2,10 @@ package initcmd
 
 import "github.com/urfave/cli/v3"
 
-const flagNoInteractive = "no-interactive"
+const (
+	flagNoInteractive = "no-interactive"
+	flagDirectory     = "directory"
+)
 
 // Flags returns flags specific to the init subcommand.
 func Flags() []cli.Flag {
@@ -10,6 +13,11 @@ func Flags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:  flagNoInteractive,
 			Usage: "run without the interactive wizard (read options from flags)",
+		},
+		&cli.StringFlag{
+			Name:    flagDirectory,
+			Aliases: []string{"d"},
+			Usage:   "project directory (created on success if missing)",
 		},
 	}
 	for _, step := range Steps() {

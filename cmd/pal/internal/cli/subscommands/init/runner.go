@@ -3,7 +3,6 @@ package initcmd
 import (
 	"context"
 	"fmt"
-	"os"
 )
 
 type runner struct {
@@ -11,15 +10,16 @@ type runner struct {
 }
 
 func (r *runner) Run(ctx context.Context) error {
-	cwd, err := os.Getwd()
+	workDir, promoteTo, cleanup, err := resolveWorkDir(r.opts.Directory)
 	if err != nil {
-		return fmt.Errorf("get working directory: %w", err)
+		return err
 	}
+	defer cleanup()
 
 	opts := r.opts
 	if !opts.NoInteractive {
 		// Preserve Module from the CLI argument so the wizard can skip that step.
-		opts, err = RunWizard(cwd, Options{Module: opts.Module})
+		opts, err = RunWizard(workDir, Options{Module: opts.Module})
 		if err != nil {
 			return err
 		}
@@ -29,7 +29,7 @@ func (r *runner) Run(ctx context.Context) error {
 		return ErrModuleRequired
 	}
 
-	empty, err := IsEmpty(cwd)
+	empty, err := IsEmpty(workDir)
 	if err != nil {
 		return err
 	}
@@ -37,22 +37,28 @@ func (r *runner) Run(ctx context.Context) error {
 		return ErrNotEmpty
 	}
 
-	if err := initModule(ctx, cwd, opts.Module); err != nil {
+	if err := initModule(ctx, workDir, opts.Module); err != nil {
 		return err
 	}
 
 	if opts.Git {
-		if err := initGit(ctx, cwd); err != nil {
+		if err := initGit(ctx, workDir); err != nil {
 			return err
 		}
 	}
 
-	if err := applyTemplate(cwd, opts); err != nil {
+	if err := applyTemplate(workDir, opts); err != nil {
 		return err
 	}
 
-	if err := tidyModule(ctx, cwd); err != nil {
+	if err := tidyModule(ctx, workDir); err != nil {
 		return err
+	}
+
+	if promoteTo != "" {
+		if err := promoteWorkDir(workDir, promoteTo); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("Project initialized.")

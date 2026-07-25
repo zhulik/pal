@@ -23,7 +23,8 @@ type Data struct {
 
 // Apply renders the named project template from FS into dst.
 // Both relative paths and file contents are Go text/template templates
-// executed with data.
+// executed with data. A trailing ".tmpl" suffix on file names is stripped
+// from the output path so scaffold sources can avoid go tool package discovery.
 func Apply(dst, name string, data Data) error {
 	if name == "" {
 		return fmt.Errorf("template name is required")
@@ -49,6 +50,9 @@ func Apply(dst, name string, data Data) error {
 		if err != nil {
 			return fmt.Errorf("render path %q: %w", rel, err)
 		}
+		if !d.IsDir() {
+			renderedRel = strings.TrimSuffix(renderedRel, ".tmpl")
+		}
 		outPath := filepath.Join(dst, filepath.FromSlash(renderedRel))
 
 		if d.IsDir() {
@@ -66,6 +70,7 @@ func Apply(dst, name string, data Data) error {
 		if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
 			return err
 		}
+		//nolint:gosec // G306: scaffolded project sources are intentionally world-readable
 		return os.WriteFile(outPath, []byte(rendered), 0o644)
 	})
 }
