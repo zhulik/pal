@@ -13,9 +13,9 @@ const (
 	defaultTemplate = "cli"
 )
 
-type templateStep struct{}
+type wizardStepTemplate struct{}
 
-func (templateStep) Flag() cli.Flag {
+func (wizardStepTemplate) Flag() cli.Flag {
 	return &cli.StringFlag{
 		Name:  flagTemplate,
 		Usage: "project template to use",
@@ -23,16 +23,16 @@ func (templateStep) Flag() cli.Flag {
 	}
 }
 
-func (templateStep) Argument() cli.Argument {
+func (wizardStepTemplate) Argument() cli.Argument {
 	return nil
 }
 
-func (templateStep) Applicable(opts *Options, _ string) bool {
+func (wizardStepTemplate) Applicable(opts *Options, _ string) bool {
 	// Skip when --template was explicitly passed on the CLI.
 	return !opts.TemplateSet
 }
 
-func (templateStep) Field(opts *Options) (huh.Field, error) {
+func (wizardStepTemplate) Field(opts *Options) (huh.Field, error) {
 	if opts.Template == "" {
 		opts.Template = defaultTemplate
 	}
@@ -53,7 +53,7 @@ func (templateStep) Field(opts *Options) (huh.Field, error) {
 		Value(&opts.Template), nil
 }
 
-func (templateStep) Abort(_ *Options) bool {
+func (wizardStepTemplate) Abort(_ *Options) bool {
 	return false
 }
 

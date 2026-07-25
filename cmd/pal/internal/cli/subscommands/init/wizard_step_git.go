@@ -12,25 +12,25 @@ import (
 
 const flagNoGit = "no-git"
 
-type gitStep struct{}
+type wizardStepGit struct{}
 
-func (gitStep) Flag() cli.Flag {
+func (wizardStepGit) Flag() cli.Flag {
 	return &cli.BoolFlag{
 		Name:  flagNoGit,
 		Usage: "do not initialize a git repository",
 	}
 }
 
-func (gitStep) Argument() cli.Argument {
+func (wizardStepGit) Argument() cli.Argument {
 	return nil
 }
 
-func (gitStep) Applicable(opts *Options, _ string) bool {
+func (wizardStepGit) Applicable(opts *Options, _ string) bool {
 	// Skip when --no-git was explicitly passed on the CLI.
 	return !opts.GitSet
 }
 
-func (gitStep) Field(opts *Options) (huh.Field, error) {
+func (wizardStepGit) Field(opts *Options) (huh.Field, error) {
 	opts.Git = true
 	return huh.NewConfirm().
 		Title("Create a git repository?").
@@ -39,7 +39,7 @@ func (gitStep) Field(opts *Options) (huh.Field, error) {
 		Value(&opts.Git), nil
 }
 
-func (gitStep) Abort(_ *Options) bool {
+func (wizardStepGit) Abort(_ *Options) bool {
 	return false
 }
 

@@ -28,8 +28,8 @@ type Step interface {
 // Steps returns the ordered registry of init steps.
 func Steps() []Step {
 	return []Step{
-		moduleStep{},
-		templateStep{},
-		gitStep{},
+		wizardStepModule{},
+		wizardStepTemplate{},
+		wizardStepGit{},
 	}
 }

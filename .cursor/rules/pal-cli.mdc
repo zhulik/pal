@@ -21,6 +21,9 @@ cmd/pal/
     <name>.go    # cli.Command (thin wrapper)
     flags.go     # command flags (mode flags + step registry); omit if none
     runner.go    # all command logic; omit for meta commands (e.g. version)
+    wizard.go                  # interactive wizard runner (if any)
+    wizard_steps.go            # Step interface + Steps() registry
+    wizard_step_<concern>.go   # one file per wizard/CLI step (see Step registry)
 ```
 
 ## External commands
@@ -85,6 +88,16 @@ Pass the full `Options` from the CLI into `RunWizard` — never reseed with a pa
 ## Step registry (keep CLI ↔ wizard in sync)
 
 Each init concern is a `Step` owning both a CLI input (flag **or** positional argument) and the huh field. `Flags()`, `Arguments()`, and the wizard all iterate `Steps()`. New options = new step file + one line in `Steps()` — never add a CLI input without a wizard counterpart (or vice versa).
+
+**Naming (frozen for init and future wizard-using commands):**
+
+| Kind | Pattern | Examples |
+|------|---------|----------|
+| Registry file | `wizard_steps.go` | `Step` interface + `Steps()` |
+| Step file | `wizard_step_<concern>.go` | `wizard_step_module.go`, `wizard_step_git.go`, `wizard_step_template.go` |
+| Step type | `wizardStep<Concern>` | `wizardStepModule`, `wizardStepGit`, `wizardStepTemplate` |
+
+Do not name step files after the concern alone (`module.go`, `git.go`) — that collides with runner helpers and hides that the type is a wizard/CLI step. Related backend helpers for a concern (e.g. `initGit`, `applyTemplate`) may live in the same `wizard_step_*.go` file.
 
 ```go
 type Step interface {

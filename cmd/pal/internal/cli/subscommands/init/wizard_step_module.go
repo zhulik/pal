@@ -14,25 +14,25 @@ import (
 
 const argModule = "module"
 
-type moduleStep struct{}
+type wizardStepModule struct{}
 
-func (moduleStep) Flag() cli.Flag {
+func (wizardStepModule) Flag() cli.Flag {
 	return nil
 }
 
-func (moduleStep) Argument() cli.Argument {
+func (wizardStepModule) Argument() cli.Argument {
 	return &cli.StringArg{
 		Name:      argModule,
 		UsageText: "MODULE",
 	}
 }
 
-func (moduleStep) Applicable(opts *Options, _ string) bool {
+func (wizardStepModule) Applicable(opts *Options, _ string) bool {
 	// Skip when the module was already provided as a CLI argument.
 	return opts.Module == ""
 }
 
-func (moduleStep) Field(opts *Options) (huh.Field, error) {
+func (wizardStepModule) Field(opts *Options) (huh.Field, error) {
 	return huh.NewInput().
 		Title("What Go module path should the new app use?").
 		Placeholder("github.com/user/app").
@@ -45,7 +45,7 @@ func (moduleStep) Field(opts *Options) (huh.Field, error) {
 		}), nil
 }
 
-func (moduleStep) Abort(_ *Options) bool {
+func (wizardStepModule) Abort(_ *Options) bool {
 	return false
 }
 
