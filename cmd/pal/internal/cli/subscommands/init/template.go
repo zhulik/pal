@@ -27,8 +27,9 @@ func (templateStep) Argument() cli.Argument {
 	return nil
 }
 
-func (templateStep) Applicable(_ *Options, _ string) bool {
-	return true
+func (templateStep) Applicable(opts *Options, _ string) bool {
+	// Skip when --template was explicitly passed on the CLI.
+	return !opts.TemplateSet
 }
 
 func (templateStep) Field(opts *Options) huh.Field {

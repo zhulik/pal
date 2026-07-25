@@ -25,8 +25,9 @@ func (gitStep) Argument() cli.Argument {
 	return nil
 }
 
-func (gitStep) Applicable(_ *Options, _ string) bool {
-	return true
+func (gitStep) Applicable(opts *Options, _ string) bool {
+	// Skip when --no-git was explicitly passed on the CLI.
+	return !opts.GitSet
 }
 
 func (gitStep) Field(opts *Options) huh.Field {

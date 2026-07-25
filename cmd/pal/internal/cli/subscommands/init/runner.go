@@ -26,8 +26,9 @@ func (r *runner) Run(ctx context.Context) error {
 
 	opts := r.opts
 	if !opts.NoInteractive {
-		// Preserve Module from the CLI argument so the wizard can skip that step.
-		opts, err = RunWizard(workDir, Options{Module: opts.Module})
+		// Seed the wizard from CLI options so explicitly set flags/args skip
+		// their steps (via Applicable) while unset ones are still prompted.
+		opts, err = RunWizard(workDir, opts)
 		if err != nil {
 			return err
 		}

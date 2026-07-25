@@ -14,9 +14,15 @@ type Options struct {
 	// Template is the project template name (directory under cmd/pal/templates).
 	// Default is "cli" when read from flags; the wizard also defaults to cli.
 	Template string
+	// TemplateSet is true when --template was explicitly passed on the CLI.
+	// Used by the wizard to skip the template step without treating the flag
+	// default as a user choice.
+	TemplateSet bool
 	// Git controls whether init runs `git init`. Default is true when read from
 	// flags (unless --no-git); the wizard also defaults to yes.
 	Git bool
+	// GitSet is true when --no-git was explicitly passed on the CLI.
+	GitSet bool
 }
 
 // Args returns the CLI arguments equivalent to the project options
@@ -45,6 +51,8 @@ func OptionsFromCommand(cmd *cli.Command) Options {
 		Directory:     cmd.String(flagDirectory),
 		Module:        cmd.StringArg(argModule),
 		Template:      cmd.String(flagTemplate),
+		TemplateSet:   cmd.IsSet(flagTemplate),
 		Git:           !cmd.Bool(flagNoGit),
+		GitSet:        cmd.IsSet(flagNoGit),
 	}
 }

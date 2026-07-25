@@ -120,10 +120,13 @@ func TestModuleStepApplicable(t *testing.T) {
 	require.False(t, moduleStep{}.Applicable(&Options{Module: "example.com/app"}, dir))
 }
 
-func TestGitStepAlwaysApplicable(t *testing.T) {
+func TestGitStepApplicable(t *testing.T) {
 	t.Parallel()
 
-	require.True(t, gitStep{}.Applicable(&Options{}, t.TempDir()))
+	dir := t.TempDir()
+	require.True(t, gitStep{}.Applicable(&Options{}, dir))
+	require.True(t, gitStep{}.Applicable(&Options{Git: false}, dir))
+	require.False(t, gitStep{}.Applicable(&Options{GitSet: true, Git: false}, dir))
 }
 
 func TestGitStepDoesNotAbort(t *testing.T) {
@@ -151,11 +154,13 @@ func TestTemplateStepFlag(t *testing.T) {
 	require.Nil(t, templateStep{}.Argument())
 }
 
-func TestTemplateStepAlwaysApplicable(t *testing.T) {
+func TestTemplateStepApplicable(t *testing.T) {
 	t.Parallel()
 
-	require.True(t, templateStep{}.Applicable(&Options{}, t.TempDir()))
-	require.True(t, templateStep{}.Applicable(&Options{Template: "cli"}, t.TempDir()))
+	dir := t.TempDir()
+	require.True(t, templateStep{}.Applicable(&Options{}, dir))
+	require.True(t, templateStep{}.Applicable(&Options{Template: "cli"}, dir))
+	require.False(t, templateStep{}.Applicable(&Options{TemplateSet: true, Template: "cli"}, dir))
 }
 
 func TestTemplateStepDoesNotAbort(t *testing.T) {

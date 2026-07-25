@@ -47,8 +47,11 @@ Pass the Action’s `ctx` into `app.Run` — never substitute `context.Backgroun
 - Wizard does not shell out. Use `Options.Args()` to show the equivalent `pal init …` invocation.
 - Wizard library: **charmbracelet/huh**.
 - Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
-- Project template is `--template` (default `cli`). The wizard always asks; non-interactive uses the flag.
+- Project template is `--template` (default `cli`). The wizard asks unless `--template` was **explicitly** set on the CLI (`cmd.IsSet`); the flag default alone does not skip the step.
+- `--no-git` skips the git wizard step when explicitly set; otherwise the wizard asks (default yes).
 - **`--directory` / `-d`** is a path override (CLI-only, not a Step — same class as `--no-interactive`). Applies to both interactive and non-interactive modes. Empty/omitted means the process cwd. If the path exists, init runs there. If it is missing, init runs in a temp dir and, only on success, creates all missing parents and copies the temp tree to `-d` via `os.CopyFS`; the temp dir is always removed on exit.
+
+Pass the full `Options` from the CLI into `RunWizard` — never reseed with a partial struct (e.g. only `Module`). Steps that track “explicitly set on CLI” use `IsSet` flags on `Options` (`TemplateSet`, `GitSet`) so flag defaults do not suppress prompts.
 
 ## Step registry (keep CLI ↔ wizard in sync)
 
