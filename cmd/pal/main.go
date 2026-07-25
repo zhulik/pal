@@ -3,19 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"time"
+	"os"
 
-	"github.com/zhulik/pal"
+	"github.com/zhulik/pal/cmd/pal/internal/cli"
 )
 
 func main() {
-	p := pal.New().
-		InitTimeout(time.Second).
-		HealthCheckTimeout(time.Second).
-		ShutdownTimeout(3 * time.Second)
-
-	err := p.Run(context.Background())
-	if err != nil {
-		fmt.Printf("Pal.Run returned error: %v\n", err)
+	if err := cli.New().Run(context.Background(), os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }

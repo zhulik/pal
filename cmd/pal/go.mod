@@ -2,7 +2,10 @@ module github.com/zhulik/pal/cmd/pal
 
 go 1.26.1
 
-require github.com/zhulik/pal v0.11.2
+require (
+	github.com/urfave/cli/v3 v3.10.1
+	github.com/zhulik/pal v0.11.2
+)
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
