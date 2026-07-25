@@ -17,8 +17,9 @@ type Step interface {
 	Argument() cli.Argument
 	// Applicable reports whether the wizard should ask this step.
 	Applicable(opts *Options, cwd string) bool
-	// Field returns a huh field bound to opts.
-	Field(opts *Options) huh.Field
+	// Field returns a huh field bound to opts, or an error if the step cannot
+	// be presented (e.g. template discovery failed).
+	Field(opts *Options) (huh.Field, error)
 	// Abort reports whether the wizard should stop after this step was answered
 	// (fail fast). Only called when the step was actually shown.
 	Abort(opts *Options) bool

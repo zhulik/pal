@@ -32,13 +32,16 @@ func (templateStep) Applicable(opts *Options, _ string) bool {
 	return !opts.TemplateSet
 }
 
-func (templateStep) Field(opts *Options) huh.Field {
+func (templateStep) Field(opts *Options) (huh.Field, error) {
 	if opts.Template == "" {
 		opts.Template = defaultTemplate
 	}
 	names, err := templates.Names()
 	if err != nil {
-		names = []string{defaultTemplate}
+		return nil, fmt.Errorf("list templates: %w", err)
+	}
+	if len(names) == 0 {
+		return nil, fmt.Errorf("no project templates embedded")
 	}
 	options := make([]huh.Option[string], 0, len(names))
 	for _, name := range names {
@@ -47,7 +50,7 @@ func (templateStep) Field(opts *Options) huh.Field {
 	return huh.NewSelect[string]().
 		Title("Which project template?").
 		Options(options...).
-		Value(&opts.Template)
+		Value(&opts.Template), nil
 }
 
 func (templateStep) Abort(_ *Options) bool {

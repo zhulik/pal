@@ -91,7 +91,7 @@ type Step interface {
     Flag() cli.Flag           // nil if the step uses a positional argument
     Argument() cli.Argument   // nil if the step uses a flag
     Applicable(opts *Options, cwd string) bool
-    Field(opts *Options) huh.Field
+    Field(opts *Options) (huh.Field, error)
     Abort(opts *Options) bool
 }
 ```
@@ -106,7 +106,9 @@ Scaffolds live under `cmd/pal/templates/scaffolds/<name>/` and are embedded via 
 
 Init copies the chosen template into the **staging** directory **after** `go mod init` and optional `git init` (still before promote).
 
-The wizard template select and non-interactive validation both use `templates.Names()` / `templates.Exists` / `Apply` — never hardcode the list of template names in the step UI.
+The wizard template select and non-interactive validation both use `templates.Names()` / `templates.Exists` / `Apply` — never hardcode the list of template names in the step UI. If `Names()` fails or returns no templates, the wizard step must return an error (do not fall back to a hardcoded `cli` list).
+
+Scaffold docs that mention a Go version (e.g. README Requirements) must match the **pal library** `go` directive in the root `go.mod`, not an outdated minimum.
 
 **Templating:** every file path segment and every file’s contents under a template are Go `text/template` templates. Supported `templates.Data` fields: `.Package` (module path’s last element, `-` → `_`) and `.Module` (full module path).
 

@@ -32,7 +32,7 @@ func (moduleStep) Applicable(opts *Options, _ string) bool {
 	return opts.Module == ""
 }
 
-func (moduleStep) Field(opts *Options) huh.Field {
+func (moduleStep) Field(opts *Options) (huh.Field, error) {
 	return huh.NewInput().
 		Title("What Go module path should the new app use?").
 		Placeholder("github.com/user/app").
@@ -42,7 +42,7 @@ func (moduleStep) Field(opts *Options) huh.Field {
 				return errors.New("module path is required")
 			}
 			return nil
-		})
+		}), nil
 }
 
 func (moduleStep) Abort(_ *Options) bool {

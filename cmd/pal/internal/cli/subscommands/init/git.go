@@ -30,13 +30,13 @@ func (gitStep) Applicable(opts *Options, _ string) bool {
 	return !opts.GitSet
 }
 
-func (gitStep) Field(opts *Options) huh.Field {
+func (gitStep) Field(opts *Options) (huh.Field, error) {
 	opts.Git = true
 	return huh.NewConfirm().
 		Title("Create a git repository?").
 		Affirmative("Y").
 		Negative("n").
-		Value(&opts.Git)
+		Value(&opts.Git), nil
 }
 
 func (gitStep) Abort(_ *Options) bool {

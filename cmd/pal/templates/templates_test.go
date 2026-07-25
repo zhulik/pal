@@ -98,3 +98,17 @@ func TestExists(t *testing.T) {
 	require.Error(t, templates.Exists(""))
 	require.Error(t, templates.Exists("missing"))
 }
+
+func TestCLIScaffoldREADMEGoVersion(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	require.NoError(t, templates.Apply(dir, "cli", templates.Data{
+		Package: "myapp",
+		Module:  "example.com/myapp",
+	}))
+	readme, err := os.ReadFile(filepath.Join(dir, "README.md"))
+	require.NoError(t, err)
+	require.Contains(t, string(readme), "Go 1.25+",
+		"scaffold README must match the pal library go directive (go.mod)")
+}

@@ -18,7 +18,11 @@ func RunWizard(cwd string, opts Options) (Options, error) {
 			continue
 		}
 
-		form := huh.NewForm(huh.NewGroup(step.Field(&opts)))
+		field, err := step.Field(&opts)
+		if err != nil {
+			return Options{}, err
+		}
+		form := huh.NewForm(huh.NewGroup(field))
 		if err := form.Run(); err != nil {
 			return Options{}, fmt.Errorf("%w: %w", ErrAborted, err)
 		}

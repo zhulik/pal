@@ -188,6 +188,17 @@ func TestSteps_TemplateDoesNotAbort(t *testing.T) {
 	require.False(t, step.Abort(&initcmd.Options{Template: "cli"}))
 }
 
+func TestSteps_TemplateFieldListsEmbeddedTemplates(t *testing.T) {
+	t.Parallel()
+
+	step := stepByFlag(t, flagTemplate)
+	opts := &initcmd.Options{}
+	field, err := step.Field(opts)
+	require.NoError(t, err)
+	require.NotNil(t, field)
+	require.Equal(t, defaultTemplate, opts.Template)
+}
+
 func stepByFlag(t *testing.T, name string) initcmd.Step {
 	t.Helper()
 	for _, step := range initcmd.Steps() {
