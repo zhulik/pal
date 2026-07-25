@@ -5,7 +5,7 @@ alwaysApply: false
 ---
 # pal CLI architecture
 
-Framework: **urfave/cli/v3**. Root command lives in `internal/cli`; `main` only runs it. Help is built-in (`help` / `-h`) — do not add a custom help subcommand.
+Framework: **urfave/cli/v3**. Root command lives in `internal/cli`; `main` only runs it. Help is built-in (`help` / `-h`) — do not add a custom help subcommand. Version is built-in (`-v` / `--version`) plus a `version` subcommand — both print the same string (see Version).
 
 ## Layout
 
@@ -14,19 +14,20 @@ cmd/pal/
   main.go
   templates/                       # embedded project scaffolds (see Project templates)
   pkg/cmdexec/                     # run external commands with live stdio
+  internal/version/                # CLI build version string (runtime/debug)
   internal/cli/cli.go              # root; register subcommands here
   internal/cli/app/                # shared pal app runner (timeouts, Provide)
   internal/cli/subscommands/<name>/  # note: "subscommands" spelling is intentional
     <name>.go    # cli.Command (thin wrapper)
-    flags.go     # command flags (mode flags + step registry)
-    runner.go    # all command logic
+    flags.go     # command flags (mode flags + step registry); omit if none
+    runner.go    # all command logic; omit for meta commands (e.g. version)
 ```
 
 ## External commands
 
 When the CLI shells out (`git`, `go`, …) and the user should see progress, use `cmdexec.Run(ctx, dir, name, args...)` — it builds an `exec.CommandContext`, sets `Dir`, and attaches stdout/stderr so output streams in real time. Do not call `os/exec` directly or use `CombinedOutput`/`Output` for those cases (they buffer until exit). Stdlib file-descriptor inheritance is enough here; do not pull in a third-party exec wrapper just to forward stdio.
 
-Package `init` is reserved in Go — use `package initcmd` under directory `init/`.
+Package `init` is reserved in Go — use `package initcmd` under directory `init/`. Same pattern for other reserved/colliding names (`version` → `versioncmd`).
 
 ## Thin Command, fat runner
 
@@ -40,7 +41,21 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
 
 Pass the Action’s `ctx` into `app.Run` — never substitute `context.Background()` there.
 
-**The CLI dogfoods Pal.** Every subcommand Action runs its runner through `app.Run` → `pal.New(…).Run`. Do not call `runner.Run` directly from Action; keep `internal/cli/app` as the shared entry so timeouts and Provide stay consistent across commands.
+**The CLI dogfoods Pal.** Every subcommand Action that performs work runs its runner through `app.Run` → `pal.New(…).Run`. Do not call `runner.Run` directly from Action; keep `internal/cli/app` as the shared entry so timeouts and Provide stay consistent across commands.
+
+**Exception:** the `version` subcommand (and urfave’s built-in `-v` / `--version`) only print build metadata via `cli.ShowVersion` / `Command.Version`. They must not go through `app.Run`.
+
+## Version
+
+CLI version comes from Go build metadata (`runtime/debug.ReadBuildInfo`), implemented in `internal/version` — no hand-maintained version constant and no required ldflags for local builds (Go’s default `-buildvcs` is enough).
+
+Resolution order:
+
+1. **Module version** when `Main.Version` is set and not `(devel)` — a release tag (`v1.2.3`) or Go pseudo-version when installed/built from a module version.
+2. Else **short VCS revision + commit date** (`abcdef0 2026-07-25`), with a `-dirty` suffix when `vcs.modified` is true.
+3. Else `devel` / `unknown` as last resorts.
+
+Wire `Command.Version` on the root to `version.String()`. `-v` / `--version` use urfave’s built-in version flag; the `version` subcommand calls `cli.ShowVersion(cmd.Root())` so both paths print the same `pal version …` line.
 
 ## Interactive frontend / non-interactive backend
 
@@ -108,6 +123,9 @@ These names are **frozen** — extend by adding, do not rename without a deliber
 | Module input | positional `MODULE` |
 | Templating | Go `text/template` + `templates.Data` fields only |
 | Exit codes | `0` success, `1` any error (no richer taxonomy) |
+| Version flag | `-v` / `--version` (urfave built-in) |
+| Version command | `version` subcommand (same output as the flag) |
+| Version source | `runtime/debug` build info (tag / pseudo-version, else SHA+date) |
 
 New flags, steps, templates, and `Data` fields are fine. Renaming the table above is not “cleanup”.
 
