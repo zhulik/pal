@@ -7,6 +7,8 @@ import (
 
 type Tag string
 
+// Struct-tag names recognized on `pal:"..."` field tags. Prefer these constants when documenting tags;
+// parsing is handled internally during injection.
 const (
 	TagSkip           Tag = "skip"
 	TagMatchInterface Tag = "match_interface"
@@ -19,7 +21,7 @@ var supportedTags = map[Tag]bool{
 	TagName:           true,
 }
 
-func ParseTag(tags string) (map[Tag]string, error) {
+func parseTag(tags string) (map[Tag]string, error) {
 	tagMap := make(map[Tag]string)
 	tags = strings.ReplaceAll(tags, " ", "")
 	if tags == "" {

@@ -140,7 +140,7 @@ func TestServiceFactory4_FactoryClosures(t *testing.T) {
 	ctxW := pal.WithPal(ctx, p)
 	require.NoError(t, p.Init(ctx))
 
-	f := s.Factory().(func(context.Context, string, int, string, bool) (*factoryMultiLabel, error))
+	f := s.(*pal.ServiceFactory4[*factoryMultiLabel, *factoryMultiLabel, string, int, string, bool]).Factory().(func(context.Context, string, int, string, bool) (*factoryMultiLabel, error))
 	got, err := f(ctxW, "a", 2, "c", true)
 	require.NoError(t, err)
 	assert.True(t, got.B)
@@ -148,6 +148,6 @@ func TestServiceFactory4_FactoryClosures(t *testing.T) {
 	_, err = f(ctxW, "a", 2, "c", false)
 	assert.ErrorIs(t, err, errTest)
 
-	must := s.MustFactory().(func(context.Context, string, int, string, bool) *factoryMultiLabel)
+	must := s.(*pal.ServiceFactory4[*factoryMultiLabel, *factoryMultiLabel, string, int, string, bool]).MustFactory().(func(context.Context, string, int, string, bool) *factoryMultiLabel)
 	assert.PanicsWithValue(t, errTest, func() { must(ctxW, "a", 2, "c", false) })
 }

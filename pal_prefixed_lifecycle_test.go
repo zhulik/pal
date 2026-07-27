@@ -183,7 +183,7 @@ func TestPalPrefixed_ToInitHookOverridesPalInit(t *testing.T) {
 	s := &palInitWithHook{}
 	hookCalled := false
 
-	p := newPal(pal.Provide(s).ToInit(func(_ context.Context, _ *palInitWithHook, _ *pal.Pal) error {
+	p := newPal(pal.Provide(s).ToInit(func(_ context.Context, _ *palInitWithHook, _ pal.Invoker) error {
 		hookCalled = true
 		return nil
 	}))

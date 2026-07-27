@@ -89,7 +89,7 @@ func TestServiceFactory0_Invocation(t *testing.T) {
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(t.Context()))
 
-		fn := service.Factory().(func(context.Context) (*factoryMultiLabel, error))
+		fn := service.(*pal.ServiceFactory0[*factoryMultiLabel, *factoryMultiLabel]).Factory().(func(context.Context) (*factoryMultiLabel, error))
 		_, err := fn(ctx)
 		assert.ErrorIs(t, err, errTest)
 	})
@@ -104,7 +104,7 @@ func TestServiceFactory0_Invocation(t *testing.T) {
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(t.Context()))
 
-		fn := service.Factory().(func(context.Context) (*factoryMultiLabel, error))
+		fn := service.(*pal.ServiceFactory0[*factoryMultiLabel, *factoryMultiLabel]).Factory().(func(context.Context) (*factoryMultiLabel, error))
 		got, err := fn(ctx)
 		require.NoError(t, err)
 		assert.Equal(t, "f0", got.S0)
@@ -120,7 +120,7 @@ func TestServiceFactory0_Invocation(t *testing.T) {
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(t.Context()))
 
-		mustFn := service.MustFactory().(func(context.Context) *factoryMultiLabel)
+		mustFn := service.(*pal.ServiceFactory0[*factoryMultiLabel, *factoryMultiLabel]).MustFactory().(func(context.Context) *factoryMultiLabel)
 		assert.PanicsWithValue(t, errTest, func() { mustFn(ctx) })
 	})
 }

@@ -15,7 +15,7 @@ import (
 func TestServiceRunner_ShouldWaitForRunner(t *testing.T) {
 	t.Parallel()
 
-	r := pal.ProvideRunner(func(context.Context) error { return nil })
+	r := pal.ProvideRunner(func(context.Context) error { return nil }).(*pal.ServiceRunner)
 	require.NotNil(t, r.ShouldWaitForRunner())
 	assert.True(t, *r.ShouldWaitForRunner())
 }
@@ -30,7 +30,7 @@ func TestServiceRunner_Run(t *testing.T) {
 		r := pal.ProvideRunner(func(ctx context.Context) error {
 			got = ctx
 			return nil
-		})
+		}).(*pal.ServiceRunner)
 		r.P = newPal(r)
 		ctx := t.Context()
 		require.NoError(t, r.Run(ctx))
@@ -40,7 +40,7 @@ func TestServiceRunner_Run(t *testing.T) {
 	t.Run("returns fn error", func(t *testing.T) {
 		t.Parallel()
 
-		r := pal.ProvideRunner(func(context.Context) error { return errTest })
+		r := pal.ProvideRunner(func(context.Context) error { return errTest }).(*pal.ServiceRunner)
 		r.P = newPal(r)
 		assert.ErrorIs(t, r.Run(t.Context()), errTest)
 	})
@@ -49,7 +49,7 @@ func TestServiceRunner_Run(t *testing.T) {
 		t.Parallel()
 
 		const msg = "runner panic"
-		r := pal.ProvideRunner(func(context.Context) error { panic(msg) })
+		r := pal.ProvideRunner(func(context.Context) error { panic(msg) }).(*pal.ServiceRunner)
 		r.P = newPal(r)
 		err := r.Run(t.Context())
 		require.Error(t, err)
@@ -63,7 +63,7 @@ func TestServiceRunner_Run(t *testing.T) {
 func TestServiceRunner_Instance(t *testing.T) {
 	t.Parallel()
 
-	r := pal.ProvideRunner(func(context.Context) error { return nil })
+	r := pal.ProvideRunner(func(context.Context) error { return nil }).(*pal.ServiceRunner)
 	inst, err := r.Instance(t.Context())
 
 	assert.NoError(t, err)
@@ -74,7 +74,7 @@ func TestServiceRunner_Name(t *testing.T) {
 	t.Parallel()
 
 	const prefix = "$function-runner-"
-	r := pal.ProvideRunner(func(context.Context) error { return nil })
+	r := pal.ProvideRunner(func(context.Context) error { return nil }).(*pal.ServiceRunner)
 	name := r.Name()
 
 	assert.True(t, strings.HasPrefix(name, prefix))

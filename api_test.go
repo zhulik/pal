@@ -30,7 +30,7 @@ func TestProvide(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(NewMockRunnerServiceStruct(t)).
-			ToInit(func(ctx context.Context, service *RunnerServiceStruct, _ *pal.Pal) error {
+			ToInit(func(ctx context.Context, service *RunnerServiceStruct, _ pal.Invoker) error {
 				service.MockRunner.EXPECT().Run(ctx).Return(nil)
 
 				return nil

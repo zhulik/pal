@@ -152,7 +152,7 @@ func TestServiceFactory5_FactoryClosures(t *testing.T) {
 	ctxW := pal.WithPal(ctx, p)
 	require.NoError(t, p.Init(ctx))
 
-	f := s.Factory().(func(context.Context, string, int, string, bool, rune) (*factoryMultiLabel, error))
+	f := s.(*pal.ServiceFactory5[*factoryMultiLabel, *factoryMultiLabel, string, int, string, bool, rune]).Factory().(func(context.Context, string, int, string, bool, rune) (*factoryMultiLabel, error))
 	got, err := f(ctxW, "a", 1, "b", true, 'x')
 	require.NoError(t, err)
 	assert.Equal(t, 'x', got.R)
@@ -164,10 +164,10 @@ func TestServiceFactory5_FactoryClosures(t *testing.T) {
 	ctxW2 := pal.WithPal(ctx, p2)
 	require.NoError(t, p2.Init(ctx))
 
-	f2 := sErr.Factory().(func(context.Context, string, int, string, bool, rune) (*factoryMultiLabel, error))
+	f2 := sErr.(*pal.ServiceFactory5[*factoryMultiLabel, *factoryMultiLabel, string, int, string, bool, rune]).Factory().(func(context.Context, string, int, string, bool, rune) (*factoryMultiLabel, error))
 	_, err = f2(ctxW2, "a", 1, "b", true, 'x')
 	assert.ErrorIs(t, err, errTest)
 
-	must := sErr.MustFactory().(func(context.Context, string, int, string, bool, rune) *factoryMultiLabel)
+	must := sErr.(*pal.ServiceFactory5[*factoryMultiLabel, *factoryMultiLabel, string, int, string, bool, rune]).MustFactory().(func(context.Context, string, int, string, bool, rune) *factoryMultiLabel)
 	assert.PanicsWithValue(t, errTest, func() { must(ctxW2, "a", 1, "b", true, 'x') })
 }

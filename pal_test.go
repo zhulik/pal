@@ -268,7 +268,7 @@ func TestPal_Run(t *testing.T) {
 
 		// Create a service that will fail during initialization
 		failingService := pal.Provide(NewMockTestServiceStruct(t)).
-			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
+			ToInit(func(_ context.Context, _ *TestServiceStruct, _ pal.Invoker) error {
 				return errTest
 			})
 

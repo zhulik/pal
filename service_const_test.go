@@ -59,7 +59,7 @@ func TestService_ToInit(t *testing.T) {
 
 		var hookCalled bool
 		service := pal.Provide(NewMockTestServiceStruct(t)).
-			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
+			ToInit(func(_ context.Context, _ *TestServiceStruct, _ pal.Invoker) error {
 				hookCalled = true
 				return nil
 			})
@@ -100,7 +100,7 @@ func TestService_ToInit(t *testing.T) {
 		t.Parallel()
 
 		service := pal.Provide(NewMockTestServiceStruct(t)).
-			ToInit(func(_ context.Context, _ *TestServiceStruct, _ *pal.Pal) error {
+			ToInit(func(_ context.Context, _ *TestServiceStruct, _ pal.Invoker) error {
 				return errTest
 			})
 		p := newPal(service)

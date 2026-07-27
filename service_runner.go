@@ -8,6 +8,9 @@ import (
 
 const idCharset = "abcdefghijklmnopqrstuvwxyz0123456789"
 
+// ServiceRunner wraps an anonymous runner function registered via [ProvideRunner].
+//
+// Advanced: prefer [ProvideRunner], which returns [ServiceDef]; this type remains exported for power users.
 type ServiceRunner struct {
 	P *Pal
 	ServiceTyped[any]

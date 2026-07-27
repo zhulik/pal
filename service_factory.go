@@ -2,6 +2,9 @@ package pal
 
 import "reflect"
 
+// ServiceFactory is the shared base for arity-specific factory wrappers.
+//
+// Advanced: prefer [ProvideFactory0]–[ProvideFactory5]; this type remains exported for power users.
 type ServiceFactory[I any, T any] struct {
 	ServiceTyped[I]
 }

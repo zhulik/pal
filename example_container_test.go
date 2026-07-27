@@ -21,7 +21,8 @@ func (s *SimpleServiceImpl) GetMessage() string {
 	return "Hello from SimpleService"
 }
 
-// This example demonstrates how to create a Pal instance with services and use it.
+// Example_container demonstrates creating a Pal instance with services and using it.
+// (Named for historical reasons; apps go through Pal, not a public Container constructor.)
 func Example_container() {
 	// Create a Pal instance with the service
 	p := pal.New(

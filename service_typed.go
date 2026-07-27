@@ -1,5 +1,8 @@
 package pal
 
+// ServiceTyped is a shared base for Provide* wrappers.
+//
+// Advanced: exported for embedding/custom ServiceDef implementations.
 type ServiceTyped[T any] struct {
 	P    *Pal
 	name string

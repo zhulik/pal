@@ -6,6 +6,8 @@ import (
 )
 
 // ServiceList is a proxy service to a list of services.
+//
+// Advanced: prefer [ProvideList], which returns [ServiceDef]; this type remains exported for power users.
 type ServiceList struct {
 	ServiceTyped[any]
 	Services []ServiceDef
