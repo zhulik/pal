@@ -32,4 +32,5 @@ jobs:
           golangci-cache-key: ${{ hashFiles('cmd/pal/.golangci.yaml', 'cmd/pal/go.sum', '.tool-versions') }}
 
       - name: Check
+        working-directory: cmd/pal
         run: task check
