@@ -29,7 +29,11 @@ func RunServices(ctx context.Context, services []ServiceDef) error {
 
 	runService := func(service ServiceDef) func() error {
 		return func() error {
-			err := service.Run(ctx)
+			runner, ok := service.(serviceRunner)
+			if !ok {
+				return nil
+			}
+			err := runner.Run(ctx)
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}

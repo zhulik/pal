@@ -10,14 +10,35 @@ import (
 )
 
 func NewMockService(t *testing.T, name string) *MockServiceDef {
+	t.Helper()
 	mock := NewMockServiceDef(t)
 
 	mock.EXPECT().Name().Return(name).Maybe()
 	mock.EXPECT().Dependencies().Return(nil).Maybe()
 	mock.EXPECT().Make().Return(nil).Maybe()
 	mock.EXPECT().Arguments().Return(0).Maybe()
+	mock.EXPECT().ShouldWaitForRunner().Return(nil).Maybe()
 
 	return mock
+}
+
+// mockLifecycleService is a ServiceDef that also drives Init/Shutdown/HealthCheck on the definition,
+// matching Provide* wrappers after lifecycle was removed from ServiceDef itself.
+type mockLifecycleService struct {
+	*MockServiceDef
+	*MockIniter
+	*MockShutdowner
+	*MockHealthChecker
+}
+
+func NewMockLifecycleService(t *testing.T, name string) *mockLifecycleService {
+	t.Helper()
+	return &mockLifecycleService{
+		MockServiceDef:    NewMockService(t, name),
+		MockIniter:        NewMockIniter(t),
+		MockShutdowner:    NewMockShutdowner(t),
+		MockHealthChecker: NewMockHealthChecker(t),
+	}
 }
 
 type cycleServiceA struct {
@@ -63,16 +84,31 @@ func TestContainer_New(t *testing.T) {
 func TestContainer_Init(t *testing.T) {
 	t.Parallel()
 
-	t.Run("initializes singleton services successfully", func(t *testing.T) {
+	t.Run("skips services without Init on the definition", func(t *testing.T) {
 		t.Parallel()
 
-		service1 := NewMockService(t, "service1")
-		service2 := NewMockService(t, "service2")
-		service3 := NewMockService(t, "service3")
+		c := pal.NewContainer(
+			&pal.Pal{},
+			NewMockService(t, "service1"),
+			NewMockService(t, "service2"),
+			NewMockService(t, "service3"),
+		)
 
-		service1.EXPECT().Init(t.Context()).Return(nil)
-		service2.EXPECT().Init(t.Context()).Return(nil)
-		service3.EXPECT().Init(t.Context()).Return(nil)
+		err := c.Init(t.Context())
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("initializes services that implement Init on the definition", func(t *testing.T) {
+		t.Parallel()
+
+		service1 := NewMockLifecycleService(t, "service1")
+		service2 := NewMockLifecycleService(t, "service2")
+		service3 := NewMockLifecycleService(t, "service3")
+
+		service1.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service2.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service3.MockIniter.EXPECT().Init(t.Context()).Return(nil)
 
 		c := pal.NewContainer(&pal.Pal{}, service1, service2, service3)
 
@@ -84,11 +120,11 @@ func TestContainer_Init(t *testing.T) {
 	t.Run("returns error when service initialization fails", func(t *testing.T) {
 		t.Parallel()
 
-		service1 := NewMockService(t, "service1")
-		service2 := NewMockService(t, "service2")
+		service1 := NewMockLifecycleService(t, "service1")
+		service2 := NewMockLifecycleService(t, "service2")
 
-		service1.EXPECT().Init(t.Context()).Return(nil).Maybe() // Init order is not guaranteed
-		service2.EXPECT().Init(t.Context()).Return(errTest).Once()
+		service1.MockIniter.EXPECT().Init(t.Context()).Return(nil).Maybe() // Init order is not guaranteed
+		service2.MockIniter.EXPECT().Init(t.Context()).Return(errTest).Once()
 
 		c := pal.NewContainer(&pal.Pal{}, service1, service2)
 
@@ -126,7 +162,6 @@ func TestContainer_Invoke(t *testing.T) {
 		expectedInstance := struct{}{}
 
 		service := NewMockService(t, "service1")
-		service.EXPECT().Init(t.Context()).Return(nil)
 		service.EXPECT().Instance(t.Context()).Return(expectedInstance, nil)
 
 		c := pal.NewContainer(&pal.Pal{}, service)
@@ -152,7 +187,6 @@ func TestContainer_Invoke(t *testing.T) {
 		t.Parallel()
 
 		service := NewMockService(t, "service1")
-		service.EXPECT().Init(t.Context()).Return(nil)
 		service.EXPECT().Instance(t.Context()).Return(nil, errTest)
 
 		c := pal.NewContainer(&pal.Pal{}, service)
@@ -168,20 +202,35 @@ func TestContainer_Invoke(t *testing.T) {
 func TestContainer_Shutdown(t *testing.T) {
 	t.Parallel()
 
-	t.Run("shuts down all singleton services successfully", func(t *testing.T) {
+	t.Run("skips services without Shutdown on the definition", func(t *testing.T) {
 		t.Parallel()
 
-		service1 := NewMockService(t, "service1")
-		service2 := NewMockService(t, "service2")
-		service3 := NewMockService(t, "service3")
+		c := pal.NewContainer(
+			&pal.Pal{},
+			NewMockService(t, "service1"),
+			NewMockService(t, "service2"),
+		)
+		require.NoError(t, c.Init(t.Context()))
 
-		service1.EXPECT().Init(t.Context()).Return(nil)
-		service2.EXPECT().Init(t.Context()).Return(nil)
-		service3.EXPECT().Init(t.Context()).Return(nil)
+		err := c.Shutdown(t.Context())
 
-		service1.EXPECT().Shutdown(t.Context()).Return(nil)
-		service2.EXPECT().Shutdown(t.Context()).Return(nil)
-		service3.EXPECT().Shutdown(t.Context()).Return(nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("shuts down services that implement Shutdown on the definition", func(t *testing.T) {
+		t.Parallel()
+
+		service1 := NewMockLifecycleService(t, "service1")
+		service2 := NewMockLifecycleService(t, "service2")
+		service3 := NewMockLifecycleService(t, "service3")
+
+		service1.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service2.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service3.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+
+		service1.MockShutdowner.EXPECT().Shutdown(t.Context()).Return(nil)
+		service2.MockShutdowner.EXPECT().Shutdown(t.Context()).Return(nil)
+		service3.MockShutdowner.EXPECT().Shutdown(t.Context()).Return(nil)
 
 		c := pal.NewContainer(&pal.Pal{}, service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
@@ -194,9 +243,9 @@ func TestContainer_Shutdown(t *testing.T) {
 	t.Run("returns error when service shutdown fails", func(t *testing.T) {
 		t.Parallel()
 
-		service := NewMockService(t, "service1")
-		service.EXPECT().Init(t.Context()).Return(nil)
-		service.EXPECT().Shutdown(t.Context()).Return(errTest)
+		service := NewMockLifecycleService(t, "service1")
+		service.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service.MockShutdowner.EXPECT().Shutdown(t.Context()).Return(errTest)
 
 		c := pal.NewContainer(&pal.Pal{}, service)
 		require.NoError(t, c.Init(t.Context()))
@@ -211,20 +260,35 @@ func TestContainer_Shutdown(t *testing.T) {
 func TestContainer_HealthCheck(t *testing.T) {
 	t.Parallel()
 
-	t.Run("health checks all singleton services successfully", func(t *testing.T) {
+	t.Run("skips services without HealthCheck on the definition", func(t *testing.T) {
 		t.Parallel()
 
-		service1 := NewMockService(t, "service1")
-		service2 := NewMockService(t, "service2")
-		service3 := NewMockService(t, "service3")
+		c := pal.NewContainer(
+			&pal.Pal{},
+			NewMockService(t, "service1"),
+			NewMockService(t, "service2"),
+		)
+		require.NoError(t, c.Init(t.Context()))
 
-		service1.EXPECT().Init(t.Context()).Return(nil)
-		service2.EXPECT().Init(t.Context()).Return(nil)
-		service3.EXPECT().Init(t.Context()).Return(nil)
+		err := c.HealthCheck(t.Context())
 
-		service1.EXPECT().HealthCheck(t.Context()).Return(nil)
-		service2.EXPECT().HealthCheck(t.Context()).Return(nil)
-		service3.EXPECT().HealthCheck(t.Context()).Return(nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("health checks services that implement HealthCheck on the definition", func(t *testing.T) {
+		t.Parallel()
+
+		service1 := NewMockLifecycleService(t, "service1")
+		service2 := NewMockLifecycleService(t, "service2")
+		service3 := NewMockLifecycleService(t, "service3")
+
+		service1.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service2.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service3.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+
+		service1.MockHealthChecker.EXPECT().HealthCheck(t.Context()).Return(nil)
+		service2.MockHealthChecker.EXPECT().HealthCheck(t.Context()).Return(nil)
+		service3.MockHealthChecker.EXPECT().HealthCheck(t.Context()).Return(nil)
 
 		c := pal.NewContainer(&pal.Pal{}, service1, service2, service3)
 		require.NoError(t, c.Init(t.Context()))
@@ -237,9 +301,9 @@ func TestContainer_HealthCheck(t *testing.T) {
 	t.Run("returns error when service health check fails", func(t *testing.T) {
 		t.Parallel()
 
-		service := NewMockService(t, "service1")
-		service.EXPECT().Init(t.Context()).Return(nil)
-		service.EXPECT().HealthCheck(t.Context()).Return(errTest)
+		service := NewMockLifecycleService(t, "service1")
+		service.MockIniter.EXPECT().Init(t.Context()).Return(nil)
+		service.MockHealthChecker.EXPECT().HealthCheck(t.Context()).Return(errTest)
 
 		c := pal.NewContainer(&pal.Pal{}, service)
 		require.NoError(t, c.Init(t.Context()))
@@ -259,9 +323,6 @@ func TestContainer_Services(t *testing.T) {
 
 		service1 := NewMockService(t, "service1")
 		service2 := NewMockService(t, "service2")
-
-		service1.EXPECT().Init(t.Context()).Return(nil)
-		service2.EXPECT().Init(t.Context()).Return(nil)
 
 		c := pal.NewContainer(&pal.Pal{}, service1, service2)
 		require.NoError(t, c.Init(t.Context()))
@@ -283,3 +344,5 @@ func TestContainer_Services(t *testing.T) {
 		assert.Empty(t, result)
 	})
 }
+
+var _ pal.ServiceDef = (*mockLifecycleService)(nil)

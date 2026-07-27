@@ -21,16 +21,16 @@ type PalRunConfiger interface { //nolint:revive
 	PalShouldWaitForRunner() bool
 }
 
-// ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
-// This interface embeds the standard lifecycle interfaces ([Initer], [HealthChecker], [Shutdowner], [Runner]);
-// concrete services may instead implement the Pal-prefixed alternatives ([PalIniter], [PalHealthChecker], [PalShutdowner], [PalRunner], [PalRunConfiger]) where method names would otherwise clash.
-// It adds methods specific to service definition and management.
+// ServiceDef is a registration and provisioning contract for a service.
+// In the case of a singleton service, the definition also holds the instance.
+//
+// Lifecycle (Init, Run, Shutdown, HealthCheck) is not part of this interface.
+// Pal discovers it on the service instance — via [Initer], [HealthChecker], [Shutdowner], [Runner]
+// or the Pal-prefixed alternatives ([PalIniter], [PalHealthChecker], [PalShutdowner], [PalRunner], [PalRunConfiger]) —
+// and on Provide* wrappers that forward to those instance methods and optional hooks.
+// Custom ServiceDef implementers only need the methods below; implement
+// Init/Run/Shutdown/HealthCheck on the definition only when the wrapper itself drives lifecycle.
 type ServiceDef interface {
-	Initer
-	HealthChecker
-	Shutdowner
-	Runner
-
 	// ShouldWaitForRunner reports runner scheduling for this service definition.
 	// nil means the service is not a runner; otherwise true = main runner and false = secondary.
 	// Wrappers default to true when the instance implements Runner/PalRunner but not
@@ -58,6 +58,23 @@ type ServiceDef interface {
 	// Dependencies allows services to provide their own dependencies.
 	Dependencies() []ServiceDef
 }
+
+// Optional lifecycle methods a ServiceDef wrapper may implement to drive Init/Run/Shutdown/HealthCheck.
+// Container and RunServices type-assert these; they are not part of [ServiceDef].
+type (
+	serviceIniter interface {
+		Init(ctx context.Context) error
+	}
+	serviceHealthChecker interface {
+		HealthCheck(ctx context.Context) error
+	}
+	serviceShutdowner interface {
+		Shutdown(ctx context.Context) error
+	}
+	serviceRunner interface {
+		Run(ctx context.Context) error
+	}
+)
 
 // Invoker is an interface for retrieving services from a container and injecting them into structs.
 // Both Container and Pal implement this interface, allowing services to be retrieved from either.
