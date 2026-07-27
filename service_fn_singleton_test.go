@@ -97,6 +97,20 @@ func (b *fnSingletonBothInit) Init(_ context.Context) error {
 	return nil
 }
 
+type fnSingletonWithDep struct {
+	Dep *fnSingletonPlain
+}
+
+type fnSingletonWithDepIniter struct {
+	Dep        *fnSingletonPlain
+	initCalled bool
+}
+
+func (s *fnSingletonWithDepIniter) Init(_ context.Context) error {
+	s.initCalled = true
+	return nil
+}
+
 func TestServiceFnSingleton_Init(t *testing.T) {
 	t.Parallel()
 
@@ -182,6 +196,50 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
+	})
+
+	t.Run("injects dependencies before Init", func(t *testing.T) {
+		t.Parallel()
+
+		s := pal.ProvideFn[*fnSingletonWithDep](func(_ context.Context) (*fnSingletonWithDep, error) {
+			return &fnSingletonWithDep{}, nil
+		}).(*pal.ServiceFnSingleton[*fnSingletonWithDep, *fnSingletonWithDep])
+		p := newPal(pal.Provide(&fnSingletonPlain{N: 1}), s)
+		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
+
+		inst, err := s.Instance(t.Context())
+		require.NoError(t, err)
+		require.NotNil(t, inst.(*fnSingletonWithDep).Dep)
+		assert.Equal(t, 1, inst.(*fnSingletonWithDep).Dep.N)
+	})
+
+	t.Run("ToInit runs after injection and skips Init", func(t *testing.T) {
+		t.Parallel()
+
+		inst := &fnSingletonWithDepIniter{}
+		hookSawDep := false
+		s := pal.ProvideFn[*fnSingletonWithDepIniter](func(_ context.Context) (*fnSingletonWithDepIniter, error) {
+			return inst, nil
+		}).ToInit(func(_ context.Context, got *fnSingletonWithDepIniter, _ pal.Invoker) error {
+			hookSawDep = got.Dep != nil
+			return nil
+		})
+		p := newPal(pal.Provide(&fnSingletonPlain{N: 2}), s)
+		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
+		assert.True(t, hookSawDep)
+		assert.False(t, inst.initCalled)
+	})
+
+	t.Run("ToInit error is propagated", func(t *testing.T) {
+		t.Parallel()
+
+		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
+			return &fnSingletonPlain{}, nil
+		}).ToInit(func(_ context.Context, _ *fnSingletonPlain, _ pal.Invoker) error {
+			return errTest
+		})
+		p := newPal(s)
+		assert.ErrorIs(t, p.Init(pal.WithPal(t.Context(), p)), errTest)
 	})
 }
 

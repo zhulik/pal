@@ -105,7 +105,7 @@ a few rules described below.
 Pal provides several functions for registering services. They return interfaces (`Hookable` or `ServiceDef`) so the default path stays implementation-agnostic:
 
 - `Provide[T any](value T) Hookable[T]` - Registers an instance of a service; chain `ToInit` / `ToShutdown` / `ToHealthCheck` as needed.
-- `ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) Hookable[T]` - Registers a singleton built with the provided function.
+- `ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) Hookable[T]` - Registers a singleton built with the provided function; after create, uses the same inject → ToInit / Init pipeline as `Provide`.
 - `ProvideFactory{0-5}[...](...) ServiceDef` - Registers a factory service created with the provided function (0–5 args).
 - `ProvideRunner(fn) ServiceDef` - Registers an anonymous background runner.
 - `ProvideList(...ServiceDef) ServiceDef` - Registers multiple services at once, useful when splitting apps into modules, see [example](./examples/web)

@@ -32,38 +32,19 @@ func (c *ServiceFnSingleton[I, T]) Run(ctx context.Context) error {
 	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
-// Init initializes the service by calling the provided function to create the instance.
-// If a ToInit hook is set, it runs instead of [PalIniter] / [Initer] on the instance.
+// Init creates the singleton via the factory function, then runs the same pipeline as
+// [ServiceConst.Init]: inject dependencies, then ToInit / PalInit / Init.
 func (c *ServiceFnSingleton[I, T]) Init(ctx context.Context) error {
 	instance, err := c.fn(ctx)
 	if err != nil {
 		return err
 	}
 
-	logger := c.P.logger.With("service", c.Name())
-
-	if c.hooks.Init != nil {
-		logger.Debug("Calling ToInit hook")
-		if err := c.hooks.Init(ctx, instance, c.P); err != nil {
-			logger.Error("Init hook failed", "error", err)
-			return err
-		}
-		c.instance = instance
-		return nil
-	}
-
-	if pi, ok := any(instance).(PalIniter); ok {
-		if err := pi.PalInit(ctx); err != nil {
-			return err
-		}
-	} else if initer, ok := any(instance).(Initer); ok {
-		if err := initer.Init(ctx); err != nil {
-			return err
-		}
+	if err := initService(ctx, c.Name(), instance, c.hooks.Init, c.P); err != nil {
+		return err
 	}
 
 	c.instance = instance
-
 	return nil
 }
 
@@ -82,8 +63,9 @@ func (c *ServiceFnSingleton[I, T]) Instance(_ context.Context, _ ...any) (any, e
 	return c.instance, nil
 }
 
-// ToInit registers a hook called after the factory function creates the instance.
-// If the service implements [PalIniter] or [Initer], those methods are not called; the hook has higher priority.
+// ToInit registers a hook called after the factory function creates the instance and
+// dependencies are injected. If the service implements [PalIniter] or [Initer], those
+// methods are not called; the hook has higher priority.
 func (c *ServiceFnSingleton[I, T]) ToInit(hook LifecycleHook[T]) Hookable[T] {
 	c.hooks.Init = hook
 	return c

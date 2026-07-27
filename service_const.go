@@ -31,8 +31,8 @@ func (c *ServiceConst[T]) Run(ctx context.Context) error {
 	return runService(ctx, c.Name(), c.instance, c.P)
 }
 
-// Init is a no-op for const services as they are already initialized.
-// It injects dependencies to the stored instance and calls its Init method if it implements Initer.
+// Init injects dependencies into the stored instance, then runs ToInit / PalInit / Init.
+// Same post-create pipeline as [ServiceFnSingleton.Init].
 func (c *ServiceConst[T]) Init(ctx context.Context) error {
 	return initService(ctx, c.Name(), c.instance, c.hooks.Init, c.P)
 }
