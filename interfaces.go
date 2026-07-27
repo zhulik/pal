@@ -5,17 +5,20 @@ import (
 	"reflect"
 )
 
-// RunConfiger is an optional interface that can be implemented by a runner to tell Pal how to handle it.
+// RunConfiger is an optional interface a runner may implement to tell Pal whether to wait for it.
+// ShouldWaitForRunner is true for a main runner (Pal blocks until it finishes) and false for a
+// secondary / fire-and-forget runner. Returning only a bool lets third-party types satisfy this
+// interface without importing pal (structural typing).
 type RunConfiger interface {
-	RunConfig() *RunConfig
+	ShouldWaitForRunner() bool
 }
 
-// PalRunConfiger is an alternaltive interface with the same semantics as [RunConfiger], using a Pal-prefixed method name
-// so the type can still implement another framework's RunConfig without a clash.
+// PalRunConfiger is an alternative interface with the same semantics as [RunConfiger], using a Pal-prefixed method name
+// so the type can still implement another type's ShouldWaitForRunner without a clash.
 // Prefer [RunConfiger] when method names do not conflict.
-// If both PalRunConfiger and [RunConfiger] are implemented, Pal uses [PalRunConfiger.PalRunConfig] only.
+// If both PalRunConfiger and [RunConfiger] are implemented, Pal uses [PalRunConfiger.PalShouldWaitForRunner] only.
 type PalRunConfiger interface { //nolint:revive
-	PalRunConfig() *RunConfig
+	PalShouldWaitForRunner() bool
 }
 
 // ServiceDef is a definition of a service. In the case of a singleton service, it also holds the instance.
@@ -27,7 +30,12 @@ type ServiceDef interface {
 	HealthChecker
 	Shutdowner
 	Runner
-	RunConfiger
+
+	// ShouldWaitForRunner reports runner scheduling for this service definition.
+	// nil means the service is not a runner; otherwise true = main runner and false = secondary.
+	// Wrappers default to true when the instance implements Runner/PalRunner but not
+	// [RunConfiger]/[PalRunConfiger].
+	ShouldWaitForRunner() *bool
 
 	// Name returns a name of the service, this will be used to identify the service in the container.
 	// The name is typically derived from the interface type the service implements.

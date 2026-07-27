@@ -1,6 +1,6 @@
 module github.com/zhulik/pal/cmd/pal
 
-go 1.26.1
+go 1.26.4
 
 require (
 	github.com/charmbracelet/huh v1.0.0

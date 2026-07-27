@@ -47,10 +47,8 @@ func (i *Inspect) Init(_ context.Context) error {
 	return nil
 }
 
-func (i *Inspect) RunConfig() *pal.RunConfig {
-	return &pal.RunConfig{
-		Wait: false,
-	}
+func (i *Inspect) ShouldWaitForRunner() bool {
+	return false
 }
 
 func (i *Inspect) Run(ctx context.Context) error {

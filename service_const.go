@@ -14,18 +14,13 @@ type ServiceConst[T any] struct {
 	instance T
 }
 
-func (c *ServiceConst[T]) RunConfig() *RunConfig {
-	if cfg := palOrStandardRunConfig(any(c.instance)); cfg != nil {
-		return cfg
+func (c *ServiceConst[T]) ShouldWaitForRunner() *bool {
+	if wait, ok := palOrStandardShouldWaitForRunner(any(c.instance)); ok {
+		return new(wait)
 	}
-
-	if _, ok := any(c.instance).(PalRunner); ok {
-		return defaultRunConfig
+	if instanceImplementsRunner(any(c.instance)) {
+		return new(true)
 	}
-	if _, ok := any(c.instance).(Runner); ok {
-		return defaultRunConfig
-	}
-
 	return nil
 }
 

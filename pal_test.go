@@ -235,7 +235,7 @@ func TestPal_Run(t *testing.T) {
 
 		service := pal.ProvideFn[*RunnerServiceStruct](func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
@@ -305,7 +305,7 @@ func TestPal_Run(t *testing.T) {
 		// Create a runner that will return an error
 		errorRunnerService := pal.ProvideFn[MainRunner](func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest)
 			return s, nil
 		})
@@ -313,7 +313,7 @@ func TestPal_Run(t *testing.T) {
 		// Create a normal runner
 		runnerService := pal.ProvideFn[*RunnerServiceStruct](func(_ context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})

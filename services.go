@@ -166,16 +166,26 @@ func flattenServices(services []ServiceDef) []ServiceDef {
 	return result
 }
 
-// palOrStandardRunConfig returns scheduling config from a service instance when it implements
-// [PalRunConfiger] or [RunConfiger]; otherwise nil.
-func palOrStandardRunConfig(instance any) *RunConfig {
+// palOrStandardShouldWaitForRunner returns the wait flag from a service instance when it implements
+// [PalRunConfiger] or [RunConfiger]; otherwise ok is false.
+func palOrStandardShouldWaitForRunner(instance any) (wait bool, ok bool) {
 	if pc, ok := instance.(PalRunConfiger); ok {
-		return pc.PalRunConfig()
+		return pc.PalShouldWaitForRunner(), true
 	}
 	if c, ok := instance.(RunConfiger); ok {
-		return c.RunConfig()
+		return c.ShouldWaitForRunner(), true
 	}
-	return nil
+	return false, false
+}
+
+func instanceImplementsRunner(instance any) bool {
+	if _, ok := instance.(PalRunner); ok {
+		return true
+	}
+	if _, ok := instance.(Runner); ok {
+		return true
+	}
+	return false
 }
 
 func getRunners(services []ServiceDef) ([]ServiceDef, []ServiceDef) {
@@ -183,14 +193,12 @@ func getRunners(services []ServiceDef) ([]ServiceDef, []ServiceDef) {
 	secondaryRunners := []ServiceDef{}
 
 	for _, service := range services {
-		runCfg := service.RunConfig()
-
-		// run config is nil if the service is not a runner
-		if runCfg == nil {
+		wait := service.ShouldWaitForRunner()
+		if wait == nil {
 			continue
 		}
 
-		if runCfg.Wait {
+		if *wait {
 			mainRunners = append(mainRunners, service)
 		} else {
 			secondaryRunners = append(secondaryRunners, service)

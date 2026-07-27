@@ -33,7 +33,7 @@ func (c *ServiceTyped[T]) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func (c *ServiceTyped[T]) RunConfig() *RunConfig {
+func (c *ServiceTyped[T]) ShouldWaitForRunner() *bool {
 	return nil
 }
 
