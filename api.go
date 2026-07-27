@@ -152,7 +152,7 @@ func ProvideNamedFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](
 func ProvidePal(pal *Pal) ServiceDef {
 	services := make([]ServiceDef, 0, len(pal.Services()))
 	for _, v := range pal.Services() {
-		if v.Name() != "*github.com/zhulik/pal.Pal" {
+		if v.Name() != palServiceName() {
 			services = append(services, v)
 		}
 	}
