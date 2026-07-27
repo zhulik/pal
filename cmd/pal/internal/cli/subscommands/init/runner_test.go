@@ -181,6 +181,7 @@ func TestOptions_Args(t *testing.T) {
 	require.Equal(t, []string{"example.com/app"}, initcmd.Options{Module: "example.com/app", Git: true}.Args())
 	require.Equal(t, []string{"example.com/app", "-d", "./app"}, initcmd.Options{Module: "example.com/app", Directory: "./app", Git: true}.Args())
 	require.Equal(t, []string{"example.com/app", "--template", "other"}, initcmd.Options{Module: "example.com/app", Template: "other", Git: true}.Args())
+	require.Equal(t, []string{"example.com/app", "--description", "My app"}, initcmd.Options{Module: "example.com/app", Description: "My app", Git: true}.Args())
 }
 
 //nolint:paralleltest // t.Setenv cannot be combined with t.Parallel

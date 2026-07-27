@@ -68,6 +68,7 @@ Wire `Command.Version` on the root to `version.String()`. `-v` / `--version` use
 - Wizard library: **charmbracelet/huh**.
 - Go module path is a positional argument (`pal init github.com/user/app`), not a flag. Required in non-interactive mode. When provided on the CLI, the wizard skips the module step.
 - Project template is `--template` (default `cli`). The wizard asks unless `--template` was **explicitly** set on the CLI (`cmd.IsSet`); the flag default alone does not skip the step.
+- Project description is `--description`. Empty / omitted means unset: the wizard asks, and an empty value (CLI or wizard) is replaced with `//TODO: add description` before apply. A non-empty value skips the wizard step. The value is passed through `templates.Data.Description` into README, AGENTS.md, the PR template, and other docs.
 - `--no-git` skips the git wizard step when explicitly set; otherwise the wizard asks (default yes).
 - **`--directory` / `-d`** is a path override (CLI-only, not a Step — same class as `--no-interactive`). Applies to both interactive and non-interactive modes. Empty/omitted means the process cwd. The target must be missing or an existing **empty** directory (`ErrNotEmpty` otherwise; no `--force`).
 
@@ -84,7 +85,7 @@ Init never mutates the target until the project is fully built:
 
 Do not write into an existing empty target (or cwd) in place — that left half-inits when a later step failed. Staging + promote is the only write path.
 
-Pass the full `Options` from the CLI into `RunWizard` — never reseed with a partial struct (e.g. only `Module`). Steps that track “explicitly set on CLI” use `IsSet` flags on `Options` (`TemplateSet`, `GitSet`) so flag defaults do not suppress prompts.
+Pass the full `Options` from the CLI into `RunWizard` — never reseed with a partial struct (e.g. only `Module`). Steps that track “explicitly set on CLI” use `IsSet` flags on `Options` (`TemplateSet`, `GitSet`) so flag defaults do not suppress prompts. Description is different: a non-empty `Options.Description` skips the step; empty is filled with the default after the wizard (or in non-interactive mode) before apply.
 
 ## Step registry (keep CLI ↔ wizard in sync)
 
@@ -95,8 +96,8 @@ Each init concern is a `Step` owning both a CLI input (flag **or** positional ar
 | Kind | Pattern | Examples |
 |------|---------|----------|
 | Registry file | `wizard_steps.go` | `Step` interface + `Steps()` |
-| Step file | `wizard_step_<concern>.go` | `wizard_step_module.go`, `wizard_step_git.go`, `wizard_step_template.go` |
-| Step type | `wizardStep<Concern>` | `wizardStepModule`, `wizardStepGit`, `wizardStepTemplate` |
+| Step file | `wizard_step_<concern>.go` | `wizard_step_module.go`, `wizard_step_description.go`, `wizard_step_git.go`, `wizard_step_template.go` |
+| Step type | `wizardStep<Concern>` | `wizardStepModule`, `wizardStepDescription`, `wizardStepGit`, `wizardStepTemplate` |
 
 Do not name step files after the concern alone (`module.go`, `git.go`) — that collides with runner helpers and hides that the type is a wizard/CLI step. Related backend helpers for a concern (e.g. `initGit`, `applyTemplate`) may live in the same `wizard_step_*.go` file.
 
@@ -151,6 +152,7 @@ These names are **frozen** — extend by adding, do not rename without a deliber
 | Mode flag | `--no-interactive` |
 | Path flag | `--directory` / `-d` |
 | Template flag | `--template` (default / id `cli`) |
+| Description flag | `--description` (empty → `//TODO: add description`) |
 | Git flag | `--no-git` |
 | Module input | positional `MODULE` |
 | Templating | Go `text/template` + `templates.Data` fields only |

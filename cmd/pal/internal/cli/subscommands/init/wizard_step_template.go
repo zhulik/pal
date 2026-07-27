@@ -62,9 +62,11 @@ func applyTemplate(dir string, opts Options) error {
 	if name == "" {
 		name = defaultTemplate
 	}
+	desc := descriptionOrDefault(opts.Description)
 	if err := templates.Apply(dir, name, templates.Data{
-		Package: templates.PackageName(opts.Module),
-		Module:  opts.Module,
+		Package:     templates.PackageName(opts.Module),
+		Module:      opts.Module,
+		Description: desc,
 	}); err != nil {
 		return fmt.Errorf("apply template %q: %w", name, err)
 	}

@@ -42,6 +42,7 @@ func (r *runner) Run(ctx context.Context) error {
 			return err
 		}
 	}
+	opts.Description = descriptionOrDefault(opts.Description)
 
 	if opts.Module == "" {
 		return ErrModuleRequired

@@ -24,6 +24,10 @@ type Options struct {
 	Git bool
 	// GitSet is true when --no-git was explicitly passed on the CLI.
 	GitSet bool
+	// Description is a short project blurb for README, AGENTS.md, and other
+	// docs. Empty means unset (wizard asks; apply falls back to
+	// "//TODO: add description"). A non-empty value skips the wizard step.
+	Description string
 }
 
 // Args returns the CLI arguments equivalent to the project options
@@ -38,6 +42,9 @@ func (o Options) Args() []string {
 	}
 	if o.Template != "" && o.Template != defaultTemplate {
 		args = append(args, "--"+flagTemplate, o.Template)
+	}
+	if o.Description != "" && o.Description != defaultDescription {
+		args = append(args, "--"+flagDescription, o.Description)
 	}
 	if !o.Git {
 		args = append(args, "--"+flagNoGit)
@@ -55,5 +62,6 @@ func OptionsFromCommand(cmd *cli.Command) Options {
 		TemplateSet:   cmd.IsSet(flagTemplate),
 		Git:           !cmd.Bool(flagNoGit),
 		GitSet:        cmd.IsSet(flagNoGit),
+		Description:   cmd.String(flagDescription),
 	}
 }
