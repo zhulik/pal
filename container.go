@@ -253,7 +253,7 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 	for _, service := range c.graph.TopologicalOrder() {
 		wg.Go(func() error {
 			// Do not check pal again, this leads to recursion
-			if service.Name() == "*github.com/zhulik/pal.Pal" {
+			if service.Name() == palServiceName() {
 				return nil
 			}
 

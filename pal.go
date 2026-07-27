@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	typetostring "github.com/samber/go-type-to-string"
 )
 
 // contextKey is used for context value keys to avoid collisions.
@@ -56,6 +58,10 @@ func New(services ...ServiceDef) *Pal {
 	pal.container = NewContainer(pal, services...)
 
 	return pal
+}
+
+func palServiceName() string {
+	return typetostring.GetType[*Pal]()
 }
 
 // FromContext retrieves a *Pal from the provided context.
