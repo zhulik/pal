@@ -28,11 +28,14 @@ func ProvideNamed[T any](name string, value T) Hookable[T] {
 }
 
 // ProvideFn registers a singleton built with a given function.
+// After the function returns, Pal injects dependencies into the instance and calls
+// [Initer] / [PalIniter] unless a ToInit hook is set (same pipeline as [Provide]).
 func ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) Hookable[T] {
 	return ProvideNamedFn[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideNamedFn registers a singleton built with a given function under a custom name.
+// Lifecycle matches [ProvideFn]: create → inject → ToInit / PalInit / Init.
 func ProvideNamedFn[I any, T any](name string, fn func(ctx context.Context) (T, error)) Hookable[T] {
 	validateFactoryFunction[I, T](fn)
 
