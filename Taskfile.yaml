@@ -8,22 +8,27 @@ tasks:
 
   generate:
     desc: Generate code
+    run: once
     cmds:
       - go generate ./...
 
   check:
+    desc: Generate, lint, and test (CI entrypoint)
     deps:
       - lint
       - test
 
   test:
-    desc: Run library and CLI tests
+    desc: Run library tests
+    deps:
+      - generate
     cmds:
       - go test -race ./... -test.timeout=3s -count=1
-      - task -d cmd/pal test
 
   cover:
     desc: Run tests with cover report
+    deps:
+      - generate
     cmds:
       - mkdir -p coverage/
       - go test -coverpkg=./... -coverprofile=coverage/cover.out ./... -test.timeout=2s
@@ -31,11 +36,15 @@ tasks:
 
   lint:
     desc: Run golangci-lint
+    deps:
+      - generate
     cmds:
       - golangci-lint run
 
   lint-fix:
     desc: Run golangci-lint with auto-fix
+    deps:
+      - generate
     cmds:
       - golangci-lint run --fix
 

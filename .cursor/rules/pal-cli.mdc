@@ -192,7 +192,7 @@ Success-path init coverage lives in [`cmd/pal/internal/cli/init_integration_test
 - Each scaffold name must have an entry in `templateValidators`; adding `scaffolds/<name>/` without a validator fails the suite.
 - Negative paths stay in `init` package unit tests (`runner_test.go`, etc.).
 - Process exit codes: [`cmd/pal/internal/cli/exit_test.go`](cmd/pal/internal/cli/exit_test.go) drives the built binary and asserts success → `0`, representative failures → `1`.
-- No build tags / special runners: `cd cmd/pal && go test ./...` (Taskfile timeout ≥ 5m). Root `go test ./...` does not see the nested module; root `task test` and CI `test-cli` recurse into `cmd/pal`.
+- No build tags / special runners: `cd cmd/pal && go test ./...` (Taskfile timeout ≥ 5m). Root `go test ./...` does not see the nested module; use `task -d cmd/pal check` (or `cd cmd/pal && task check`) for the CLI. CI is split: `.github/workflows/ci-pal.yaml` (library, `paths-ignore: cmd/pal/**`) and `.github/workflows/ci-pal-cli.yaml` (CLI paths only). Both install tools via asdf (`.tool-versions`) and run `task check` — no `setup-go` / `golangci-lint-action`.
 
 ## Adding a subcommand
 

@@ -1,0 +1,57 @@
+name: CI pal
+
+on:
+  push:
+    paths-ignore:
+      - 'cmd/pal/**'
+      - '.github/workflows/ci-pal-cli.yaml'
+  pull_request:
+    paths-ignore:
+      - 'cmd/pal/**'
+      - '.github/workflows/ci-pal-cli.yaml'
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup asdf
+        uses: ./.github/actions/setup-asdf
+        with:
+          cache-prefix: pal
+          go-cache-key: ${{ hashFiles('go.sum', '.tool-versions') }}
+          golangci-cache-key: ${{ hashFiles('.golangci.yaml', 'go.sum', '.tool-versions') }}
+
+      - name: Check
+        run: task check
+
+      - name: Coverage
+        run: task cover
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          files: coverage/cover.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Lint markdown docs
+        uses: DavidAnson/markdownlint-cli2-action@v23
+        with:
+          globs: |
+            README.md
+            examples/**/*.md
+
+      - name: Spellcheck docs
+        uses: codespell-project/actions-codespell@v2
+        with:
+          path: README.md examples
+          check_filenames: true
+          ignore_words_file: .codespell-ignore-words.txt
