@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zhulik/pal/pkg/dag"
+	"github.com/zhulik/pal/internal/dag"
 )
 
 func TestNew(t *testing.T) {

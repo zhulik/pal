@@ -2,7 +2,6 @@ package inspect
 
 import (
 	"github.com/zhulik/pal"
-	"github.com/zhulik/pal/pkg/dag"
 )
 
 // DAGJSON is an alias of [pal.TreeJSON] kept for compatibility.
@@ -16,6 +15,6 @@ type EdgeJSON = pal.TreeEdgeJSON
 
 // DAGToJSON encodes a dependency DAG as JSON.
 // Advanced: prefer [pal.Pal.TreeJSON] when working from a running Pal instance.
-func DAGToJSON(d *dag.DAG[string, pal.ServiceDef]) ([]byte, error) {
+func DAGToJSON(d *pal.ServiceGraph) ([]byte, error) {
 	return pal.GraphToJSON(d)
 }
