@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup asdf
+        uses: asdf-vm/actions/setup@v4
+
+      - name: Add asdf plugins
+        run: |
+          asdf plugin add golang || true
+          asdf plugin add golangci-lint || true
+          asdf plugin add task || true
+
+      - name: Install asdf tools
+        run: asdf install
+
+      - name: Check
+        run: task check

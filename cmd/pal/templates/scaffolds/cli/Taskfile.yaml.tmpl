@@ -7,6 +7,12 @@ tasks:
       - task: lint
       - task: test
 
+  check:
+    desc: Lint and test (CI entrypoint)
+    deps:
+      - lint
+      - test
+
   test:
     desc: Run tests
     cmds:

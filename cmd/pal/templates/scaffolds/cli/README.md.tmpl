@@ -1,5 +1,7 @@
 # {{.Package}}
 
+{{.Description}}
+
 CLI application scaffolded with [pal](https://github.com/zhulik/pal), a Go
 dependency-injection and lifecycle toolkit.
 
@@ -27,8 +29,7 @@ task run
 ## Develop
 
 ```bash
-task test
-task lint
+task check
 ```
 
 Coverage HTML report:
@@ -45,6 +46,10 @@ task cover
 ├── internal/
 │   ├── core/              # shared interfaces
 │   └── greeter/           # sample greeter service
+├── .github/
+│   ├── workflows/ci.yaml  # asdf + task check
+│   └── pull_request_template.md
+├── AGENTS.md              # agent / contributor conventions
 ├── Taskfile.yaml          # test, lint, run
 ├── .golangci.yaml         # linter config
 └── .gitignore
