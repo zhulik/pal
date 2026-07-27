@@ -22,7 +22,7 @@ jobs:
       run:
         working-directory: cmd/pal
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup asdf
         uses: ./.github/actions/setup-asdf
