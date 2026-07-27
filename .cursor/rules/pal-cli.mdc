@@ -136,6 +136,8 @@ templates/scaffolds/cli/.gitignore.tmpl                →  .gitignore
 
 Do not invent a second templating dialect (e.g. cookiecutter, custom `{{name}}` tokens). Extend `templates.Data` when new fields are needed, and keep path + content rendering on `text/template`. Do not add scaffold files without the `.tmpl` suffix.
 
+**`cli` scaffold shape:** demonstrate interface-based DI, not a bare long-running runner. Layout is `cmd/{{.Package}}` (entrypoint) + `internal/core` (shared interfaces) + `internal/greeter` (`Provide()` returning `pal.Provide[core.Greeter](…)`). The runner injects `core.Greeter` and `*slog.Logger`, implements `pal.Initer` / `Runner` / `Shutdowner` (with compile-time `_ pal.X = (*runner)(nil)` checks), and `Run` prints a greeting then returns — it does **not** block on `<-ctx.Done()`. Keep README layout/docs in sync with that tree and one-shot Run behavior.
+
 ## Frozen public surface
 
 These names are **frozen** — extend by adding, do not rename without a deliberate breaking-change decision:

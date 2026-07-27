@@ -58,12 +58,15 @@ func TestApplyCLI(t *testing.T) {
 	require.Contains(t, string(data), "package main")
 	require.Contains(t, string(data), "Package main is the myapp CLI entrypoint")
 	require.Contains(t, string(data), "pal.Initer")
+	require.Contains(t, string(data), "core.Greeter")
+	require.Contains(t, string(data), "greeter.Provide()")
+	require.Contains(t, string(data), `r.Greeter.SayHello("World")`)
 	require.Contains(t, string(data), `"myapp initializing"`)
 	require.Contains(t, string(data), `"myapp running"`)
 	require.Contains(t, string(data), `"myapp shutting down"`)
-	require.Contains(t, string(data), "<-ctx.Done()")
 	require.Contains(t, string(data), "//nolint:unparam")
 	require.NotContains(t, string(data), "{{.Package}}")
+	require.NotContains(t, string(data), "{{ .Module }}")
 
 	for _, rel := range []string{
 		"README.md",
@@ -71,12 +74,21 @@ func TestApplyCLI(t *testing.T) {
 		"Taskfile.yaml",
 		".golangci.yaml",
 		".tool-versions",
+		"internal/core/interfaces.go",
+		"internal/greeter/greeter.go",
+		"internal/greeter/services.go",
 	} {
 		path := filepath.Join(dir, rel)
 		_, err := os.Stat(path)
 		require.NoError(t, err, "expected scaffold file %s", rel)
 		require.False(t, strings.HasSuffix(path, ".tmpl"))
 	}
+
+	greeterServices, err := os.ReadFile(filepath.Join(dir, "internal", "greeter", "services.go"))
+	require.NoError(t, err)
+	require.Contains(t, string(greeterServices), "pal.Provide[core.Greeter]")
+	require.Contains(t, string(greeterServices), "example.com/myapp/internal/core")
+	require.NotContains(t, string(greeterServices), "{{.")
 
 	toolVersions, err := os.ReadFile(filepath.Join(dir, ".tool-versions"))
 	require.NoError(t, err)

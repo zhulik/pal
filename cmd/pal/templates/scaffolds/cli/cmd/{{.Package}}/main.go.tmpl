@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/zhulik/pal"
+
+	"{{ .Module }}/internal/core"
+	"{{ .Module }}/internal/greeter"
 )
 
 var (
@@ -18,7 +21,8 @@ var (
 )
 
 type runner struct {
-	Logger *slog.Logger
+	Greeter core.Greeter
+	Logger  *slog.Logger
 }
 
 //nolint:unparam // demo Init always succeeds
@@ -27,10 +31,10 @@ func (r *runner) Init(_ context.Context) error {
 	return nil
 }
 
-//nolint:unparam // demo Run waits for cancel then succeeds
-func (r *runner) Run(ctx context.Context) error {
+//nolint:unparam // demo Run prints a message from the greeter service
+func (r *runner) Run(_ context.Context) error {
 	r.Logger.Info("{{.Package}} running")
-	<-ctx.Done()
+	r.Logger.Info("{{.Package}} message", "message", r.Greeter.SayHello("World"))
 	return nil
 }
 
@@ -43,6 +47,7 @@ func (r *runner) Shutdown(_ context.Context) error {
 func main() {
 	p := pal.New(
 		pal.Provide(&runner{}),
+		greeter.Provide(),
 	).
 		InjectSlog().
 		InitTimeout(time.Second).

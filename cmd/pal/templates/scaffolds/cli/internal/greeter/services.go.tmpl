@@ -1,0 +1,11 @@
+package greeter
+
+import (
+	"github.com/zhulik/pal"
+
+	"{{ .Module }}/internal/core"
+)
+
+func Provide() pal.ServiceDef {
+	return pal.Provide[core.Greeter](&Greeter{})
+}

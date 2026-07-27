@@ -41,13 +41,16 @@ task cover
 
 ```
 .
-├── cmd/{{.Package}}/   # application entrypoint
-├── Taskfile.yaml       # test, lint, run
-├── .golangci.yaml      # linter config
+├── cmd/{{.Package}}/      # application entrypoint
+├── internal/
+│   ├── core/              # shared interfaces
+│   └── greeter/           # sample greeter service
+├── Taskfile.yaml          # test, lint, run
+├── .golangci.yaml         # linter config
 └── .gitignore
 ```
 
-The entrypoint wires a service with `Init` / `Run` / `Shutdown` logging, slog
-injection, and standard init / health-check / shutdown timeouts. `Run` blocks
-until the process is interrupted. Extend it by providing more services to
-`pal.New` and injecting them into your runner.
+The entrypoint wires a runner and a greeter service with `Init` / `Run` /
+`Shutdown` logging, slog injection, and standard timeouts. `Run` prints a
+greeting from the injected greeter and exits. Extend it by providing more
+services to `pal.New` and injecting them into your runner.
