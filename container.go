@@ -82,7 +82,11 @@ func (c *Container) Init(ctx context.Context) error {
 	}
 
 	for _, service := range c.graph.ReverseTopologicalOrder() {
-		if err := service.Init(ctx); err != nil {
+		initer, ok := service.(serviceIniter)
+		if !ok {
+			continue
+		}
+		if err := initer.Init(ctx); err != nil {
 			c.logger.Error("Failed to initialize container", "error", err)
 			return err
 		}
@@ -222,8 +226,11 @@ func (c *Container) Shutdown(ctx context.Context) error {
 	c.logger.Debug("Shutting down all runners")
 
 	for _, service := range c.graph.TopologicalOrder() {
-		err := service.Shutdown(ctx)
-		if err != nil {
+		shutdowner, ok := service.(serviceShutdowner)
+		if !ok {
+			continue
+		}
+		if err := shutdowner.Shutdown(ctx); err != nil {
 			c.logger.Error("Failed to shutdown service. Exiting immediately", "service", service.Name(), "error", err)
 			return err
 		}
@@ -245,12 +252,12 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 				return nil
 			}
 
-			err := service.HealthCheck(ctx)
-			if err != nil {
-				return err
+			healthChecker, ok := service.(serviceHealthChecker)
+			if !ok {
+				return nil
 			}
 
-			return nil
+			return healthChecker.HealthCheck(ctx)
 		})
 	}
 

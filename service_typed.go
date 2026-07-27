@@ -1,35 +1,11 @@
 package pal
 
-import (
-	"context"
-)
-
 type ServiceTyped[T any] struct {
 	P    *Pal
 	name string
 }
 
 func (c *ServiceTyped[T]) Dependencies() []ServiceDef {
-	return nil
-}
-
-// Run is a no-op for factory services as they don't run in the background.
-func (c *ServiceTyped[T]) Run(_ context.Context) error {
-	return nil
-}
-
-// Init is a no-op for factory services as they are created on demand.
-func (c *ServiceTyped[T]) Init(_ context.Context) error {
-	return nil
-}
-
-// HealthCheck is a no-op for factory services as they are created on demand.
-func (c *ServiceTyped[T]) HealthCheck(_ context.Context) error {
-	return nil
-}
-
-// Shutdown is a no-op for factory services as they are created on demand.
-func (c *ServiceTyped[T]) Shutdown(_ context.Context) error {
 	return nil
 }
 
