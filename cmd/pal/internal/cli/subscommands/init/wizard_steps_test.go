@@ -14,6 +14,7 @@ const (
 	flagDirectory     = "directory"
 	flagNoGit         = "no-git"
 	flagTemplate      = "template"
+	flagDescription   = "description"
 	argModule         = "module"
 	defaultTemplate   = "cli"
 )
@@ -197,6 +198,46 @@ func TestSteps_TemplateFieldListsEmbeddedTemplates(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, field)
 	require.Equal(t, defaultTemplate, opts.Template)
+}
+
+func TestSteps_DescriptionFlag(t *testing.T) {
+	t.Parallel()
+
+	step := stepByFlag(t, flagDescription)
+	stringFlag, ok := step.Flag().(*cli.StringFlag)
+	require.True(t, ok)
+	require.Equal(t, flagDescription, stringFlag.Name)
+	require.Empty(t, stringFlag.Value)
+	require.Nil(t, step.Argument())
+}
+
+func TestSteps_DescriptionApplicable(t *testing.T) {
+	t.Parallel()
+
+	step := stepByFlag(t, flagDescription)
+	dir := t.TempDir()
+	require.True(t, step.Applicable(&initcmd.Options{}, dir))
+	require.True(t, step.Applicable(&initcmd.Options{Description: ""}, dir))
+	require.False(t, step.Applicable(&initcmd.Options{Description: "x"}, dir))
+}
+
+func TestSteps_DescriptionDoesNotAbort(t *testing.T) {
+	t.Parallel()
+
+	step := stepByFlag(t, flagDescription)
+	require.False(t, step.Abort(&initcmd.Options{}))
+	require.False(t, step.Abort(&initcmd.Options{Description: "x"}))
+}
+
+func TestSteps_DescriptionField(t *testing.T) {
+	t.Parallel()
+
+	step := stepByFlag(t, flagDescription)
+	opts := &initcmd.Options{}
+	field, err := step.Field(opts)
+	require.NoError(t, err)
+	require.NotNil(t, field)
+	require.Empty(t, opts.Description)
 }
 
 func stepByFlag(t *testing.T, name string) initcmd.Step {

@@ -1,0 +1,38 @@
+# {{.Package}}
+
+{{.Description}}
+
+Module: `{{.Module}}`
+
+## Agent guidelines
+
+Follow these conventions when changing this repository.
+
+### Testing
+
+- Put tests in external `*_test` packages (`package foo_test`), not the same
+  package as production code. For `package main`, use `package main_test`.
+- Prefer [testify](https://github.com/stretchr/testify) assertions
+  (`require` / `assert`) over hand-rolled checks.
+- Prefer `require` when a failed assertion should stop the test immediately;
+  use `assert` when later checks should still run.
+- Name test files `*_test.go` next to the code under test.
+- Prefer table-driven tests when covering multiple similar cases.
+- Use `t.Parallel()` when the test does not share mutable process state
+  (and never combine it with `t.Setenv`).
+
+### Layout
+
+- Application entrypoint: `cmd/{{.Package}}`
+- Shared interfaces: `internal/core`
+- Concrete services: `internal/<name>` with a `Provide()` that returns
+  `pal.Provide[…](…)`
+
+### Commands
+
+```bash
+task check   # lint + test (CI entrypoint)
+task test
+task lint
+task run
+```

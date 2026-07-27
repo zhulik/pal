@@ -34,6 +34,9 @@ type Data struct {
 	Package string
 	// Module is the full Go module path (e.g. github.com/user/app).
 	Module string
+	// Description is a short project description for README, AGENTS.md, and
+	// other docs.
+	Description string
 }
 
 // Exists reports whether name is a known project template directory under FS.

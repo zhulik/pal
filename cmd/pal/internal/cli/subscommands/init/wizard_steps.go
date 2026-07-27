@@ -29,6 +29,7 @@ type Step interface {
 func Steps() []Step {
 	return []Step{
 		wizardStepModule{},
+		wizardStepDescription{},
 		wizardStepTemplate{},
 		wizardStepGit{},
 	}

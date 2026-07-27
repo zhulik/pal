@@ -47,8 +47,9 @@ func TestApplyCLI(t *testing.T) {
 
 	dir := t.TempDir()
 	err := templates.Apply(dir, "cli", templates.Data{
-		Package: "myapp",
-		Module:  "example.com/myapp",
+		Package:     "myapp",
+		Module:      "example.com/myapp",
+		Description: "A sample CLI app.",
 	})
 	require.NoError(t, err)
 
@@ -70,10 +71,13 @@ func TestApplyCLI(t *testing.T) {
 
 	for _, rel := range []string{
 		"README.md",
+		"AGENTS.md",
 		".gitignore",
 		"Taskfile.yaml",
 		".golangci.yaml",
 		".tool-versions",
+		".github/workflows/ci.yaml",
+		".github/pull_request_template.md",
 		"internal/core/interfaces.go",
 		"internal/greeter/greeter.go",
 		"internal/greeter/services.go",
@@ -99,13 +103,35 @@ func TestApplyCLI(t *testing.T) {
 	readme, err := os.ReadFile(filepath.Join(dir, "README.md"))
 	require.NoError(t, err)
 	require.Contains(t, string(readme), "# myapp")
+	require.Contains(t, string(readme), "A sample CLI app.")
 	require.Contains(t, string(readme), "example.com/myapp")
 	require.Contains(t, string(readme), "go run ./cmd/myapp")
 	require.NotContains(t, string(readme), "{{.")
 
+	agents, err := os.ReadFile(filepath.Join(dir, "AGENTS.md"))
+	require.NoError(t, err)
+	require.Contains(t, string(agents), "# myapp")
+	require.Contains(t, string(agents), "A sample CLI app.")
+	require.Contains(t, string(agents), "package foo_test")
+	require.Contains(t, string(agents), "testify")
+	require.NotContains(t, string(agents), "{{.")
+
+	prTemplate, err := os.ReadFile(filepath.Join(dir, ".github", "pull_request_template.md"))
+	require.NoError(t, err)
+	require.Contains(t, string(prTemplate), "A sample CLI app.")
+	require.Contains(t, string(prTemplate), "task check")
+	require.NotContains(t, string(prTemplate), "{{.")
+
+	ci, err := os.ReadFile(filepath.Join(dir, ".github", "workflows", "ci.yaml"))
+	require.NoError(t, err)
+	require.Contains(t, string(ci), "asdf-vm/actions/setup")
+	require.Contains(t, string(ci), "asdf install")
+	require.Contains(t, string(ci), "task check")
+
 	taskfile, err := os.ReadFile(filepath.Join(dir, "Taskfile.yaml"))
 	require.NoError(t, err)
 	require.Contains(t, string(taskfile), "go run ./cmd/myapp")
+	require.Contains(t, string(taskfile), "check:")
 	require.NotContains(t, string(taskfile), "{{.")
 }
 
@@ -133,8 +159,9 @@ func TestCLIScaffoldREADMEGoVersion(t *testing.T) {
 
 	dir := t.TempDir()
 	require.NoError(t, templates.Apply(dir, "cli", templates.Data{
-		Package: "myapp",
-		Module:  "example.com/myapp",
+		Package:     "myapp",
+		Module:      "example.com/myapp",
+		Description: "A sample CLI app.",
 	}))
 	readme, err := os.ReadFile(filepath.Join(dir, "README.md"))
 	require.NoError(t, err)
