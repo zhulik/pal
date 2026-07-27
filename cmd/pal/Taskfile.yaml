@@ -12,6 +12,7 @@ tasks:
       - go generate ./...
 
   check:
+    desc: Lint and test (CI entrypoint)
     deps:
       - lint
       - test

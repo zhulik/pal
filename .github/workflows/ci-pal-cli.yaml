@@ -1,0 +1,36 @@
+name: CI pal CLI
+
+on:
+  push:
+    paths:
+      - 'cmd/pal/**'
+      - '.tool-versions'
+      - '.github/workflows/ci-pal-cli.yaml'
+      - '.github/actions/setup-asdf/**'
+  pull_request:
+    paths:
+      - 'cmd/pal/**'
+      - '.tool-versions'
+      - '.github/workflows/ci-pal-cli.yaml'
+      - '.github/actions/setup-asdf/**'
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cmd/pal
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup asdf
+        uses: ./.github/actions/setup-asdf
+        with:
+          cache-prefix: pal-cli
+          go-cache-key: ${{ hashFiles('cmd/pal/go.sum', '.tool-versions') }}
+          golangci-cache-key: ${{ hashFiles('cmd/pal/.golangci.yaml', 'cmd/pal/go.sum', '.tool-versions') }}
+
+      - name: Check
+        working-directory: cmd/pal
+        run: task check

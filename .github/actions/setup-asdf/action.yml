@@ -1,0 +1,66 @@
+name: Setup asdf
+description: Install asdf, add plugins, install .tool-versions tools, restore caches
+
+inputs:
+  cache-prefix:
+    description: Prefix for module-specific cache keys (e.g. pal, pal-cli)
+    required: true
+  go-cache-key:
+    description: Hash key material for Go build/module caches (e.g. hashFiles('go.sum'))
+    required: true
+  golangci-cache-key:
+    description: Hash key material for golangci-lint cache
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup asdf
+      uses: asdf-vm/actions/setup@v4
+
+    - name: Cache asdf plugins and installs
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ env.ASDF_DIR }}/plugins
+          ${{ env.ASDF_DIR }}/installs
+          ${{ env.ASDF_DIR }}/shims
+        key: ${{ runner.os }}-${{ runner.arch }}-asdf-${{ hashFiles('.tool-versions') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-asdf-
+
+    - name: Add asdf plugins
+      shell: bash
+      run: |
+        asdf plugin add golang || true
+        asdf plugin add golangci-lint || true
+        asdf plugin add task || true
+
+    - name: Install asdf tools
+      shell: bash
+      run: asdf install
+
+    - name: Configure cache directories
+      shell: bash
+      run: |
+        echo "GOCACHE=${{ github.workspace }}/.cache/go-build" >> "$GITHUB_ENV"
+        echo "GOMODCACHE=${{ github.workspace }}/.cache/go-mod" >> "$GITHUB_ENV"
+        echo "GOLANGCI_LINT_CACHE=${{ github.workspace }}/.cache/golangci-lint" >> "$GITHUB_ENV"
+
+    - name: Cache Go build and modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/.cache/go-build
+          ${{ github.workspace }}/.cache/go-mod
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-prefix }}-go-${{ inputs.go-cache-key }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-prefix }}-go-
+
+    - name: Cache golangci-lint
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/.cache/golangci-lint
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-prefix }}-golangci-${{ inputs.golangci-cache-key }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-prefix }}-golangci-
