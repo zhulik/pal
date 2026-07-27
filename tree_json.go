@@ -3,8 +3,6 @@ package pal
 import (
 	"encoding/json"
 	"strings"
-
-	"github.com/zhulik/pal/pkg/dag"
 )
 
 // TreeJSON is the JSON shape of a dependency graph (nodes and edges).
@@ -91,8 +89,8 @@ func serviceToTreeNodeJSON(id string, inDegree int, outDegree int, service Servi
 }
 
 // GraphToJSON encodes a dependency DAG as JSON.
-// Advanced: prefer [Pal.TreeJSON] unless you already hold a [dag.DAG].
-func GraphToJSON(d *dag.DAG[string, ServiceDef]) ([]byte, error) {
+// Advanced: prefer [Pal.TreeJSON] unless you already hold a [ServiceGraph].
+func GraphToJSON(d *ServiceGraph) ([]byte, error) {
 	var nodes []TreeNodeJSON
 	var edges []TreeEdgeJSON
 
