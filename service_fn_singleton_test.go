@@ -46,19 +46,19 @@ func (*fnSingletonPalRunner) PalRun(_ context.Context) error {
 }
 
 type fnSingletonRunConfiger struct {
-	cfg *pal.RunConfig
+	wait bool
 }
 
-func (s *fnSingletonRunConfiger) RunConfig() *pal.RunConfig {
-	return s.cfg
+func (s *fnSingletonRunConfiger) ShouldWaitForRunner() bool {
+	return s.wait
 }
 
 type fnSingletonPalRunConfiger struct {
-	cfg *pal.RunConfig
+	wait bool
 }
 
-func (s *fnSingletonPalRunConfiger) PalRunConfig() *pal.RunConfig {
-	return s.cfg
+func (s *fnSingletonPalRunConfiger) PalShouldWaitForRunner() bool {
+	return s.wait
 }
 
 // Implements Runner via Make() template; instance may be nil before Init.
@@ -248,31 +248,31 @@ func TestServiceFnSingleton_Run(t *testing.T) {
 	})
 }
 
-func TestServiceFnSingleton_RunConfig(t *testing.T) {
+func TestServiceFnSingleton_ShouldWaitForRunner(t *testing.T) {
 	t.Parallel()
-
-	custom := &pal.RunConfig{Wait: false}
 
 	t.Run("from instance RunConfiger after Init", func(t *testing.T) {
 		t.Parallel()
 
 		s := pal.ProvideFn[*fnSingletonRunConfiger](func(_ context.Context) (*fnSingletonRunConfiger, error) {
-			return &fnSingletonRunConfiger{cfg: custom}, nil
+			return &fnSingletonRunConfiger{wait: false}, nil
 		})
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
-		assert.Equal(t, custom, s.RunConfig())
+		require.NotNil(t, s.ShouldWaitForRunner())
+		assert.False(t, *s.ShouldWaitForRunner())
 	})
 
 	t.Run("from instance PalRunConfiger after Init", func(t *testing.T) {
 		t.Parallel()
 
 		s := pal.ProvideFn[*fnSingletonPalRunConfiger](func(_ context.Context) (*fnSingletonPalRunConfiger, error) {
-			return &fnSingletonPalRunConfiger{cfg: custom}, nil
+			return &fnSingletonPalRunConfiger{wait: false}, nil
 		})
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
-		assert.Equal(t, custom, s.RunConfig())
+		require.NotNil(t, s.ShouldWaitForRunner())
+		assert.False(t, *s.ShouldWaitForRunner())
 	})
 
 	t.Run("default from Make when instance has no config but Make is Runner", func(t *testing.T) {
@@ -283,9 +283,8 @@ func TestServiceFnSingleton_RunConfig(t *testing.T) {
 		})
 		_ = newPal(s)
 		// before Init, instance is nil *fnSingletonRunnerFromMake; Make still produces a concrete *T
-		cfg := s.RunConfig()
-		require.NotNil(t, cfg)
-		assert.True(t, cfg.Wait)
+		require.NotNil(t, s.ShouldWaitForRunner())
+		assert.True(t, *s.ShouldWaitForRunner())
 	})
 
 	t.Run("default from Make when Make is PalRunner", func(t *testing.T) {
@@ -295,9 +294,8 @@ func TestServiceFnSingleton_RunConfig(t *testing.T) {
 			return nil, nil
 		})
 		_ = newPal(s)
-		cfg := s.RunConfig()
-		require.NotNil(t, cfg)
-		assert.True(t, cfg.Wait)
+		require.NotNil(t, s.ShouldWaitForRunner())
+		assert.True(t, *s.ShouldWaitForRunner())
 	})
 
 	t.Run("nil when no runner template and plain instance after Init", func(t *testing.T) {
@@ -308,7 +306,7 @@ func TestServiceFnSingleton_RunConfig(t *testing.T) {
 		})
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
-		assert.Nil(t, s.RunConfig())
+		assert.Nil(t, s.ShouldWaitForRunner())
 	})
 }
 

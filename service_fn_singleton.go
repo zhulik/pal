@@ -15,18 +15,13 @@ type ServiceFnSingleton[I, T any] struct {
 	instance T
 }
 
-func (c *ServiceFnSingleton[I, T]) RunConfig() *RunConfig {
-	if cfg := palOrStandardRunConfig(any(c.instance)); cfg != nil {
-		return cfg
+func (c *ServiceFnSingleton[I, T]) ShouldWaitForRunner() *bool {
+	if wait, ok := palOrStandardShouldWaitForRunner(any(c.instance)); ok {
+		return new(wait)
 	}
-
-	if _, ok := c.Make().(PalRunner); ok {
-		return defaultRunConfig
+	if instanceImplementsRunner(any(c.instance)) || instanceImplementsRunner(c.Make()) {
+		return new(true)
 	}
-	if _, ok := c.Make().(Runner); ok {
-		return defaultRunConfig
-	}
-
 	return nil
 }
 

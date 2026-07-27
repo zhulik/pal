@@ -12,14 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHealthCheckServer_RunConfig(t *testing.T) {
+func TestHealthCheckServer_ShouldWaitForRunner(t *testing.T) {
 	t.Parallel()
 
 	h := &healthCheckServer{}
-	cfg := h.RunConfig()
-
-	require.NotNil(t, cfg)
-	assert.False(t, cfg.Wait)
+	assert.False(t, h.ShouldWaitForRunner())
 }
 
 func TestHealthCheckServer_Init(t *testing.T) {

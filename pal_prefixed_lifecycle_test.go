@@ -133,14 +133,14 @@ type dualRunConfig struct {
 	palChosen, stdChosen bool
 }
 
-func (d *dualRunConfig) PalRunConfig() *pal.RunConfig {
+func (d *dualRunConfig) PalShouldWaitForRunner() bool {
 	d.palChosen = true
-	return &pal.RunConfig{Wait: true}
+	return true
 }
 
-func (d *dualRunConfig) RunConfig() *pal.RunConfig {
+func (d *dualRunConfig) ShouldWaitForRunner() bool {
 	d.stdChosen = true
-	return &pal.RunConfig{Wait: false}
+	return false
 }
 
 func (d *dualRunConfig) Run(_ context.Context) error {
@@ -152,17 +152,16 @@ func TestPalPrefixed_runConfigPalWinsOverStandard(t *testing.T) {
 
 	d := &dualRunConfig{}
 	svc := pal.Provide(d)
-	cfg := svc.RunConfig()
-	require.NotNil(t, cfg)
-	assert.True(t, cfg.Wait, "PalRunConfig should take precedence over RunConfig")
+	require.NotNil(t, svc.ShouldWaitForRunner())
+	assert.True(t, *svc.ShouldWaitForRunner(), "PalShouldWaitForRunner should take precedence over ShouldWaitForRunner")
 	assert.True(t, d.palChosen)
 	assert.False(t, d.stdChosen)
 }
 
 type palOnlyRunConfig struct{}
 
-func (p *palOnlyRunConfig) PalRunConfig() *pal.RunConfig {
-	return &pal.RunConfig{Wait: false}
+func (p *palOnlyRunConfig) PalShouldWaitForRunner() bool {
+	return false
 }
 
 func (p *palOnlyRunConfig) Run(_ context.Context) error {
@@ -174,9 +173,8 @@ func TestPalPrefixed_palRunConfigOnly(t *testing.T) {
 
 	s := &palOnlyRunConfig{}
 	svc := pal.Provide(s)
-	cfg := svc.RunConfig()
-	require.NotNil(t, cfg)
-	assert.False(t, cfg.Wait)
+	require.NotNil(t, svc.ShouldWaitForRunner())
+	assert.False(t, *svc.ShouldWaitForRunner())
 }
 
 func TestPalPrefixed_ToInitHookOverridesPalInit(t *testing.T) {

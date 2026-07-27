@@ -19,10 +19,8 @@ type healthCheckServer struct {
 	server *http.Server
 }
 
-func (h *healthCheckServer) RunConfig() *RunConfig {
-	return &RunConfig{
-		Wait: false,
-	}
+func (h *healthCheckServer) ShouldWaitForRunner() bool {
+	return false
 }
 
 func (h *healthCheckServer) Init(_ context.Context) error {

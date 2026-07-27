@@ -12,14 +12,12 @@ import (
 	"github.com/zhulik/pal"
 )
 
-func TestServiceRunner_RunConfig(t *testing.T) {
+func TestServiceRunner_ShouldWaitForRunner(t *testing.T) {
 	t.Parallel()
 
 	r := pal.ProvideRunner(func(context.Context) error { return nil })
-	cfg := r.RunConfig()
-
-	require.NotNil(t, cfg)
-	assert.True(t, cfg.Wait)
+	require.NotNil(t, r.ShouldWaitForRunner())
+	assert.True(t, *r.ShouldWaitForRunner())
 }
 
 func TestServiceRunner_Run(t *testing.T) {

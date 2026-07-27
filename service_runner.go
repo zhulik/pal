@@ -14,8 +14,8 @@ type ServiceRunner struct {
 	fn func(ctx context.Context) error
 }
 
-func (c *ServiceRunner) RunConfig() *RunConfig {
-	return defaultRunConfig
+func (c *ServiceRunner) ShouldWaitForRunner() *bool {
+	return new(true)
 }
 
 func (c *ServiceRunner) Run(ctx context.Context) error {

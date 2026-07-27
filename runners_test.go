@@ -19,7 +19,7 @@ func TestRunServices(t *testing.T) {
 
 		secondaryRunner := pal.ProvideFn[*RunnerServiceStruct](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: false})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(false)
 			return s, nil
 		})
 
@@ -35,14 +35,14 @@ func TestRunServices(t *testing.T) {
 
 		mainRunner := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
 
 		secondaryRunner := pal.ProvideFn[*RunnerServiceStruct](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: false})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(false)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
@@ -59,14 +59,14 @@ func TestRunServices(t *testing.T) {
 
 		mainRunner1 := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
 
 		mainRunner2 := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
@@ -85,7 +85,7 @@ func TestRunServices(t *testing.T) {
 
 		mainRunner := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(context.Canceled).Run(func(ctx context.Context) {
 				<-ctx.Done()
 				mainCompleted = true
@@ -95,7 +95,7 @@ func TestRunServices(t *testing.T) {
 
 		secondaryRunner := pal.ProvideFn[*RunnerServiceStruct](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: false})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(false)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest)
 			return s, nil
 		})
@@ -115,14 +115,14 @@ func TestRunServices(t *testing.T) {
 
 		mainRunner := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(nil)
 			return s, nil
 		})
 
 		secondaryRunner := pal.ProvideFn[*RunnerServiceStruct](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: false})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(false)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(context.Canceled).Run(func(ctx context.Context) {
 				<-ctx.Done()
 				secondaryCompleted = true
@@ -145,14 +145,14 @@ func TestRunServices(t *testing.T) {
 
 		mainRunner := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest)
 			return s, nil
 		})
 
 		secondaryRunner := pal.ProvideFn[*RunnerServiceStruct](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: false})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(false)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(context.Canceled).Run(func(ctx context.Context) {
 				<-ctx.Done()
 				secondaryCompleted = true
@@ -173,14 +173,14 @@ func TestRunServices(t *testing.T) {
 
 		mainRunner := pal.ProvideFn[MainRunner](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: true})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(true)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest)
 			return s, nil
 		})
 
 		secondaryRunner := pal.ProvideFn[*RunnerServiceStruct](func(context.Context) (*RunnerServiceStruct, error) {
 			s := NewMockRunnerServiceStruct(t)
-			s.MockRunConfiger.EXPECT().RunConfig().Return(&pal.RunConfig{Wait: false})
+			s.MockRunConfiger.EXPECT().ShouldWaitForRunner().Return(false)
 			s.MockRunner.EXPECT().Run(mock.Anything).Return(errTest2)
 			return s, nil
 		})
