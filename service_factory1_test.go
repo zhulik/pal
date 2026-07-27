@@ -203,7 +203,7 @@ func TestServiceFactory1_FactoryAndMustFactory(t *testing.T) {
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(t.Context()))
 
-		fn := service.Factory().(func(context.Context, string) (*factory1Service, error))
+		fn := service.(*pal.ServiceFactory1[*factory1Service, *factory1Service, string]).Factory().(func(context.Context, string) (*factory1Service, error))
 		_, err := fn(ctx, "x")
 		assert.ErrorIs(t, err, errTest)
 	})
@@ -218,7 +218,7 @@ func TestServiceFactory1_FactoryAndMustFactory(t *testing.T) {
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(t.Context()))
 
-		mustFn := service.MustFactory().(func(context.Context, string) *factory1Service)
+		mustFn := service.(*pal.ServiceFactory1[*factory1Service, *factory1Service, string]).MustFactory().(func(context.Context, string) *factory1Service)
 		assert.PanicsWithValue(t, errTest, func() { mustFn(ctx, "x") })
 	})
 }

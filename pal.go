@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-// ContextKey is a type used for context value keys to avoid collisions.
-type ContextKey int
+// contextKey is used for context value keys to avoid collisions.
+type contextKey int
 
 const (
-	// CtxValue is the key used to store and retrieve the Pal instance from a context.
-	// This allows services to access the Pal instance from a context passed to them.
-	CtxValue ContextKey = iota
+	// ctxValue is the key used to store and retrieve the Pal instance from a context.
+	// Use [WithPal] / [FromContext] rather than the key directly.
+	ctxValue contextKey = iota
 )
 
 // DefaultShutdownSignals is the default signals that will be used to shutdown the app.
@@ -58,9 +58,9 @@ func New(services ...ServiceDef) *Pal {
 	return pal
 }
 
-// FromContext retrieves a *Pal from the provided context, expecting it to be stored under the CtxValue key.
+// FromContext retrieves a *Pal from the provided context.
 func FromContext(ctx context.Context) (*Pal, error) {
-	invoker, ok := ctx.Value(CtxValue).(*Pal)
+	invoker, ok := ctx.Value(ctxValue).(*Pal)
 	if !ok {
 		return nil, ErrInvokerIsNotInContext
 	}
@@ -74,7 +74,7 @@ func MustFromContext(ctx context.Context) *Pal {
 }
 
 func WithPal(ctx context.Context, pal *Pal) context.Context {
-	return context.WithValue(ctx, CtxValue, pal)
+	return context.WithValue(ctx, ctxValue, pal)
 }
 
 // InitTimeout sets the timeout for the initialization of the services.
@@ -217,7 +217,8 @@ func (p *Pal) Run(ctx context.Context, signals ...os.Signal) error {
 }
 
 // Services returns a map of all registered services in the container, keyed by their names.
-// This can be useful for debugging or introspection purposes.
+//
+// Advanced: useful for debugging or introspection; prefer [Invoke] / [InvokeByInterface] for normal resolution.
 func (p *Pal) Services() map[string]ServiceDef {
 	return p.container.Services()
 }
@@ -250,7 +251,8 @@ func (p *Pal) InjectInto(ctx context.Context, target any) error {
 }
 
 // Container returns the underlying Container instance.
-// This can be useful for advanced use cases where direct access to the container is needed.
+//
+// Advanced: for power users who need direct container access; may change more freely than Provide/Pal.
 func (p *Pal) Container() *Container {
 	return p.container
 }

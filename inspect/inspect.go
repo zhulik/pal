@@ -77,7 +77,7 @@ func (i *Inspect) Run(ctx context.Context) error {
 
 func (i *Inspect) httpTreeJSON(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", jsonContentType)
-	json, err := DAGToJSON(i.P.Container().Graph())
+	json, err := i.P.TreeJSON()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

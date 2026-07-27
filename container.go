@@ -26,7 +26,10 @@ type factoryService interface {
 	MustFactory() any
 }
 
-// Container is responsible for storing services, instances and the dependency graph
+// Container is responsible for storing services, instances and the dependency graph.
+//
+// Advanced: prefer [Pal] for normal apps; Container remains exported for power users
+// (custom lifecycles, introspection). May change more freely than Provide/Pal.
 type Container struct {
 	pal *Pal
 
@@ -36,7 +39,9 @@ type Container struct {
 	logger    *slog.Logger
 }
 
-// NewContainer creates a new Container instance
+// NewContainer creates a new Container instance.
+//
+// Advanced: normal apps use [New]; this constructor is for power users.
 func NewContainer(pal *Pal, services ...ServiceDef) *Container {
 	services = flattenServices(services)
 
@@ -147,7 +152,7 @@ func (c *Container) InjectInto(ctx context.Context, target any) error {
 	for i := 0; i < t.NumField(); i++ {
 		field := v.Field(i)
 
-		tags, err := ParseTag(t.Field(i).Tag.Get("pal"))
+		tags, err := parseTag(t.Field(i).Tag.Get("pal"))
 		if err != nil {
 			return err
 		}
@@ -329,7 +334,7 @@ func (c *Container) addDependencyVertex(service ServiceDef, parent ServiceDef) e
 			continue
 		}
 
-		tags, err := ParseTag(field.Tag.Get("pal"))
+		tags, err := parseTag(field.Tag.Get("pal"))
 		if err != nil {
 			return err
 		}

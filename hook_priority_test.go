@@ -52,7 +52,7 @@ func TestHookPriority_ToInit(t *testing.T) {
 
 		hookCalled := false
 		palService := pal.Provide(service).
-			ToInit(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToInit(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				hookCalled = true
 				return nil
 			})
@@ -76,7 +76,7 @@ func TestHookPriority_ToInit(t *testing.T) {
 		service := &HookPriorityTestService{}
 
 		palService := pal.Provide(service).
-			ToInit(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToInit(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				return expectedErr
 			})
 
@@ -113,7 +113,7 @@ func TestHookPriority_ToHealthCheck(t *testing.T) {
 
 		hookCalled := false
 		palService := pal.Provide(service).
-			ToHealthCheck(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToHealthCheck(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				hookCalled = true
 				return nil
 			})
@@ -143,7 +143,7 @@ func TestHookPriority_ToHealthCheck(t *testing.T) {
 		service := &HookPriorityTestService{}
 
 		palService := pal.Provide(service).
-			ToHealthCheck(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToHealthCheck(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				return expectedErr
 			})
 
@@ -190,7 +190,7 @@ func TestHookPriority_ToShutdown(t *testing.T) {
 
 		hookCalled := false
 		palService := pal.Provide(service).
-			ToShutdown(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToShutdown(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				hookCalled = true
 				return nil
 			})
@@ -218,7 +218,7 @@ func TestHookPriority_ToShutdown(t *testing.T) {
 		service := &HookPriorityTestService{}
 
 		palService := pal.Provide(service).
-			ToShutdown(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToShutdown(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				return expectedErr
 			})
 
@@ -266,15 +266,15 @@ func TestHookPriority_MultipleHooks(t *testing.T) {
 		shutdownHookCalled := false
 
 		palService := pal.Provide(service).
-			ToInit(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToInit(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				initHookCalled = true
 				return nil
 			}).
-			ToHealthCheck(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToHealthCheck(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				healthCheckHookCalled = true
 				return nil
 			}).
-			ToShutdown(func(_ context.Context, _ *HookPriorityTestService, _ *pal.Pal) error {
+			ToShutdown(func(_ context.Context, _ *HookPriorityTestService, _ pal.Invoker) error {
 				shutdownHookCalled = true
 				return nil
 			})

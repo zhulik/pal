@@ -10,7 +10,7 @@ import (
 // Provide provides the server service.
 func Provide() pal.ServiceDef {
 	return pal.ProvideList(
-		pal.Provide(&Server{}).ToInit(func(_ context.Context, server *Server, _ *pal.Pal) error {
+		pal.Provide(&Server{}).ToInit(func(_ context.Context, server *Server, _ pal.Invoker) error {
 			defer server.Logger.Info("Server initialized")
 
 			server.server = &http.Server{ //nolint:gosec

@@ -13,27 +13,27 @@ import (
 // - An interface, in this case passed value must implement it. Used when T may have multiple implementations like mocks for tests.
 // - A pointer to an instance of `T`. For instance,`Provide[*Foo](&Foo{})`. Used when mocking is not required.
 // If the passed value implements [Initer] or [PalIniter], the matching init method is called after dependency injection,
-// unless a ToInit hook is set on the returned [ServiceConst] (see [ServiceConst.ToInit]).
-func Provide[T any](value T) *ServiceConst[T] {
+// unless a ToInit hook is set on the returned [Hookable] (see [Hookable.ToInit]).
+func Provide[T any](value T) Hookable[T] {
 	validateNonNilPointer(value)
 
 	return ProvideNamed(typetostring.GetType[T](), value)
 }
 
 // ProvideNamed registers a const as a service with a given name. Acts like Provide but allows to specify a name.
-func ProvideNamed[T any](name string, value T) *ServiceConst[T] {
+func ProvideNamed[T any](name string, value T) Hookable[T] {
 	validateNonNilPointer(value)
 
 	return &ServiceConst[T]{instance: value, ServiceTyped: ServiceTyped[T]{name: name}}
 }
 
 // ProvideFn registers a singleton built with a given function.
-func ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[I, T] {
+func ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) Hookable[T] {
 	return ProvideNamedFn[I](typetostring.GetType[I](), fn)
 }
 
-// ProvideFn registers a singleton built with a given function.
-func ProvideNamedFn[I any, T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFnSingleton[I, T] {
+// ProvideNamedFn registers a singleton built with a given function under a custom name.
+func ProvideNamedFn[I any, T any](name string, fn func(ctx context.Context) (T, error)) Hookable[T] {
 	validateFactoryFunction[I, T](fn)
 
 	return &ServiceFnSingleton[I, T]{
@@ -44,50 +44,50 @@ func ProvideNamedFn[I any, T any](name string, fn func(ctx context.Context) (T, 
 
 // ProvideRunner turns the given function into an anounumous runner. It will run in the background, and the passed context will
 // be canceled on app shutdown.
-func ProvideRunner(fn func(ctx context.Context) error) *ServiceRunner {
+func ProvideRunner(fn func(ctx context.Context) error) ServiceDef {
 	return &ServiceRunner{
 		fn: fn,
 	}
 }
 
 // ProvideList registers a list of given services.
-func ProvideList(services ...ServiceDef) *ServiceList {
+func ProvideList(services ...ServiceDef) ServiceDef {
 	return &ServiceList{Services: services}
 }
 
 // ProvideFactory0 registers a factory service that is build with a given function with no arguments.
-func ProvideFactory0[I any, T any](fn func(ctx context.Context) (T, error)) *ServiceFactory0[I, T] {
+func ProvideFactory0[I any, T any](fn func(ctx context.Context) (T, error)) ServiceDef {
 	return ProvideNamedFactory0[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory1 registers a factory service that is built in runtime with a given function that takes one argument.
-func ProvideFactory1[I any, T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[I, T, P1] {
+func ProvideFactory1[I any, T any, P1 any](fn func(ctx context.Context, p1 P1) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 	return ProvideNamedFactory1[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory2 registers a factory service that is built in runtime with a given function that takes two arguments.
-func ProvideFactory2[I any, T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[I, T, P1, P2] {
+func ProvideFactory2[I any, T any, P1 any, P2 any](fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) ServiceDef {
 	return ProvideNamedFactory2[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory3 registers a factory service that is built in runtime with a given function that takes three arguments.
-func ProvideFactory3[I any, T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[I, T, P1, P2, P3] {
+func ProvideFactory3[I any, T any, P1 any, P2 any, P3 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) ServiceDef {
 	return ProvideNamedFactory3[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory4 registers a factory service that is built in runtime with a given function that takes four arguments.
-func ProvideFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[I, T, P1, P2, P3, P4] {
+func ProvideFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) ServiceDef {
 	return ProvideNamedFactory4[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideFactory5 registers a factory service that is built in runtime with a given function that takes five arguments.
-func ProvideFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[I, T, P1, P2, P3, P4, P5] {
+func ProvideFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) ServiceDef {
 	return ProvideNamedFactory5[I](typetostring.GetType[I](), fn)
 }
 
 // ProvideNamedFactory0 is like ProvideFactory0 but allows to specify a name.
-func ProvideNamedFactory0[I any, T any](name string, fn func(ctx context.Context) (T, error)) *ServiceFactory0[I, T] {
+func ProvideNamedFactory0[I any, T any](name string, fn func(ctx context.Context) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 	return &ServiceFactory0[I, T]{
 		fn:             fn,
@@ -96,7 +96,7 @@ func ProvideNamedFactory0[I any, T any](name string, fn func(ctx context.Context
 }
 
 // ProvideNamedFactory1 is like ProvideFactory1 but allows to specify a name.
-func ProvideNamedFactory1[I any, T any, P1 any](name string, fn func(ctx context.Context, p1 P1) (T, error)) *ServiceFactory1[I, T, P1] {
+func ProvideNamedFactory1[I any, T any, P1 any](name string, fn func(ctx context.Context, p1 P1) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 
 	return &ServiceFactory1[I, T, P1]{
@@ -106,7 +106,7 @@ func ProvideNamedFactory1[I any, T any, P1 any](name string, fn func(ctx context
 }
 
 // ProvideNamedFactory2 is like ProvideFactory2 but allows to specify a name.
-func ProvideNamedFactory2[I any, T any, P1 any, P2 any](name string, fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) *ServiceFactory2[I, T, P1, P2] {
+func ProvideNamedFactory2[I any, T any, P1 any, P2 any](name string, fn func(ctx context.Context, p1 P1, p2 P2) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 
 	return &ServiceFactory2[I, T, P1, P2]{
@@ -116,7 +116,7 @@ func ProvideNamedFactory2[I any, T any, P1 any, P2 any](name string, fn func(ctx
 }
 
 // ProvideNamedFactory3 is like ProvideFactory3 but allows to specify a name.
-func ProvideNamedFactory3[I any, T any, P1 any, P2 any, P3 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) *ServiceFactory3[I, T, P1, P2, P3] {
+func ProvideNamedFactory3[I any, T any, P1 any, P2 any, P3 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 
 	return &ServiceFactory3[I, T, P1, P2, P3]{
@@ -126,7 +126,7 @@ func ProvideNamedFactory3[I any, T any, P1 any, P2 any, P3 any](name string, fn 
 }
 
 // ProvideNamedFactory4 is like ProvideFactory4 but allows to specify a name.
-func ProvideNamedFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) *ServiceFactory4[I, T, P1, P2, P3, P4] {
+func ProvideNamedFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 
 	return &ServiceFactory4[I, T, P1, P2, P3, P4]{
@@ -136,7 +136,7 @@ func ProvideNamedFactory4[I any, T any, P1 any, P2 any, P3 any, P4 any](name str
 }
 
 // ProvideNamedFactory5 is like ProvideFactory5 but allows to specify a name.
-func ProvideNamedFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) *ServiceFactory5[I, T, P1, P2, P3, P4, P5] {
+func ProvideNamedFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](name string, fn func(ctx context.Context, p1 P1, p2 P2, p3 P3, p4 P4, p5 P5) (T, error)) ServiceDef {
 	validateFactoryFunction[I, T](fn)
 
 	return &ServiceFactory5[I, T, P1, P2, P3, P4, P5]{
@@ -146,7 +146,7 @@ func ProvideNamedFactory5[I any, T any, P1 any, P2 any, P3 any, P4 any, P5 any](
 }
 
 // ProvidePal registers all services for the given pal instance
-func ProvidePal(pal *Pal) *ServiceList {
+func ProvidePal(pal *Pal) ServiceDef {
 	services := make([]ServiceDef, 0, len(pal.Services()))
 	for _, v := range pal.Services() {
 		if v.Name() != "*github.com/zhulik/pal.Pal" {

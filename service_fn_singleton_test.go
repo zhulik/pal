@@ -105,7 +105,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 			return nil, errTest
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		err := p.Init(pal.WithPal(t.Context(), p))
 		assert.ErrorIs(t, err, errTest)
@@ -117,7 +117,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		inst := &fnSingletonPalIniter{err: errTest}
 		s := pal.ProvideFn[*fnSingletonPalIniter](func(_ context.Context) (*fnSingletonPalIniter, error) {
 			return inst, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalIniter, *fnSingletonPalIniter])
 		p := newPal(s)
 		err := p.Init(pal.WithPal(t.Context(), p))
 		assert.ErrorIs(t, err, errTest)
@@ -130,7 +130,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		inst := &fnSingletonIniterOnly{err: errTest}
 		s := pal.ProvideFn[*fnSingletonIniterOnly](func(_ context.Context) (*fnSingletonIniterOnly, error) {
 			return inst, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonIniterOnly, *fnSingletonIniterOnly])
 		p := newPal(s)
 		err := p.Init(pal.WithPal(t.Context(), p))
 		assert.ErrorIs(t, err, errTest)
@@ -143,7 +143,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		inst := &fnSingletonBothInit{}
 		s := pal.ProvideFn[*fnSingletonBothInit](func(_ context.Context) (*fnSingletonBothInit, error) {
 			return inst, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonBothInit, *fnSingletonBothInit])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 		assert.True(t, inst.called)
@@ -156,7 +156,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		inst := &fnSingletonPalIniter{}
 		s := pal.ProvideFn[*fnSingletonPalIniter](func(_ context.Context) (*fnSingletonPalIniter, error) {
 			return inst, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalIniter, *fnSingletonPalIniter])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 		assert.True(t, inst.called)
@@ -168,7 +168,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 		inst := &fnSingletonIniterOnly{}
 		s := pal.ProvideFn[*fnSingletonIniterOnly](func(_ context.Context) (*fnSingletonIniterOnly, error) {
 			return inst, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonIniterOnly, *fnSingletonIniterOnly])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 		assert.True(t, inst.called)
@@ -179,7 +179,7 @@ func TestServiceFnSingleton_Init(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 			return &fnSingletonPlain{N: 42}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 	})
@@ -191,7 +191,7 @@ func TestServiceFnSingleton_Instance(t *testing.T) {
 	inst := &fnSingletonPlain{N: 7}
 	s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 		return inst, nil
-	})
+	}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 	p := newPal(s)
 	ctx := pal.WithPal(t.Context(), p)
 	require.NoError(t, p.Init(ctx))
@@ -213,7 +213,7 @@ func TestServiceFnSingleton_Run(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 			return &fnSingletonPlain{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(ctx))
@@ -228,7 +228,7 @@ func TestServiceFnSingleton_Run(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonRunner](func(_ context.Context) (*fnSingletonRunner, error) {
 			return &fnSingletonRunner{MockRunner: mr}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonRunner, *fnSingletonRunner])
 		p := newPal(s)
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(ctx))
@@ -240,7 +240,7 @@ func TestServiceFnSingleton_Run(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPalRunner](func(_ context.Context) (*fnSingletonPalRunner, error) {
 			return &fnSingletonPalRunner{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalRunner, *fnSingletonPalRunner])
 		p := newPal(s)
 		ctx := pal.WithPal(t.Context(), p)
 		require.NoError(t, p.Init(ctx))
@@ -256,7 +256,7 @@ func TestServiceFnSingleton_ShouldWaitForRunner(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonRunConfiger](func(_ context.Context) (*fnSingletonRunConfiger, error) {
 			return &fnSingletonRunConfiger{wait: false}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonRunConfiger, *fnSingletonRunConfiger])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 		require.NotNil(t, s.ShouldWaitForRunner())
@@ -268,7 +268,7 @@ func TestServiceFnSingleton_ShouldWaitForRunner(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPalRunConfiger](func(_ context.Context) (*fnSingletonPalRunConfiger, error) {
 			return &fnSingletonPalRunConfiger{wait: false}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalRunConfiger, *fnSingletonPalRunConfiger])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 		require.NotNil(t, s.ShouldWaitForRunner())
@@ -280,7 +280,7 @@ func TestServiceFnSingleton_ShouldWaitForRunner(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonRunnerFromMake](func(_ context.Context) (*fnSingletonRunnerFromMake, error) {
 			return nil, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonRunnerFromMake, *fnSingletonRunnerFromMake])
 		_ = newPal(s)
 		// before Init, instance is nil *fnSingletonRunnerFromMake; Make still produces a concrete *T
 		require.NotNil(t, s.ShouldWaitForRunner())
@@ -292,7 +292,7 @@ func TestServiceFnSingleton_ShouldWaitForRunner(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPalRunnerFromMake](func(_ context.Context) (*fnSingletonPalRunnerFromMake, error) {
 			return nil, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalRunnerFromMake, *fnSingletonPalRunnerFromMake])
 		_ = newPal(s)
 		require.NotNil(t, s.ShouldWaitForRunner())
 		assert.True(t, *s.ShouldWaitForRunner())
@@ -303,7 +303,7 @@ func TestServiceFnSingleton_ShouldWaitForRunner(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 			return &fnSingletonPlain{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(t.Context(), p)))
 		assert.Nil(t, s.ShouldWaitForRunner())
@@ -322,7 +322,8 @@ func TestServiceFnSingleton_HealthCheck(t *testing.T) {
 		hookCalled := false
 		s := pal.ProvideFn[*fnSingletonPalHealth](func(_ context.Context) (*fnSingletonPalHealth, error) {
 			return inst, nil
-		}).ToHealthCheck(func(_ context.Context, got *fnSingletonPalHealth, _ *pal.Pal) error {
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalHealth, *fnSingletonPalHealth])
+		s.ToHealthCheck(func(_ context.Context, got *fnSingletonPalHealth, _ pal.Invoker) error {
 			hookCalled = true
 			assert.Same(t, inst, got)
 			return errTest
@@ -340,7 +341,7 @@ func TestServiceFnSingleton_HealthCheck(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPalHealth](func(_ context.Context) (*fnSingletonPalHealth, error) {
 			return &fnSingletonPalHealth{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalHealth, *fnSingletonPalHealth])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(ctx, p)))
 		assert.ErrorIs(t, s.HealthCheck(pal.WithPal(ctx, p)), errTest)
@@ -354,7 +355,7 @@ func TestServiceFnSingleton_HealthCheck(t *testing.T) {
 			out.MockIniter.EXPECT().Init(mock.Anything).Return(nil)
 			out.MockHealthChecker.EXPECT().HealthCheck(mock.Anything).Return(errTest)
 			return out, nil
-		})
+		}).(*pal.ServiceFnSingleton[*TestServiceStruct, *TestServiceStruct])
 		p := newPal(s)
 		wrapped := pal.WithPal(ctx, p)
 		require.NoError(t, p.Init(wrapped))
@@ -366,7 +367,7 @@ func TestServiceFnSingleton_HealthCheck(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 			return &fnSingletonPlain{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		wrapped := pal.WithPal(ctx, p)
 		require.NoError(t, p.Init(wrapped))
@@ -386,7 +387,8 @@ func TestServiceFnSingleton_Shutdown(t *testing.T) {
 		hookCalled := false
 		s := pal.ProvideFn[*fnSingletonPalShutdown](func(_ context.Context) (*fnSingletonPalShutdown, error) {
 			return inst, nil
-		}).ToShutdown(func(_ context.Context, got *fnSingletonPalShutdown, _ *pal.Pal) error {
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalShutdown, *fnSingletonPalShutdown])
+		s.ToShutdown(func(_ context.Context, got *fnSingletonPalShutdown, _ pal.Invoker) error {
 			hookCalled = true
 			assert.Same(t, inst, got)
 			return errTest
@@ -404,7 +406,7 @@ func TestServiceFnSingleton_Shutdown(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPalShutdown](func(_ context.Context) (*fnSingletonPalShutdown, error) {
 			return &fnSingletonPalShutdown{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPalShutdown, *fnSingletonPalShutdown])
 		p := newPal(s)
 		require.NoError(t, p.Init(pal.WithPal(ctx, p)))
 		assert.ErrorIs(t, s.Shutdown(pal.WithPal(ctx, p)), errTest2)
@@ -418,7 +420,7 @@ func TestServiceFnSingleton_Shutdown(t *testing.T) {
 			out.MockIniter.EXPECT().Init(mock.Anything).Return(nil)
 			out.MockShutdowner.EXPECT().Shutdown(mock.Anything).Return(errTest)
 			return out, nil
-		})
+		}).(*pal.ServiceFnSingleton[*TestServiceStruct, *TestServiceStruct])
 		p := newPal(s)
 		wrapped := pal.WithPal(ctx, p)
 		require.NoError(t, p.Init(wrapped))
@@ -430,7 +432,7 @@ func TestServiceFnSingleton_Shutdown(t *testing.T) {
 
 		s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 			return &fnSingletonPlain{}, nil
-		})
+		}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
 		p := newPal(s)
 		wrapped := pal.WithPal(ctx, p)
 		require.NoError(t, p.Init(wrapped))
@@ -443,13 +445,13 @@ func TestServiceFnSingleton_ToShutdown_ToHealthCheck_returnSelf(t *testing.T) {
 
 	s := pal.ProvideFn[*fnSingletonPlain](func(_ context.Context) (*fnSingletonPlain, error) {
 		return &fnSingletonPlain{}, nil
-	})
-	s2 := s.ToShutdown(func(_ context.Context, _ *fnSingletonPlain, _ *pal.Pal) error {
+	}).(*pal.ServiceFnSingleton[*fnSingletonPlain, *fnSingletonPlain])
+	s2 := s.ToShutdown(func(_ context.Context, _ *fnSingletonPlain, _ pal.Invoker) error {
 		return nil
 	})
 	assert.Same(t, s, s2)
 
-	s3 := s.ToHealthCheck(func(_ context.Context, _ *fnSingletonPlain, _ *pal.Pal) error {
+	s3 := s.ToHealthCheck(func(_ context.Context, _ *fnSingletonPlain, _ pal.Invoker) error {
 		return nil
 	})
 	assert.Same(t, s, s3)

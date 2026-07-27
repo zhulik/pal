@@ -17,6 +17,8 @@ var ErrNoMainRunners = errors.New("no main runners found")
 // It returns ErrNoMainRunners if no main runners among the services.
 // if any of the runners fail, the error is returned and and all other runners are stopped
 // by cancelling the context passed to them.
+//
+// Advanced: [Pal.Run] already schedules runners; use RunServices for custom run loops.
 func RunServices(ctx context.Context, services []ServiceDef) error {
 	mainRunners, secondaryRunners := getRunners(services)
 

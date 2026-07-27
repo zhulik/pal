@@ -1,113 +1,21 @@
 package inspect
 
 import (
-	"encoding/json"
-	"strings"
-
 	"github.com/zhulik/pal"
 	"github.com/zhulik/pal/pkg/dag"
 )
 
-type DAGJSON struct {
-	Nodes []NodeJSON `json:"nodes"`
-	Edges []EdgeJSON `json:"edges"`
-}
+// DAGJSON is an alias of [pal.TreeJSON] kept for compatibility.
+type DAGJSON = pal.TreeJSON
 
-type NodeJSON struct {
-	ID        string `json:"id"`
-	Label     string `json:"label"`
-	InDegree  int    `json:"inDegree"`
-	OutDegree int    `json:"outDegree"`
+// NodeJSON is an alias of [pal.TreeNodeJSON] kept for compatibility.
+type NodeJSON = pal.TreeNodeJSON
 
-	Initer        bool `json:"initer"`
-	Runner        bool `json:"runner"`
-	RunConfiger   bool `json:"runConfiger"`
-	HealthChecker bool `json:"healthChecker"`
-	Shutdowner    bool `json:"shutdowner"`
-}
+// EdgeJSON is an alias of [pal.TreeEdgeJSON] kept for compatibility.
+type EdgeJSON = pal.TreeEdgeJSON
 
-type EdgeJSON struct {
-	From string `json:"from"`
-	To   string `json:"to"`
-}
-
-func serviceToJSON(id string, inDegree int, outDegree int, service pal.ServiceDef) NodeJSON {
-	var initer, runner, runConfiger, healthChecker, shutdowner bool
-
-	if _, ok := service.Make().(pal.PalIniter); ok {
-		initer = true
-	} else if _, ok := service.Make().(pal.Initer); ok {
-		initer = true
-	}
-
-	if _, ok := service.Make().(pal.PalRunner); ok {
-		runner = true
-	} else if _, ok := service.Make().(pal.Runner); ok {
-		runner = true
-	}
-
-	if _, ok := service.Make().(pal.PalRunConfiger); ok {
-		runConfiger = true
-	} else if _, ok := service.Make().(pal.RunConfiger); ok {
-		runConfiger = true
-	}
-
-	if _, ok := service.Make().(pal.PalHealthChecker); ok {
-		healthChecker = true
-	} else if _, ok := service.Make().(pal.HealthChecker); ok {
-		healthChecker = true
-	}
-
-	if _, ok := service.Make().(pal.PalShutdowner); ok {
-		shutdowner = true
-	} else if _, ok := service.Make().(pal.Shutdowner); ok {
-		shutdowner = true
-	}
-
-	idParts := strings.Split(id, "/")
-	label := idParts[len(idParts)-1]
-
-	if strings.HasPrefix(id, "*") {
-		label = "*" + label
-	}
-
-	return NodeJSON{
-		ID:        id,
-		Label:     label,
-		InDegree:  inDegree,
-		OutDegree: outDegree,
-
-		Initer:        initer,
-		Runner:        runner,
-		RunConfiger:   runConfiger,
-		HealthChecker: healthChecker,
-		Shutdowner:    shutdowner,
-	}
-}
-
+// DAGToJSON encodes a dependency DAG as JSON.
+// Advanced: prefer [pal.Pal.TreeJSON] when working from a running Pal instance.
 func DAGToJSON(d *dag.DAG[string, pal.ServiceDef]) ([]byte, error) {
-	var nodes []NodeJSON
-	var edges []EdgeJSON
-
-	// Convert all vertices to NodeJSON
-	for id, service := range d.Vertices() {
-		nodes = append(nodes, serviceToJSON(id, d.GetInDegree(id), len(d.Edges()[id]), service))
-	}
-
-	// Convert all edges to EdgeJSON
-	for from, targets := range d.Edges() {
-		for to := range targets {
-			edges = append(edges, EdgeJSON{
-				From: from,
-				To:   to,
-			})
-		}
-	}
-
-	dagJSON := DAGJSON{
-		Nodes: nodes,
-		Edges: edges,
-	}
-
-	return json.Marshal(dagJSON)
+	return pal.GraphToJSON(d)
 }

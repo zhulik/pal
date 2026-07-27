@@ -6,11 +6,13 @@ import (
 
 // ServiceFnSingleton is a singleton service that is created using a function.
 // It is created during initialization and reused for the lifetime of the application.
+//
+// Advanced: prefer [ProvideFn] / [Hookable] for normal registration; this type remains exported for power users.
 type ServiceFnSingleton[I, T any] struct {
 	ServiceFactory[I, T]
 	fn func(ctx context.Context) (T, error)
 
-	hooks LifecycleHooks[T]
+	hooks lifecycleHooks[T]
 
 	instance T
 }
@@ -31,10 +33,23 @@ func (c *ServiceFnSingleton[I, T]) Run(ctx context.Context) error {
 }
 
 // Init initializes the service by calling the provided function to create the instance.
+// If a ToInit hook is set, it runs instead of [PalIniter] / [Initer] on the instance.
 func (c *ServiceFnSingleton[I, T]) Init(ctx context.Context) error {
 	instance, err := c.fn(ctx)
 	if err != nil {
 		return err
+	}
+
+	logger := c.P.logger.With("service", c.Name())
+
+	if c.hooks.Init != nil {
+		logger.Debug("Calling ToInit hook")
+		if err := c.hooks.Init(ctx, instance, c.P); err != nil {
+			logger.Error("Init hook failed", "error", err)
+			return err
+		}
+		c.instance = instance
+		return nil
 	}
 
 	if pi, ok := any(instance).(PalIniter); ok {
@@ -67,16 +82,23 @@ func (c *ServiceFnSingleton[I, T]) Instance(_ context.Context, _ ...any) (any, e
 	return c.instance, nil
 }
 
+// ToInit registers a hook called after the factory function creates the instance.
+// If the service implements [PalIniter] or [Initer], those methods are not called; the hook has higher priority.
+func (c *ServiceFnSingleton[I, T]) ToInit(hook LifecycleHook[T]) Hookable[T] {
+	c.hooks.Init = hook
+	return c
+}
+
 // ToShutdown registers a hook called during shutdown. If the service implements [PalShutdowner] or [Shutdowner],
 // those methods are not called; the hook has higher priority.
-func (c *ServiceFnSingleton[I, T]) ToShutdown(hook LifecycleHook[T]) *ServiceFnSingleton[I, T] {
+func (c *ServiceFnSingleton[I, T]) ToShutdown(hook LifecycleHook[T]) Hookable[T] {
 	c.hooks.Shutdown = hook
 	return c
 }
 
 // ToHealthCheck registers a hook function that will be called to perform a health check on the service.
 // If the service implements [PalHealthChecker] or [HealthChecker], those health check methods are not called; the hook has higher priority.
-func (c *ServiceFnSingleton[I, T]) ToHealthCheck(hook LifecycleHook[T]) *ServiceFnSingleton[I, T] {
+func (c *ServiceFnSingleton[I, T]) ToHealthCheck(hook LifecycleHook[T]) Hookable[T] {
 	c.hooks.HealthCheck = hook
 	return c
 }

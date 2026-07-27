@@ -39,7 +39,7 @@ a few rules described below.
     rather than conflict.
 
 - Testability:
-  - Pal provides tools to simplify testing, such as the ability to register mock services using ProvideConst.
+  - Pal provides tools to simplify testing, such as the ability to register mock services using Provide.
   - The container design allows for easy swapping of real implementations with test doubles.
   - Services can be tested in isolation by creating a test container with only the necessary dependencies.
 
@@ -76,7 +76,7 @@ a few rules described below.
 - [Dependency Injection](https://en.wikipedia.org/wiki/Dependency_injection) — specific implementation of the Inversion
   of Control pattern where objects receive their dependencies through constructor arguments, method calls, or property
   setters rather than creating them themselves.
-- Container — a registry of services within the app. It is responsible for managing service lifecycle.
+- Container — a registry of services within the app (used internally by Pal; also available for advanced use).
 - Service — is an interface that defines a set of methods or operations. Concrete implementations of these services are
   responsible for providing specific functionalities within the application. Services can perform tasks on their own or
   can be used by other services. Pal recognizes a few types of services:
@@ -102,13 +102,14 @@ a few rules described below.
 
 ## API Functions
 
-Pal provides several functions for registering services:
+Pal provides several functions for registering services. They return interfaces (`Hookable` or `ServiceDef`) so the default path stays implementation-agnostic:
 
-- `Provide[T any](value T)` - Registers an instance of service.
-- `ProvideFn[T any](fn func(ctx context.Context) (T, error))` - Registers a singleton service created using the provided function.
-- `ProvideFactory{0-5}[I any, T any, {0-5}P any](fn func(ctx context.Context, {0-5}P args) (T, error)))` - Registers a factory service created using the provided function with given amount of arguments.
-- `ProvideList(...ServiceDef)` - Registers multiple services at once, useful when splitting apps into modules, see [example](./examples/web)
-- There are also `Named` versions of `Provide` functions, they can be used along with `name` tag and `Named` versions `Invoke` functions if you want to give your services explicit names.
+- `Provide[T any](value T) Hookable[T]` - Registers an instance of a service; chain `ToInit` / `ToShutdown` / `ToHealthCheck` as needed.
+- `ProvideFn[I any, T any](fn func(ctx context.Context) (T, error)) Hookable[T]` - Registers a singleton built with the provided function.
+- `ProvideFactory{0-5}[...](...) ServiceDef` - Registers a factory service created with the provided function (0–5 args).
+- `ProvideRunner(fn) ServiceDef` - Registers an anonymous background runner.
+- `ProvideList(...ServiceDef) ServiceDef` - Registers multiple services at once, useful when splitting apps into modules, see [example](./examples/web)
+- There are also `Named` versions of `Provide` functions, they can be used along with `name` tag and `Named` versions of `Invoke` functions if you want to give your services explicit names.
 
 Pal also provides functions for retrieving services:
 
@@ -122,8 +123,7 @@ Pal also provides functions for retrieving services:
 - There are `Named` versions of `Invoke` functions that allow retrieving services by their explicit names.
 
 All these functions accept nil as invoker, in this case, a Pal instance will be extracted from the context.
-Pal automatically adds itself into contexts passed to `Init`, `Shutdown`, and `Run` under the `pal.CtxValue` key.
-You can extract it manually with `pal.FromContext`
+Pal automatically stores itself in contexts passed to `Init`, `Shutdown`, and `Run`. Use `pal.FromContext` / `pal.WithPal` to read or write it.
 
 ## Service Types
 
@@ -146,7 +146,7 @@ Singleton services are created once during application initialization and reused
 pal.Provide[MyService](&MyServiceImpl{})
 
 // Register a singleton service using a factory function
-pal.ProvideFn[MyService](func(ctx context.Context) (MyServiceImpl, error) {
+pal.ProvideFn[MyService](func(ctx context.Context) (*MyServiceImpl, error) {
     return &MyServiceImpl{}, nil
 })
 ```
@@ -214,9 +214,9 @@ Const services wrap existing instances. They are useful for:
 **Registration:**
 
 ```go
-// Register a const service
+// Register an existing instance
 existingInstance := &MyServiceImpl{}
-pal.ProvideConst[MyService](existingInstance)
+pal.Provide[MyService](existingInstance)
 ```
 
 ### Runner Services
@@ -272,27 +272,30 @@ lifecycle management code closer to the resources it manages.
 Hooks can be used with any service type and provide a flexible way to add lifecycle behavior:
 
 ```go
-// With const services
-pal.ProvideConst[MyService](existingInstance).
-    ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+// With Provide (const / instance services)
+pal.Provide[MyService](existingInstance).
+    ToInit(func(ctx context.Context, service MyService, invoker pal.Invoker) error {
         // Custom initialization logic
         return service.Connect()
     }).
-    ToShutdown(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+    ToShutdown(func(ctx context.Context, service MyService, invoker pal.Invoker) error {
         // Custom shutdown logic
         return service.Disconnect()
     }).
-    ToHealthCheck(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+    ToHealthCheck(func(ctx context.Context, service MyService, invoker pal.Invoker) error {
         // Custom health check logic
         return service.Ping()
     })
 
-// With function-based services
+// With ProvideFn
 pal.ProvideFn[MyService](func(ctx context.Context) (*MyServiceImpl, error) {
     return &MyServiceImpl{}, nil
 }).
-    ToInit(func(ctx context.Context, service MyService, pal *pal.Pal) error {
+    ToInit(func(ctx context.Context, service *MyServiceImpl, invoker pal.Invoker) error {
         return service.Initialize()
+    }).
+    ToShutdown(func(ctx context.Context, service *MyServiceImpl, invoker pal.Invoker) error {
+        return service.Disconnect()
     })
 ```
 
@@ -302,6 +305,17 @@ Examples can be found here:
 
 - [example_container_test.go](./example_container_test.go)
 - [example_pal_test.go](./example_pal_test.go)
+
+## Advanced / hackable API
+
+The default path is `Provide*` → `New` → `Run` / `Invoke*`. For power users, these remain exported and may change more freely than the primary API:
+
+- Concrete wrappers: `ServiceConst`, `ServiceFnSingleton`, `ServiceFactory0`–`5`, `ServiceRunner`, `ServiceList`, `ServiceTyped`
+- `Container`, `NewContainer`, `Pal.Container()`, `Pal.Services()`, `RunServices`
+- Dependency graph: `Pal.TreeJSON()`, `GraphToJSON`, [`pkg/dag`](./pkg/dag)
+- Inspect helpers that take a raw DAG (`inspect.DAGToJSON`)
+
+Prefer the interface returns from `Provide*` unless you need to type-assert or construct these types deliberately.
 
 ## Example apps
 
@@ -398,7 +412,7 @@ To get the most out of Pal, follow these best practices:
    - Design services as small, focused components with a single responsibility.
    - Use interfaces to define service contracts, especially for services that might have multiple implementations.
    - Implement the optional lifecycle interfaces ([Initer](./lifecycle_interfaces.go#L39), [Shutdowner](./lifecycle_interfaces.go#L20), [HealthChecker](./lifecycle_interfaces.go#L5), or the [Pal-prefixed](./lifecycle_interfaces.go#L66) alternatives when names clash) when appropriate.
-   - Use `ProvideConst` and `ProvideFn*` functions with `ToShutdown` hook to register services without dedicated
+   - Use `Provide` and `ProvideFn` with `ToShutdown` hooks to register services without dedicated
      interfaces and struct wrappers.
 
 2. **Dependency Management**:
@@ -413,7 +427,7 @@ To get the most out of Pal, follow these best practices:
 
 4. **Testing**:
    - Create mock implementations of your service interfaces for testing.
-   - Use `ProvideConst` to register mock services in your tests.
+   - Use `Provide` to register mock services in your tests.
    - Test each service in isolation before testing them together.
 
 5. **Application Structure**:
