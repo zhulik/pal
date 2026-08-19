@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/zhulik/pal/pkg/dag"
+	"github.com/zhulik/pal/internal/dag"
 )
 
 type factoryServiceMaping struct {
@@ -291,9 +291,9 @@ func (c *Container) StartRunners(ctx context.Context) error {
 	return RunServices(ctx, services)
 }
 
-// Graph returns the dependency graph of services.
-// This can be useful for visualization or analysis of the service dependencies.
-func (c *Container) Graph() *dag.DAG[string, ServiceDef] {
+// Graph returns the live dependency graph of services.
+// This can be useful for visualization, analysis, or advanced mutation via DAG methods.
+func (c *Container) Graph() *ServiceGraph {
 	return c.graph
 }
 
