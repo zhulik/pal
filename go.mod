@@ -6,7 +6,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/samber/go-type-to-string v1.8.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.24.0
 )
 
 require (
